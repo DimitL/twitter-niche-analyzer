@@ -8,6 +8,7 @@
     "shared"
   ],
   "scripts": {
+    "browsers:install": "npm run browsers:install -w backend",
     "dev": "npm run build -w shared && concurrently -n shared,frontend,backend -c magenta,blue,green \"npm run dev -w shared\" \"npm run dev -w frontend\" \"npm run dev -w backend\"",
     "dev:frontend": "npm run dev -w frontend",
     "dev:backend": "npm run dev -w backend",

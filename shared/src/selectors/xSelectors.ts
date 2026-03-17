@@ -1,4 +1,14 @@
 export const xSelectors = {
+  navigation: {
+    appShell: 'main[role="main"]',
+    primaryColumn: 'div[data-testid="primaryColumn"]',
+    profileHeader: 'div[data-testid="UserName"]',
+    tweetArticle: 'article[data-testid="tweet"]',
+    loginLink: 'a[href*="/i/flow/login"]',
+    sideNav: 'nav[aria-label="Primary"]',
+    progressBar: '[role="progressbar"]',
+    errorDetail: '[data-testid="error-detail"]'
+  },
   auth: {
     usernameInput: 'input[autocomplete="username"]',
     passwordInput: 'input[name="password"]',
