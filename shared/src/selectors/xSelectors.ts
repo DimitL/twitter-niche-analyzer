@@ -34,9 +34,16 @@ export const xSelectors = {
   post: {
     shellArticle: 'article[data-testid="tweet"]',
     authorShellBlock: 'div[data-testid="User-Name"]',
+    authorProfileLink: 'a[href^="/"]',
+    authorTextSpan: "span",
     contentContainerShell:
       '[data-testid="tweetText"], [data-testid="tweetPhoto"], [data-testid="videoPlayer"], div[lang]',
     actionBarShell: 'div[role="group"]',
+    canonicalTweetLink: 'a[href*="/status/"]',
+    publishedTime: "time",
+    tweetText: '[data-testid="tweetText"]',
+    tweetLanguageNode: "[lang]",
+    tweetLanguageNodeFallback: 'div[lang]',
     replyThreadArticleShell: 'div[data-testid="primaryColumn"] article[data-testid="tweet"]',
     likeButton: 'button[data-testid="like"]',
     replyButton: 'button[data-testid="reply"]',

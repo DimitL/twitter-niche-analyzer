@@ -13,6 +13,7 @@
 - X-specific bootstrap слой для безопасной навигации по публичным страницам X
 - public X profile shell diagnostic слой для проверки каркаса публичного профиля
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
+- public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - централизованная точка для будущих X/Twitter selectors
 - централизованная точка для будущей логики оценки ниш
 
@@ -28,6 +29,7 @@
 │   │   ├── config
 │   │   │   ├── browserConfig.ts
 │   │   │   ├── xNavigationConfig.ts
+│   │   │   ├── xTweetFieldsConfig.ts
 │   │   │   ├── xProfileShellConfig.ts
 │   │   │   └── xTweetShellConfig.ts
 │   │   ├── index.ts
@@ -37,10 +39,13 @@
 │   │   │   ├── index.ts
 │   │   │   ├── xBootstrap.ts
 │   │   │   ├── xProfileShell.ts
+│   │   │   ├── xTweetFields.ts
 │   │   │   └── xTweetShell.ts
 │   │   └── services
 │   │       ├── browserBootstrapService.ts
 │   │       ├── mockAnalysisService.ts
+│   │       ├── xTweetFieldsService.ts
+│   │       ├── xTweetPageShellService.ts
 │   │       ├── xBootstrapService.ts
 │   │       ├── xProfileShellService.ts
 │   │       └── xTweetShellService.ts
@@ -113,6 +118,7 @@ http://localhost:3001/api/analysis
 http://localhost:3001/api/browser/x-bootstrap-test
 http://localhost:3001/api/browser/x-profile-shell-test
 http://localhost:3001/api/browser/x-tweet-shell-test
+http://localhost:3001/api/browser/x-tweet-fields-test
 ```
 
 ## Доступные команды
@@ -156,6 +162,9 @@ X_TWEET_SHELL_WAIT_STRATEGY=load
 X_TWEET_SHELL_MARKER_TIMEOUT_MS=3500
 X_TWEET_SHELL_RETRY_COUNT=2
 X_TWEET_SHELL_RETRY_DELAY_MS=1200
+X_TWEET_FIELDS_DEFAULT_URL=
+X_TWEET_FIELDS_WAIT_STRATEGY=load
+X_TWEET_FIELDS_EXTRACTION_TIMEOUT_MS=2500
 X_AUTH_SESSION_ENABLED=false
 X_AUTH_STORAGE_STATE_PATH=
 X_LOGIN_EMAIL=
@@ -326,10 +335,66 @@ curl -G "http://localhost:3001/api/browser/x-tweet-shell-test" \
 - маршрут не парсит replies, thread content или profile details
 - маршрут не выполняет login automation
 
+## Как проверить X tweet fields
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить backend:
+
+```bash
+npm run dev:backend
+```
+
+4. Проверить извлечение верхнеуровневых полей одиночного твита:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-tweet-fields-test" \
+  --data-urlencode "targetUrl=https://x.com/<handle>/status/<tweet_id>" \
+  --data-urlencode "waitStrategy=load"
+```
+
+Что вернётся:
+- `navigationSucceeded`
+- `extractionSucceeded`
+- `finalUrl`
+- `pageTitle`
+- `detectedFields`
+- `missingFields`
+- `extractedData`
+- `timings`
+- `error`
+- `notes`
+
+Что именно извлекается:
+- `tweetUrl`
+- `tweetId`
+- `authorHandle`
+- `authorDisplayName`
+- `publishedAt`
+- `tweetText`
+- `language`
+
+Ограничения текущего шага:
+- маршрут принимает только публичный tweet URL формата `/handle/status/id`
+- маршрут извлекает только верхнеуровневые поля одиночного твита
+- маршрут не извлекает like/repost/reply/bookmark/view counts
+- маршрут не парсит replies, thread structure или расширенные author profile details
+- маршрут не выполняет login automation
+
 ## Что строить следующим
 
-1. Добавить изолированный top-level tweet field extraction для страницы одиночного твита без metrics и без reply parsing.
-2. Затем перейти к безопасному profile field extraction только после стабилизации profile shell и tweet shell.
+1. Добавить изолированный engagement metrics extraction для страницы одиночного публичного твита без reply parsing и без thread parsing.
+2. Затем перейти к безопасному profile field extraction только после стабилизации profile shell, tweet shell и tweet field extraction.
 3. После этого переходить к account extraction и post extraction отдельными шагами.
 4. Потом заменять mock scoring на реальный multi-signal niche scoring.
 5. И только затем добавлять сохранение запусков и финальный отчёт по топ-10 нишам.
