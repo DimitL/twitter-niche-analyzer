@@ -3,6 +3,7 @@ import { registerAnalysisRoutes } from "./analysis.js";
 import { registerHealthRoutes } from "./health.js";
 import { registerXBootstrapRoutes } from "./xBootstrap.js";
 import { registerXTweetFieldsRoutes } from "./xTweetFields.js";
+import { registerXTweetMetricsRoutes } from "./xTweetMetrics.js";
 import { registerXProfileShellRoutes } from "./xProfileShell.js";
 import { registerXTweetShellRoutes } from "./xTweetShell.js";
 
@@ -12,5 +13,6 @@ export async function registerRoutes(app: FastifyInstance) {
   await registerXProfileShellRoutes(app);
   await registerXTweetShellRoutes(app);
   await registerXTweetFieldsRoutes(app);
+  await registerXTweetMetricsRoutes(app);
   await registerAnalysisRoutes(app);
 }

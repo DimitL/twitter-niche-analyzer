@@ -39,6 +39,7 @@ export const xSelectors = {
     contentContainerShell:
       '[data-testid="tweetText"], [data-testid="tweetPhoto"], [data-testid="videoPlayer"], div[lang]',
     actionBarShell: 'div[role="group"]',
+    metricValueText: 'span[data-testid="app-text-transition-container"]',
     canonicalTweetLink: 'a[href*="/status/"]',
     publishedTime: "time",
     tweetText: '[data-testid="tweetText"]',
@@ -46,6 +47,7 @@ export const xSelectors = {
     tweetLanguageNodeFallback: 'div[lang]',
     replyThreadArticleShell: 'div[data-testid="primaryColumn"] article[data-testid="tweet"]',
     likeButton: 'button[data-testid="like"]',
+    bookmarkButton: 'button[data-testid="bookmark"]',
     replyButton: 'button[data-testid="reply"]',
     repostButton: 'button[data-testid="retweet"]',
     viewLink: 'a[href$="/analytics"]'

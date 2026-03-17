@@ -14,6 +14,7 @@
 - public X profile shell diagnostic слой для проверки каркаса публичного профиля
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
+- public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
 - централизованная точка для будущих X/Twitter selectors
 - централизованная точка для будущей логики оценки ниш
 
@@ -30,6 +31,7 @@
 │   │   │   ├── browserConfig.ts
 │   │   │   ├── xNavigationConfig.ts
 │   │   │   ├── xTweetFieldsConfig.ts
+│   │   │   ├── xTweetMetricsConfig.ts
 │   │   │   ├── xProfileShellConfig.ts
 │   │   │   └── xTweetShellConfig.ts
 │   │   ├── index.ts
@@ -40,11 +42,13 @@
 │   │   │   ├── xBootstrap.ts
 │   │   │   ├── xProfileShell.ts
 │   │   │   ├── xTweetFields.ts
+│   │   │   ├── xTweetMetrics.ts
 │   │   │   └── xTweetShell.ts
 │   │   └── services
 │   │       ├── browserBootstrapService.ts
 │   │       ├── mockAnalysisService.ts
 │   │       ├── xTweetFieldsService.ts
+│   │       ├── xTweetMetricsService.ts
 │   │       ├── xTweetPageShellService.ts
 │   │       ├── xBootstrapService.ts
 │   │       ├── xProfileShellService.ts
@@ -119,6 +123,7 @@ http://localhost:3001/api/browser/x-bootstrap-test
 http://localhost:3001/api/browser/x-profile-shell-test
 http://localhost:3001/api/browser/x-tweet-shell-test
 http://localhost:3001/api/browser/x-tweet-fields-test
+http://localhost:3001/api/browser/x-tweet-metrics-test
 ```
 
 ## Доступные команды
@@ -165,6 +170,9 @@ X_TWEET_SHELL_RETRY_DELAY_MS=1200
 X_TWEET_FIELDS_DEFAULT_URL=
 X_TWEET_FIELDS_WAIT_STRATEGY=load
 X_TWEET_FIELDS_EXTRACTION_TIMEOUT_MS=2500
+X_TWEET_METRICS_DEFAULT_URL=
+X_TWEET_METRICS_WAIT_STRATEGY=load
+X_TWEET_METRICS_EXTRACTION_TIMEOUT_MS=2500
 X_AUTH_SESSION_ENABLED=false
 X_AUTH_STORAGE_STATE_PATH=
 X_LOGIN_EMAIL=
@@ -391,10 +399,69 @@ curl -G "http://localhost:3001/api/browser/x-tweet-fields-test" \
 - маршрут не парсит replies, thread structure или расширенные author profile details
 - маршрут не выполняет login automation
 
+## Как проверить X tweet metrics
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить backend:
+
+```bash
+npm run dev:backend
+```
+
+4. Проверить извлечение engagement metrics одиночного твита:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-tweet-metrics-test" \
+  --data-urlencode "targetUrl=https://x.com/<handle>/status/<tweet_id>" \
+  --data-urlencode "waitStrategy=load"
+```
+
+Что вернётся:
+- `navigationSucceeded`
+- `extractionSucceeded`
+- `finalUrl`
+- `pageTitle`
+- `detectedFields`
+- `missingFields`
+- `extractedData`
+- `timings`
+- `error`
+- `notes`
+
+Что именно извлекается:
+- `replyCount`
+- `repostCount`
+- `likeCount`
+- `bookmarkCount`
+- `viewCount`
+
+Формат каждой метрики:
+- `rawText`
+- `normalizedNumber`
+- `available`
+
+Ограничения текущего шага:
+- маршрут принимает только публичный tweet URL формата `/handle/status/id`
+- маршрут извлекает только engagement metrics одиночного твита
+- маршрут не парсит replies list, thread tree или author profile metrics
+- `bookmarkCount` и `viewCount` могут отсутствовать на конкретной публичной странице и это не считается фатальной ошибкой
+- маршрут не выполняет login automation
+
 ## Что строить следующим
 
-1. Добавить изолированный engagement metrics extraction для страницы одиночного публичного твита без reply parsing и без thread parsing.
-2. Затем перейти к безопасному profile field extraction только после стабилизации profile shell, tweet shell и tweet field extraction.
+1. Добавить изолированный reply/thread shell слой для страницы одиночного публичного твита без извлечения содержимого ответов.
+2. Затем перейти к безопасному profile field extraction только после стабилизации profile shell, tweet shell, tweet field extraction и tweet metrics extraction.
 3. После этого переходить к account extraction и post extraction отдельными шагами.
 4. Потом заменять mock scoring на реальный multi-signal niche scoring.
 5. И только затем добавлять сохранение запусков и финальный отчёт по топ-10 нишам.
