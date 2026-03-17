@@ -11,6 +11,7 @@
 - mock flow: UI отправляет запрос в backend, backend возвращает топ ниш и influencer accounts
 - Playwright + Chromium foundation на backend
 - X-specific bootstrap слой для безопасной навигации по публичным страницам X
+- public X profile shell diagnostic слой для проверки каркаса публичного профиля
 - централизованная точка для будущих X/Twitter selectors
 - централизованная точка для будущей логики оценки ниш
 
@@ -25,17 +26,20 @@
 │   │   ├── app.ts
 │   │   ├── config
 │   │   │   ├── browserConfig.ts
-│   │   │   └── xNavigationConfig.ts
+│   │   │   ├── xNavigationConfig.ts
+│   │   │   └── xProfileShellConfig.ts
 │   │   ├── index.ts
 │   │   ├── routes
 │   │   │   ├── analysis.ts
 │   │   │   ├── health.ts
 │   │   │   ├── index.ts
-│   │   │   └── xBootstrap.ts
+│   │   │   ├── xBootstrap.ts
+│   │   │   └── xProfileShell.ts
 │   │   └── services
 │   │       ├── browserBootstrapService.ts
 │   │       ├── mockAnalysisService.ts
-│   │       └── xBootstrapService.ts
+│   │       ├── xBootstrapService.ts
+│   │       └── xProfileShellService.ts
 ├── frontend
 │   ├── .env.example
 │   ├── index.html
@@ -103,6 +107,7 @@ http://localhost:5173
 http://localhost:3001/api/health
 http://localhost:3001/api/analysis
 http://localhost:3001/api/browser/x-bootstrap-test
+http://localhost:3001/api/browser/x-profile-shell-test
 ```
 
 ## Доступные команды
@@ -135,6 +140,12 @@ BROWSER_LOCALE=en-US
 X_BOOTSTRAP_DEFAULT_URL=https://x.com/OpenAI
 X_BOOTSTRAP_WAIT_STRATEGY=domcontentloaded
 X_BOOTSTRAP_AFTER_LOAD_WAIT_MS=1500
+X_PROFILE_SHELL_DEFAULT_HANDLE=OpenAI
+X_PROFILE_SHELL_DEFAULT_URL=
+X_PROFILE_SHELL_WAIT_STRATEGY=load
+X_PROFILE_SHELL_MARKER_TIMEOUT_MS=3500
+X_PROFILE_SHELL_RETRY_COUNT=2
+X_PROFILE_SHELL_RETRY_DELAY_MS=1200
 X_AUTH_SESSION_ENABLED=false
 X_AUTH_STORAGE_STATE_PATH=
 X_LOGIN_EMAIL=
@@ -195,10 +206,68 @@ curl -G "http://localhost:3001/api/browser/x-bootstrap-test" \
 - реальное извлечение аккаунтов и постов ещё не реализовано
 - login automation ещё не реализована
 
+## Как проверить X profile shell
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить backend:
+
+```bash
+npm run dev:backend
+```
+
+4. Проверить shell профиля по handle:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-profile-shell-test" \
+  --data-urlencode "handle=OpenAI"
+```
+
+5. Проверить shell профиля по публичному URL:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-profile-shell-test" \
+  --data-urlencode "targetUrl=https://x.com/OpenAI" \
+  --data-urlencode "waitStrategy=load"
+```
+
+Что вернётся:
+- `navigationSucceeded`
+- `finalUrl`
+- `pageTitle`
+- `httpStatus`
+- `detectedMarkers`
+- `missingMarkers`
+- `timings`
+- `error`
+- `notes`
+
+Что именно валидируется:
+- `profileHeaderShell`
+- `profileIdentityShell`
+- `profileTabsShell`
+- `mainTimelineShellContainer`
+- `tweetArticleShellVisible`
+
+Ограничения текущего шага:
+- маршрут принимает только `handle` публичного профиля или публичный profile-like URL
+- маршрут не извлекает bio, follower count, post text или tweet metrics
+- маршрут не извлекает твиты и не выполняет login automation
+
 ## Что строить следующим
 
-1. Добавить изолированный public account shell bootstrap поверх текущей X navigation diagnostics.
-2. Подключить устойчивую валидацию profile header, tab shell и public post shell без extraction.
-3. Затем переходить к account extraction и post extraction отдельными шагами.
-4. После этого заменять mock scoring на реальный multi-signal niche scoring.
+1. Добавить изолированный public tweet shell bootstrap для одиночного tweet URL без extraction текста и метрик.
+2. Затем перейти к безопасному profile field extraction только после стабилизации shell-маркеров.
+3. После этого переходить к account extraction и post extraction отдельными шагами.
+4. Потом заменять mock scoring на реальный multi-signal niche scoring.
 5. И только затем добавлять сохранение запусков и финальный отчёт по топ-10 нишам.

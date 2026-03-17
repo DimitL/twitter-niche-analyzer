@@ -20,6 +20,13 @@ export const xSelectors = {
     peopleTab: 'a[href*="f=user"]'
   },
   profile: {
+    shellRoot: 'div[data-testid="primaryColumn"]',
+    headerShell:
+      '[data-testid="UserProfileHeader_Items"], [data-testid^="UserAvatar-Container-"]',
+    identityShell: 'div[data-testid="UserName"]',
+    tabsShell: 'div[role="tablist"]',
+    timelineShellContainer: 'div[data-testid="primaryColumn"] section[role="region"]',
+    tweetArticleShell: 'article[data-testid="tweet"]',
     accountHeader: 'div[data-testid="primaryColumn"]',
     followerLink: 'a[href$="/verified_followers"]',
     postItem: 'article[data-testid="tweet"]'
