@@ -14,6 +14,7 @@
 - public X profile shell diagnostic слой для проверки каркаса публичного профиля
 - public X profile field extraction слой для безопасного извлечения identity/header полей публичного профиля
 - public X profile timeline URL discovery слой для безопасного поиска недавних tweet URL из публичной ленты профиля
+- public X account recent-posts aggregation слой для безопасного объединения profile fields, timeline URL discovery и hydration недавних твитов
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -31,6 +32,7 @@
 │   │   ├── app.ts
 │   │   ├── config
 │   │   │   ├── browserConfig.ts
+│   │   │   ├── xAccountRecentPostsConfig.ts
 │   │   │   ├── xNavigationConfig.ts
 │   │   │   ├── xProfileFieldsConfig.ts
 │   │   │   ├── xProfileTimelineUrlsConfig.ts
@@ -43,6 +45,7 @@
 │   │   │   ├── analysis.ts
 │   │   │   ├── health.ts
 │   │   │   ├── index.ts
+│   │   │   ├── xAccountRecentPosts.ts
 │   │   │   ├── xBootstrap.ts
 │   │   │   ├── xProfileFields.ts
 │   │   │   ├── xProfileTimelineUrls.ts
@@ -53,6 +56,7 @@
 │   │   └── services
 │   │       ├── browserBootstrapService.ts
 │   │       ├── mockAnalysisService.ts
+│   │       ├── xAccountRecentPostsService.ts
 │   │       ├── xProfileFieldsService.ts
 │   │       ├── xProfilePageShellService.ts
 │   │       ├── xProfileTimelineUrlsService.ts
@@ -132,6 +136,7 @@ http://localhost:3001/api/browser/x-bootstrap-test
 http://localhost:3001/api/browser/x-profile-shell-test
 http://localhost:3001/api/browser/x-profile-fields-test
 http://localhost:3001/api/browser/x-profile-timeline-urls-test
+http://localhost:3001/api/browser/x-account-recent-posts-test
 http://localhost:3001/api/browser/x-tweet-shell-test
 http://localhost:3001/api/browser/x-tweet-fields-test
 http://localhost:3001/api/browser/x-tweet-metrics-test
@@ -183,6 +188,11 @@ X_PROFILE_TIMELINE_URLS_WAIT_STRATEGY=load
 X_PROFILE_TIMELINE_URLS_EXTRACTION_TIMEOUT_MS=2500
 X_PROFILE_TIMELINE_URLS_DEFAULT_LIMIT=10
 X_PROFILE_TIMELINE_URLS_MAX_LIMIT=20
+X_ACCOUNT_RECENT_POSTS_DEFAULT_HANDLE=
+X_ACCOUNT_RECENT_POSTS_DEFAULT_URL=
+X_ACCOUNT_RECENT_POSTS_WAIT_STRATEGY=load
+X_ACCOUNT_RECENT_POSTS_DEFAULT_LIMIT=5
+X_ACCOUNT_RECENT_POSTS_MAX_LIMIT=10
 X_TWEET_SHELL_DEFAULT_URL=
 X_TWEET_SHELL_WAIT_STRATEGY=load
 X_TWEET_SHELL_MARKER_TIMEOUT_MS=3500
@@ -253,6 +263,61 @@ curl -G "http://localhost:3001/api/browser/x-bootstrap-test" \
 - маршрут открывает только публичные `https` URL доменов `x.com` и `twitter.com`
 - реальное извлечение аккаунтов и постов ещё не реализовано
 - login automation ещё не реализована
+
+## Как проверить X account recent-posts aggregation
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить backend:
+
+```bash
+npm run dev:backend
+```
+
+4. Проверить агрегацию по handle:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-account-recent-posts-test" \
+  --data-urlencode "handle=OpenAI" \
+  --data-urlencode "limit=3" \
+  --data-urlencode "waitStrategy=load"
+```
+
+5. Проверить агрегацию по profile URL:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-account-recent-posts-test" \
+  --data-urlencode "targetUrl=https://x.com/OpenAI" \
+  --data-urlencode "limit=5" \
+  --data-urlencode "waitStrategy=load"
+```
+
+Что вернётся:
+- `navigationSucceeded`
+- `aggregationSucceeded`
+- `profile` с уже доступными identity/header полями
+- `discoveredTweetRefs` с recent tweet URL discovery
+- `hydratedTweets` с объединёнными top-level fields и metrics по каждому твиту
+- `accountSummary` с простыми first-pass aggregate значениями
+- `timings`
+- `error`
+- `notes`
+
+Ограничения текущего шага:
+- маршрут не извлекает timeline post content напрямую из profile page
+- маршрут не парсит replies и thread tree
+- replies/reposts пока могут попадать в выборку как uncertain items
+- simple engagement-per-follower proxy пока является только первым приближением
 
 ## Как проверить X profile shell
 
