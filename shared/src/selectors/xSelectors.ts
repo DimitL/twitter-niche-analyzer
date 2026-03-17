@@ -24,11 +24,20 @@ export const xSelectors = {
     headerShell:
       '[data-testid="UserProfileHeader_Items"], [data-testid^="UserAvatar-Container-"]',
     identityShell: 'div[data-testid="UserName"]',
+    identityTextSpan: "span",
+    description: '[data-testid="UserDescription"]',
+    location: '[data-testid="UserLocation"]',
+    professionalCategory: '[data-testid="UserProfessionalCategory"]',
+    url: 'a[data-testid="UserUrl"]',
+    joinDate: '[data-testid="UserJoinDate"]',
     tabsShell: 'div[role="tablist"]',
     timelineShellContainer: 'div[data-testid="primaryColumn"] section[role="region"]',
     tweetArticleShell: 'article[data-testid="tweet"]',
+    verifiedBadgeIcon: 'svg[data-testid="icon-verified"], svg[aria-label="Verified account"]',
     accountHeader: 'div[data-testid="primaryColumn"]',
-    followerLink: 'a[href$="/verified_followers"]',
+    followerLink: 'a[href*="/verified_followers"], a[href*="/followers"]',
+    followingLink: 'a[href*="/following"]',
+    headerTextBlock: 'div[dir]',
     postItem: 'article[data-testid="tweet"]'
   },
   post: {

@@ -1,5 +1,4 @@
 import type { FastifyBaseLogger } from "fastify";
-import { xSelectors } from "@twitter-niche-analyzer/shared";
 import { browserConfig } from "../config/browserConfig.js";
 import {
   getXProfileShellNotesSeed,
@@ -13,26 +12,20 @@ import {
   createBrowserRuntime,
   type BrowserRuntime
 } from "./browserBootstrapService.js";
-
-type XProfileShellMarkerKey =
-  | "profileHeaderShell"
-  | "profileIdentityShell"
-  | "profileTabsShell"
-  | "mainTimelineShellContainer"
-  | "tweetArticleShellVisible";
+import {
+  collectXProfileShellMarkers,
+  createEmptyXProfileShellMarkerState,
+  getDetectedXProfileShellMarkers,
+  getMissingXProfileShellMarkers,
+  hasRequiredXProfileShell,
+  type XProfileShellMarkerState,
+  waitForXProfileShellSignals
+} from "./xProfilePageShellService.js";
 
 interface XProfileShellOptions {
   handle?: string;
   targetUrl?: string;
   waitStrategy?: string;
-}
-
-interface XProfileShellMarkerState {
-  profileHeaderShell: boolean;
-  profileIdentityShell: boolean;
-  profileTabsShell: boolean;
-  mainTimelineShellContainer: boolean;
-  tweetArticleShellVisible: boolean;
 }
 
 interface XProfileShellTimings {
@@ -68,31 +61,6 @@ export interface XProfileShellDiagnostics {
   notes: string[];
 }
 
-const markerLabels: Record<XProfileShellMarkerKey, string> = {
-  profileHeaderShell: "profileHeaderShell",
-  profileIdentityShell: "profileIdentityShell",
-  profileTabsShell: "profileTabsShell",
-  mainTimelineShellContainer: "mainTimelineShellContainer",
-  tweetArticleShellVisible: "tweetArticleShellVisible"
-};
-
-const requiredMarkerKeys: XProfileShellMarkerKey[] = [
-  "profileHeaderShell",
-  "profileIdentityShell",
-  "profileTabsShell",
-  "mainTimelineShellContainer"
-];
-
-function createEmptyMarkerState(): XProfileShellMarkerState {
-  return {
-    profileHeaderShell: false,
-    profileIdentityShell: false,
-    profileTabsShell: false,
-    mainTimelineShellContainer: false,
-    tweetArticleShellVisible: false
-  };
-}
-
 function serializeError(error: unknown): XProfileShellErrorDetails {
   if (error instanceof Error) {
     return {
@@ -105,69 +73,6 @@ function serializeError(error: unknown): XProfileShellErrorDetails {
     name: "UnknownError",
     message: String(error)
   };
-}
-
-async function hasMatch(runtime: BrowserRuntime, selector: string) {
-  return (await runtime.page.locator(selector).first().count()) > 0;
-}
-
-async function collectProfileShellMarkers(runtime: BrowserRuntime) {
-  const markerScanStart = Date.now();
-
-  const [
-    profileHeaderShell,
-    profileIdentityShell,
-    profileTabsShell,
-    mainTimelineShellContainer,
-    tweetArticleShellVisible
-  ] = await Promise.all([
-    hasMatch(runtime, xSelectors.profile.headerShell),
-    hasMatch(runtime, xSelectors.profile.identityShell),
-    hasMatch(runtime, xSelectors.profile.tabsShell),
-    hasMatch(runtime, xSelectors.profile.timelineShellContainer),
-    hasMatch(runtime, xSelectors.profile.tweetArticleShell)
-  ]);
-
-  return {
-    markerState: {
-      profileHeaderShell,
-      profileIdentityShell,
-      profileTabsShell,
-      mainTimelineShellContainer,
-      tweetArticleShellVisible
-    },
-    markerScanMs: Date.now() - markerScanStart
-  };
-}
-
-function getDetectedMarkers(markerState: XProfileShellMarkerState) {
-  return (Object.entries(markerState) as [XProfileShellMarkerKey, boolean][])
-    .filter(([, isPresent]) => isPresent)
-    .map(([key]) => markerLabels[key]);
-}
-
-function getMissingMarkers(markerState: XProfileShellMarkerState) {
-  return (Object.entries(markerState) as [XProfileShellMarkerKey, boolean][])
-    .filter(([, isPresent]) => !isPresent)
-    .map(([key]) => markerLabels[key]);
-}
-
-function hasRequiredProfileShell(markerState: XProfileShellMarkerState) {
-  return requiredMarkerKeys.every((key) => markerState[key]);
-}
-
-async function waitForProfileShellSignals(runtime: BrowserRuntime) {
-  await Promise.allSettled([
-    runtime.page.waitForSelector(xSelectors.profile.shellRoot, {
-      timeout: xProfileShellConfig.markerTimeoutMs
-    }),
-    runtime.page.waitForSelector(xSelectors.profile.identityShell, {
-      timeout: xProfileShellConfig.markerTimeoutMs
-    }),
-    runtime.page.waitForSelector(xSelectors.profile.tabsShell, {
-      timeout: xProfileShellConfig.markerTimeoutMs
-    })
-  ]);
 }
 
 export async function runXProfileShellDiagnostics(
@@ -190,7 +95,7 @@ export async function runXProfileShellDiagnostics(
   let shellWaitMs = 0;
   let markerScanMs = 0;
   let retriesUsed = 0;
-  let markerState = createEmptyMarkerState();
+  let markerState = createEmptyXProfileShellMarkerState();
   let navigationSucceeded = false;
 
   logger.info(
@@ -248,13 +153,13 @@ export async function runXProfileShellDiagnostics(
     const shellWaitStart = Date.now();
 
     for (let attemptIndex = 0; attemptIndex <= xProfileShellConfig.retryCount; attemptIndex += 1) {
-      await waitForProfileShellSignals(browserRuntime);
+      await waitForXProfileShellSignals(browserRuntime);
 
-      const markerResult = await collectProfileShellMarkers(browserRuntime);
+      const markerResult = await collectXProfileShellMarkers(browserRuntime);
       markerState = markerResult.markerState;
       markerScanMs = markerResult.markerScanMs;
 
-      if (hasRequiredProfileShell(markerState)) {
+      if (hasRequiredXProfileShell(markerState)) {
         break;
       }
 
@@ -276,9 +181,9 @@ export async function runXProfileShellDiagnostics(
       );
     }
 
-    const missingMarkers = getMissingMarkers(markerState);
+    const missingMarkers = getMissingXProfileShellMarkers(markerState);
 
-    if (!hasRequiredProfileShell(markerState)) {
+    if (!hasRequiredXProfileShell(markerState)) {
       return {
         status: "error",
         navigationSucceeded,
@@ -289,7 +194,7 @@ export async function runXProfileShellDiagnostics(
         pageTitle,
         httpStatus,
         waitStrategy,
-        detectedMarkers: getDetectedMarkers(markerState),
+        detectedMarkers: getDetectedXProfileShellMarkers(markerState),
         missingMarkers,
         markerState,
         timings: {
@@ -319,7 +224,7 @@ export async function runXProfileShellDiagnostics(
       pageTitle,
       httpStatus,
       waitStrategy,
-      detectedMarkers: getDetectedMarkers(markerState),
+      detectedMarkers: getDetectedXProfileShellMarkers(markerState),
       missingMarkers,
       markerState,
       timings: {
@@ -340,7 +245,7 @@ export async function runXProfileShellDiagnostics(
     if (runtime.page) {
       try {
         pageTitle = (await runtime.page.title()) || pageTitle;
-        const markerResult = await collectProfileShellMarkers(runtime as BrowserRuntime);
+        const markerResult = await collectXProfileShellMarkers(runtime as BrowserRuntime);
         markerState = markerResult.markerState;
         markerScanMs = markerResult.markerScanMs;
       } catch {
@@ -361,8 +266,8 @@ export async function runXProfileShellDiagnostics(
       pageTitle,
       httpStatus,
       waitStrategy,
-      detectedMarkers: getDetectedMarkers(markerState),
-      missingMarkers: getMissingMarkers(markerState),
+      detectedMarkers: getDetectedXProfileShellMarkers(markerState),
+      missingMarkers: getMissingXProfileShellMarkers(markerState),
       markerState,
       timings: {
         browserReadyMs,

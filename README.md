@@ -12,6 +12,7 @@
 - Playwright + Chromium foundation на backend
 - X-specific bootstrap слой для безопасной навигации по публичным страницам X
 - public X profile shell diagnostic слой для проверки каркаса публичного профиля
+- public X profile field extraction слой для безопасного извлечения identity/header полей публичного профиля
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -30,6 +31,7 @@
 │   │   ├── config
 │   │   │   ├── browserConfig.ts
 │   │   │   ├── xNavigationConfig.ts
+│   │   │   ├── xProfileFieldsConfig.ts
 │   │   │   ├── xTweetFieldsConfig.ts
 │   │   │   ├── xTweetMetricsConfig.ts
 │   │   │   ├── xProfileShellConfig.ts
@@ -40,6 +42,7 @@
 │   │   │   ├── health.ts
 │   │   │   ├── index.ts
 │   │   │   ├── xBootstrap.ts
+│   │   │   ├── xProfileFields.ts
 │   │   │   ├── xProfileShell.ts
 │   │   │   ├── xTweetFields.ts
 │   │   │   ├── xTweetMetrics.ts
@@ -47,6 +50,8 @@
 │   │   └── services
 │   │       ├── browserBootstrapService.ts
 │   │       ├── mockAnalysisService.ts
+│   │       ├── xProfileFieldsService.ts
+│   │       ├── xProfilePageShellService.ts
 │   │       ├── xTweetFieldsService.ts
 │   │       ├── xTweetMetricsService.ts
 │   │       ├── xTweetPageShellService.ts
@@ -121,6 +126,7 @@ http://localhost:3001/api/health
 http://localhost:3001/api/analysis
 http://localhost:3001/api/browser/x-bootstrap-test
 http://localhost:3001/api/browser/x-profile-shell-test
+http://localhost:3001/api/browser/x-profile-fields-test
 http://localhost:3001/api/browser/x-tweet-shell-test
 http://localhost:3001/api/browser/x-tweet-fields-test
 http://localhost:3001/api/browser/x-tweet-metrics-test
@@ -162,6 +168,10 @@ X_PROFILE_SHELL_WAIT_STRATEGY=load
 X_PROFILE_SHELL_MARKER_TIMEOUT_MS=3500
 X_PROFILE_SHELL_RETRY_COUNT=2
 X_PROFILE_SHELL_RETRY_DELAY_MS=1200
+X_PROFILE_FIELDS_DEFAULT_HANDLE=
+X_PROFILE_FIELDS_DEFAULT_URL=
+X_PROFILE_FIELDS_WAIT_STRATEGY=load
+X_PROFILE_FIELDS_EXTRACTION_TIMEOUT_MS=2500
 X_TWEET_SHELL_DEFAULT_URL=
 X_TWEET_SHELL_WAIT_STRATEGY=load
 X_TWEET_SHELL_MARKER_TIMEOUT_MS=3500
@@ -290,6 +300,79 @@ curl -G "http://localhost:3001/api/browser/x-profile-shell-test" \
 - маршрут принимает только `handle` публичного профиля или публичный profile-like URL
 - маршрут не извлекает bio, follower count, post text или tweet metrics
 - маршрут не извлекает твиты и не выполняет login automation
+
+## Как проверить X profile fields
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить backend:
+
+```bash
+npm run dev:backend
+```
+
+4. Проверить извлечение identity/header полей профиля по handle:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-profile-fields-test" \
+  --data-urlencode "handle=Google" \
+  --data-urlencode "waitStrategy=load"
+```
+
+5. Проверить извлечение identity/header полей профиля по публичному URL:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-profile-fields-test" \
+  --data-urlencode "targetUrl=https://x.com/OpenAI" \
+  --data-urlencode "waitStrategy=load"
+```
+
+Что вернётся:
+- `navigationSucceeded`
+- `extractionSucceeded`
+- `finalUrl`
+- `pageTitle`
+- `detectedFields`
+- `missingFields`
+- `extractedData`
+- `timings`
+- `error`
+- `notes`
+
+Что именно извлекается:
+- `profileUrl`
+- `handle`
+- `displayName`
+- `bio`
+- `location`
+- `websiteUrl`
+- `joinedAt`
+- `followerCount`
+- `followingCount`
+- `postCount`
+- `verifiedOrNotable`
+
+Формат count-like полей:
+- `rawText`
+- `normalizedNumber`
+- `available`
+
+Ограничения текущего шага:
+- маршрут принимает `handle` профиля или публичный profile-like URL
+- маршрут извлекает только identity/header поля профиля
+- маршрут не извлекает timeline tweets, pinned tweet details, media grid или follower/following lists
+- `location`, `websiteUrl`, `postCount` и `verifiedOrNotable` могут отсутствовать на конкретной публичной странице и это не считается фатальной ошибкой
+- маршрут не выполняет login automation
 
 ## Как проверить X tweet shell
 
@@ -460,8 +543,8 @@ curl -G "http://localhost:3001/api/browser/x-tweet-metrics-test" \
 
 ## Что строить следующим
 
-1. Добавить изолированный reply/thread shell слой для страницы одиночного публичного твита без извлечения содержимого ответов.
-2. Затем перейти к безопасному profile field extraction только после стабилизации profile shell, tweet shell, tweet field extraction и tweet metrics extraction.
+1. Добавить изолированный profile timeline shell слой для публичного профиля без извлечения списка постов.
+2. Затем перейти к безопасному profile post collection только после стабилизации profile shell, profile fields и profile timeline shell.
 3. После этого переходить к account extraction и post extraction отдельными шагами.
 4. Потом заменять mock scoring на реальный multi-signal niche scoring.
 5. И только затем добавлять сохранение запусков и финальный отчёт по топ-10 нишам.
