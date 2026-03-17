@@ -38,6 +38,9 @@ export const xSelectors = {
     followerLink: 'a[href*="/verified_followers"], a[href*="/followers"]',
     followingLink: 'a[href*="/following"]',
     headerTextBlock: 'div[dir]',
+    timelineSocialContext: '[data-testid="socialContext"]',
+    timelineStatusLink: 'a[href*="/status/"]',
+    timelinePublishedTime: "time",
     postItem: 'article[data-testid="tweet"]'
   },
   post: {

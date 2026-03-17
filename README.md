@@ -13,6 +13,7 @@
 - X-specific bootstrap слой для безопасной навигации по публичным страницам X
 - public X profile shell diagnostic слой для проверки каркаса публичного профиля
 - public X profile field extraction слой для безопасного извлечения identity/header полей публичного профиля
+- public X profile timeline URL discovery слой для безопасного поиска недавних tweet URL из публичной ленты профиля
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -32,6 +33,7 @@
 │   │   │   ├── browserConfig.ts
 │   │   │   ├── xNavigationConfig.ts
 │   │   │   ├── xProfileFieldsConfig.ts
+│   │   │   ├── xProfileTimelineUrlsConfig.ts
 │   │   │   ├── xTweetFieldsConfig.ts
 │   │   │   ├── xTweetMetricsConfig.ts
 │   │   │   ├── xProfileShellConfig.ts
@@ -43,6 +45,7 @@
 │   │   │   ├── index.ts
 │   │   │   ├── xBootstrap.ts
 │   │   │   ├── xProfileFields.ts
+│   │   │   ├── xProfileTimelineUrls.ts
 │   │   │   ├── xProfileShell.ts
 │   │   │   ├── xTweetFields.ts
 │   │   │   ├── xTweetMetrics.ts
@@ -52,6 +55,7 @@
 │   │       ├── mockAnalysisService.ts
 │   │       ├── xProfileFieldsService.ts
 │   │       ├── xProfilePageShellService.ts
+│   │       ├── xProfileTimelineUrlsService.ts
 │   │       ├── xTweetFieldsService.ts
 │   │       ├── xTweetMetricsService.ts
 │   │       ├── xTweetPageShellService.ts
@@ -127,6 +131,7 @@ http://localhost:3001/api/analysis
 http://localhost:3001/api/browser/x-bootstrap-test
 http://localhost:3001/api/browser/x-profile-shell-test
 http://localhost:3001/api/browser/x-profile-fields-test
+http://localhost:3001/api/browser/x-profile-timeline-urls-test
 http://localhost:3001/api/browser/x-tweet-shell-test
 http://localhost:3001/api/browser/x-tweet-fields-test
 http://localhost:3001/api/browser/x-tweet-metrics-test
@@ -172,6 +177,12 @@ X_PROFILE_FIELDS_DEFAULT_HANDLE=
 X_PROFILE_FIELDS_DEFAULT_URL=
 X_PROFILE_FIELDS_WAIT_STRATEGY=load
 X_PROFILE_FIELDS_EXTRACTION_TIMEOUT_MS=2500
+X_PROFILE_TIMELINE_URLS_DEFAULT_HANDLE=
+X_PROFILE_TIMELINE_URLS_DEFAULT_URL=
+X_PROFILE_TIMELINE_URLS_WAIT_STRATEGY=load
+X_PROFILE_TIMELINE_URLS_EXTRACTION_TIMEOUT_MS=2500
+X_PROFILE_TIMELINE_URLS_DEFAULT_LIMIT=10
+X_PROFILE_TIMELINE_URLS_MAX_LIMIT=20
 X_TWEET_SHELL_DEFAULT_URL=
 X_TWEET_SHELL_WAIT_STRATEGY=load
 X_TWEET_SHELL_MARKER_TIMEOUT_MS=3500
@@ -374,6 +385,72 @@ curl -G "http://localhost:3001/api/browser/x-profile-fields-test" \
 - `location`, `websiteUrl`, `postCount` и `verifiedOrNotable` могут отсутствовать на конкретной публичной странице и это не считается фатальной ошибкой
 - маршрут не выполняет login automation
 
+## Как проверить X profile timeline URL discovery
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить backend:
+
+```bash
+npm run dev:backend
+```
+
+4. Проверить discovery tweet URL по handle:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-profile-timeline-urls-test" \
+  --data-urlencode "handle=OpenAI" \
+  --data-urlencode "limit=5" \
+  --data-urlencode "waitStrategy=load"
+```
+
+5. Проверить discovery tweet URL по публичному URL:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-profile-timeline-urls-test" \
+  --data-urlencode "targetUrl=https://x.com/OpenAI" \
+  --data-urlencode "limit=10" \
+  --data-urlencode "waitStrategy=load"
+```
+
+Что вернётся:
+- `navigationSucceeded`
+- `extractionSucceeded`
+- `finalUrl`
+- `pageTitle`
+- `detectedFields`
+- `missingFields`
+- `extractedData`
+- `timings`
+- `error`
+- `notes`
+
+Что именно извлекается для каждого timeline item:
+- `tweetUrl`
+- `tweetId`
+- `authorHandle`
+- `sortIndex`
+- `isPinned`
+- `isReplyOrRepostUncertain`
+- `uncertaintyReasons`
+
+Ограничения текущего шага:
+- маршрут принимает `handle` профиля или публичный profile-like URL и optional `limit`
+- маршрут делает только URL discovery для недавних tweet items
+- маршрут не извлекает полный tweet text и не извлекает timeline metrics с profile page
+- repost/reply-похожие элементы пока помечаются как uncertain, а не отфильтровываются идеально
+- маршрут не выполняет login automation
+
 ## Как проверить X tweet shell
 
 1. Установить зависимости:
@@ -543,8 +620,8 @@ curl -G "http://localhost:3001/api/browser/x-tweet-metrics-test" \
 
 ## Что строить следующим
 
-1. Добавить изолированный profile timeline shell слой для публичного профиля без извлечения списка постов.
-2. Затем перейти к безопасному profile post collection только после стабилизации profile shell, profile fields и profile timeline shell.
+1. Добавить изолированный per-item timeline tweet field hydration слой, который прогоняет найденные profile timeline URLs через existing single-tweet field route/service.
+2. Затем перейти к безопасному per-item timeline tweet metrics hydration слою поверх existing single-tweet metrics extraction.
 3. После этого переходить к account extraction и post extraction отдельными шагами.
 4. Потом заменять mock scoring на реальный multi-signal niche scoring.
 5. И только затем добавлять сохранение запусков и финальный отчёт по топ-10 нишам.
