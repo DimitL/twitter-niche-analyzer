@@ -9,6 +9,8 @@
 - `backend` на Fastify + TypeScript
 - `shared` с общими типами, mock seeds, scoring stub и placeholder selectors
 - mock flow: UI отправляет запрос в backend, backend возвращает топ ниш и influencer accounts
+- bootstrap-слой Playwright + Chromium на backend
+- безопасный smoke-test route для проверки browser launch без Twitter/X scraping
 - централизованная точка для будущих X/Twitter selectors
 - централизованная точка для будущей логики оценки ниш
 
@@ -21,12 +23,16 @@
 │   ├── package.json
 │   ├── src
 │   │   ├── app.ts
+│   │   ├── config
+│   │   │   └── browserConfig.ts
 │   │   ├── index.ts
 │   │   ├── routes
 │   │   │   ├── analysis.ts
+│   │   │   ├── browser.ts
 │   │   │   ├── health.ts
 │   │   │   └── index.ts
 │   │   └── services
+│   │       ├── browserBootstrapService.ts
 │   │       └── mockAnalysisService.ts
 ├── frontend
 │   ├── .env.example
@@ -71,29 +77,37 @@
 npm install
 ```
 
-2. Запустить frontend, backend и shared watcher:
+2. Установить Chromium для Playwright:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить frontend, backend и shared watcher:
 
 ```bash
 npm run dev
 ```
 
-3. Открыть UI:
+4. Открыть UI:
 
 ```text
 http://localhost:5173
 ```
 
-4. Backend API:
+5. Backend API:
 
 ```text
 http://localhost:3001/api/health
 http://localhost:3001/api/analysis
+http://localhost:3001/api/browser/smoke-test
 ```
 
 ## Доступные команды
 
 ```bash
 npm run dev
+npm run browsers:install
 npm run build
 npm run typecheck
 ```
@@ -111,13 +125,54 @@ VITE_API_URL=http://localhost:3001
 ```bash
 PORT=3001
 FRONTEND_ORIGIN=http://localhost:5173
+BROWSER_HEADLESS=true
+BROWSER_LAUNCH_TIMEOUT_MS=30000
+BROWSER_ACTION_TIMEOUT_MS=15000
+BROWSER_NAVIGATION_TIMEOUT_MS=30000
+BROWSER_LOCALE=ru-RU
+BROWSER_SMOKE_TEST_URL=https://example.com
+BROWSER_SMOKE_TEST_SELECTOR=h1
+BROWSER_SMOKE_TEST_EXPECTED_TITLE=Example Domain
+BROWSER_SMOKE_TEST_EXPECTED_TEXT=Example Domain
 ```
 
 Все значения имеют безопасные значения по умолчанию, поэтому проект можно поднять и без `.env`.
 
+## Как проверить Playwright bootstrap
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить backend:
+
+```bash
+npm run dev:backend
+```
+
+4. В отдельном терминале вызвать smoke-test route:
+
+```bash
+curl http://localhost:3001/api/browser/smoke-test
+```
+
+Ожидаемый результат:
+- backend успешно запускает Chromium через Playwright
+- открывает безопасную публичную страницу
+- возвращает `pageTitle`, `httpStatus`, `finalUrl` и `probeText`
+- не выполняет scraping Twitter/X
+
 ## Что строить следующим
 
-1. Добавить Playwright session/bootstrap слой для X.
+1. Добавить X login/session bootstrap поверх текущего browser layer.
 2. Вынести scraping pipeline по шагам: search, account scan, post scan, aggregation.
 3. Заполнить реальные селекторы и добавить стратегию fallback при изменениях DOM.
 4. Заменить mock scoring на реальный multi-signal niche scoring.
