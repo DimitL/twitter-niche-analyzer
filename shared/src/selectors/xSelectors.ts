@@ -32,6 +32,12 @@ export const xSelectors = {
     postItem: 'article[data-testid="tweet"]'
   },
   post: {
+    shellArticle: 'article[data-testid="tweet"]',
+    authorShellBlock: 'div[data-testid="User-Name"]',
+    contentContainerShell:
+      '[data-testid="tweetText"], [data-testid="tweetPhoto"], [data-testid="videoPlayer"], div[lang]',
+    actionBarShell: 'div[role="group"]',
+    replyThreadArticleShell: 'div[data-testid="primaryColumn"] article[data-testid="tweet"]',
     likeButton: 'button[data-testid="like"]',
     replyButton: 'button[data-testid="reply"]',
     repostButton: 'button[data-testid="retweet"]',

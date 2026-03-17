@@ -12,6 +12,7 @@
 - Playwright + Chromium foundation на backend
 - X-specific bootstrap слой для безопасной навигации по публичным страницам X
 - public X profile shell diagnostic слой для проверки каркаса публичного профиля
+- public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - централизованная точка для будущих X/Twitter selectors
 - централизованная точка для будущей логики оценки ниш
 
@@ -27,19 +28,22 @@
 │   │   ├── config
 │   │   │   ├── browserConfig.ts
 │   │   │   ├── xNavigationConfig.ts
-│   │   │   └── xProfileShellConfig.ts
+│   │   │   ├── xProfileShellConfig.ts
+│   │   │   └── xTweetShellConfig.ts
 │   │   ├── index.ts
 │   │   ├── routes
 │   │   │   ├── analysis.ts
 │   │   │   ├── health.ts
 │   │   │   ├── index.ts
 │   │   │   ├── xBootstrap.ts
-│   │   │   └── xProfileShell.ts
+│   │   │   ├── xProfileShell.ts
+│   │   │   └── xTweetShell.ts
 │   │   └── services
 │   │       ├── browserBootstrapService.ts
 │   │       ├── mockAnalysisService.ts
 │   │       ├── xBootstrapService.ts
-│   │       └── xProfileShellService.ts
+│   │       ├── xProfileShellService.ts
+│   │       └── xTweetShellService.ts
 ├── frontend
 │   ├── .env.example
 │   ├── index.html
@@ -108,6 +112,7 @@ http://localhost:3001/api/health
 http://localhost:3001/api/analysis
 http://localhost:3001/api/browser/x-bootstrap-test
 http://localhost:3001/api/browser/x-profile-shell-test
+http://localhost:3001/api/browser/x-tweet-shell-test
 ```
 
 ## Доступные команды
@@ -146,6 +151,11 @@ X_PROFILE_SHELL_WAIT_STRATEGY=load
 X_PROFILE_SHELL_MARKER_TIMEOUT_MS=3500
 X_PROFILE_SHELL_RETRY_COUNT=2
 X_PROFILE_SHELL_RETRY_DELAY_MS=1200
+X_TWEET_SHELL_DEFAULT_URL=
+X_TWEET_SHELL_WAIT_STRATEGY=load
+X_TWEET_SHELL_MARKER_TIMEOUT_MS=3500
+X_TWEET_SHELL_RETRY_COUNT=2
+X_TWEET_SHELL_RETRY_DELAY_MS=1200
 X_AUTH_SESSION_ENABLED=false
 X_AUTH_STORAGE_STATE_PATH=
 X_LOGIN_EMAIL=
@@ -264,10 +274,62 @@ curl -G "http://localhost:3001/api/browser/x-profile-shell-test" \
 - маршрут не извлекает bio, follower count, post text или tweet metrics
 - маршрут не извлекает твиты и не выполняет login automation
 
+## Как проверить X tweet shell
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить backend:
+
+```bash
+npm run dev:backend
+```
+
+4. Проверить shell одиночного твита по публичному URL:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-tweet-shell-test" \
+  --data-urlencode "targetUrl=https://x.com/<handle>/status/<tweet_id>" \
+  --data-urlencode "waitStrategy=load"
+```
+
+Что вернётся:
+- `navigationSucceeded`
+- `finalUrl`
+- `pageTitle`
+- `httpStatus`
+- `detectedMarkers`
+- `missingMarkers`
+- `timings`
+- `error`
+- `notes`
+
+Что именно валидируется:
+- `mainTweetArticleShell`
+- `authorShellBlock`
+- `tweetContentContainerShell`
+- `actionBarShell`
+- `replyThreadRegionShellVisible`
+
+Ограничения текущего шага:
+- маршрут принимает только публичный tweet URL формата `/handle/status/id`
+- маршрут не извлекает tweet text, tweet metrics или author metrics
+- маршрут не парсит replies, thread content или profile details
+- маршрут не выполняет login automation
+
 ## Что строить следующим
 
-1. Добавить изолированный public tweet shell bootstrap для одиночного tweet URL без extraction текста и метрик.
-2. Затем перейти к безопасному profile field extraction только после стабилизации shell-маркеров.
+1. Добавить изолированный top-level tweet field extraction для страницы одиночного твита без metrics и без reply parsing.
+2. Затем перейти к безопасному profile field extraction только после стабилизации profile shell и tweet shell.
 3. После этого переходить к account extraction и post extraction отдельными шагами.
 4. Потом заменять mock scoring на реальный multi-signal niche scoring.
 5. И только затем добавлять сохранение запусков и финальный отчёт по топ-10 нишам.
