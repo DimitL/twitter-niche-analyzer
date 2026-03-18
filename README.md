@@ -15,6 +15,7 @@
 - public X profile field extraction слой для безопасного извлечения identity/header полей публичного профиля
 - public X profile timeline URL discovery слой для безопасного поиска недавних tweet URL из публичной ленты профиля
 - public X account recent-posts aggregation слой для безопасного объединения profile fields, timeline URL discovery и hydration недавних твитов
+- isolated single-account scoring слой для вычисления first-pass account signals и account score на основе recent-posts dataset
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -33,6 +34,7 @@
 │   │   ├── config
 │   │   │   ├── browserConfig.ts
 │   │   │   ├── xAccountRecentPostsConfig.ts
+│   │   │   ├── xAccountScoreConfig.ts
 │   │   │   ├── xNavigationConfig.ts
 │   │   │   ├── xProfileFieldsConfig.ts
 │   │   │   ├── xProfileTimelineUrlsConfig.ts
@@ -46,6 +48,7 @@
 │   │   │   ├── health.ts
 │   │   │   ├── index.ts
 │   │   │   ├── xAccountRecentPosts.ts
+│   │   │   ├── xAccountScore.ts
 │   │   │   ├── xBootstrap.ts
 │   │   │   ├── xProfileFields.ts
 │   │   │   ├── xProfileTimelineUrls.ts
@@ -57,6 +60,7 @@
 │   │       ├── browserBootstrapService.ts
 │   │       ├── mockAnalysisService.ts
 │   │       ├── xAccountRecentPostsService.ts
+│   │       ├── xAccountScoreService.ts
 │   │       ├── xProfileFieldsService.ts
 │   │       ├── xProfilePageShellService.ts
 │   │       ├── xProfileTimelineUrlsService.ts
@@ -137,6 +141,7 @@ http://localhost:3001/api/browser/x-profile-shell-test
 http://localhost:3001/api/browser/x-profile-fields-test
 http://localhost:3001/api/browser/x-profile-timeline-urls-test
 http://localhost:3001/api/browser/x-account-recent-posts-test
+http://localhost:3001/api/browser/x-account-score-test
 http://localhost:3001/api/browser/x-tweet-shell-test
 http://localhost:3001/api/browser/x-tweet-fields-test
 http://localhost:3001/api/browser/x-tweet-metrics-test
@@ -193,6 +198,7 @@ X_ACCOUNT_RECENT_POSTS_DEFAULT_URL=
 X_ACCOUNT_RECENT_POSTS_WAIT_STRATEGY=load
 X_ACCOUNT_RECENT_POSTS_DEFAULT_LIMIT=5
 X_ACCOUNT_RECENT_POSTS_MAX_LIMIT=10
+X_ACCOUNT_SCORE_INCLUDE_UNCERTAIN=false
 X_TWEET_SHELL_DEFAULT_URL=
 X_TWEET_SHELL_WAIT_STRATEGY=load
 X_TWEET_SHELL_MARKER_TIMEOUT_MS=3500
@@ -318,6 +324,63 @@ curl -G "http://localhost:3001/api/browser/x-account-recent-posts-test" \
 - маршрут не парсит replies и thread tree
 - replies/reposts пока могут попадать в выборку как uncertain items
 - simple engagement-per-follower proxy пока является только первым приближением
+
+## Как проверить X account scoring
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить backend:
+
+```bash
+npm run dev:backend
+```
+
+4. Проверить scoring по handle:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-account-score-test" \
+  --data-urlencode "handle=OpenAI" \
+  --data-urlencode "limit=3" \
+  --data-urlencode "includeUncertain=false"
+```
+
+5. Проверить scoring по profile URL:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-account-score-test" \
+  --data-urlencode "targetUrl=https://x.com/OpenAI" \
+  --data-urlencode "limit=5" \
+  --data-urlencode "includeUncertain=true"
+```
+
+Что вернётся:
+- `aggregationSucceeded`
+- `scoringSucceeded`
+- `profile`
+- `filtersApplied`
+- `usableTweets`
+- `excludedTweets`
+- `accountSignals`
+- `accountScores`
+- `timings`
+- `error`
+- `notes`
+
+Ограничения текущего шага:
+- scoring пока выполняется только для одного аккаунта
+- multi-account comparison и niche aggregation ещё не реализованы
+- uncertain reply/repost filtering остаётся first-pass и будет усиливаться отдельно
+- overall account score пока служит как прозрачный preliminary signal, а не как финальный ranking layer
 
 ## Как проверить X profile shell
 
