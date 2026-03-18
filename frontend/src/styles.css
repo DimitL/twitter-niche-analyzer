@@ -870,6 +870,76 @@ button {
   color: var(--accent);
 }
 
+.evidence-pack {
+  margin-top: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(72, 53, 41, 0.1);
+  background: rgba(255, 255, 255, 0.54);
+  overflow: hidden;
+}
+
+.evidence-pack__summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 18px 20px;
+  cursor: pointer;
+}
+
+.evidence-pack__summary::-webkit-details-marker {
+  display: none;
+}
+
+.evidence-pack__summary strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.05rem;
+}
+
+.evidence-pack__summary p:last-child {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.evidence-pack__content {
+  display: grid;
+  gap: 16px;
+  padding: 0 20px 20px;
+}
+
+.evidence-pack__intro,
+.evidence-pack__grid,
+.evidence-pack__account-list {
+  display: grid;
+  gap: 14px;
+}
+
+.evidence-pack__intro {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.evidence-pack__grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.evidence-pack__account-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 10px;
+}
+
+.evidence-pack__subheading {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.evidence-pack__flags {
+  margin-top: 12px;
+}
+
 .analysis-form {
   display: grid;
   gap: 16px;
@@ -1082,6 +1152,9 @@ button {
   .shortlist-panel,
   .shortlist-card__insight,
   .pros-cons-grid,
+  .evidence-pack__intro,
+  .evidence-pack__grid,
+  .evidence-pack__account-list,
   .insight-grid,
   .influencer-list__grid,
   .analysis-meta,
@@ -1111,6 +1184,7 @@ button {
   .bucket-card-editor__section-header,
   .handle-input-row,
   .payload-preview__summary,
+  .evidence-pack__summary,
   .scenario-switcher__header,
   .scenario-card__header,
   .scenario-card__footer,

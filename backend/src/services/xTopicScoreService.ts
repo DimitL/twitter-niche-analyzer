@@ -100,6 +100,7 @@ export interface ScoredXTopicBucketResult {
   comparisonSucceeded: boolean;
   scoringSucceeded: boolean;
   bucketAggregates: ComparedXTopicBucketResult["bucketSignals"];
+  successfulAccounts: ComparedXTopicBucketResult["successfulAccounts"];
   topicSignals: XTopicSignalSet;
   topicScores: XTopicScoreValues;
   scoreBreakdown: XTopicScoreBreakdown;
@@ -268,6 +269,7 @@ function createEmptyScoredBucket(
       medianOverallAccountScore: null,
       medianEngagementEfficiencyScore: null
     },
+    successfulAccounts: [],
     topicSignals: createEmptySignals(),
     topicScores: createEmptyScores(),
     scoreBreakdown: createEmptyScoreBreakdown(),
@@ -546,6 +548,7 @@ function buildScoredBucket(
       bucketResult.comparisonSucceeded &&
       bucketResult.accountResultsSummary.usableAccountCount > 0,
     bucketAggregates: bucketResult.bucketSignals,
+    successfulAccounts: bucketResult.successfulAccounts,
     topicSignals,
     topicScores,
     scoreBreakdown,

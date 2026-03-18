@@ -341,22 +341,64 @@ function buildDecisionLeaders(buckets: ScoredBucketWithRanking[]) {
 function buildStrongestAccounts(
   bucket: ScoredXTopicBucketResult
 ): XNicheStrongestAccountSummary[] {
+  const strongestByOverall = [...bucket.successfulAccounts]
+    .sort((left, right) => right.overallAccountScore - left.overallAccountScore)
+    .slice(0, 3)
+    .map((account) => ({
+      handle: account.profile.handle,
+      displayName: account.profile.displayName,
+      profileUrl: account.profile.profileUrl,
+      metric: "overallAccountScore" as const,
+      value: account.overallAccountScore,
+      usablePostCount: account.usablePostCount,
+      reason: "Один из сильнейших аккаунтов bucket-а по общему account score."
+    }));
+
+  const strongestByEngagement = [...bucket.successfulAccounts]
+    .sort(
+      (left, right) =>
+        right.engagementEfficiencyScore - left.engagementEfficiencyScore
+    )
+    .slice(0, 2)
+    .map((account) => ({
+      handle: account.profile.handle,
+      displayName: account.profile.displayName,
+      profileUrl: account.profile.profileUrl,
+      metric: "engagementEfficiencyScore" as const,
+      value: account.engagementEfficiencyScore,
+      usablePostCount: account.usablePostCount,
+      reason: "Один из сильнейших аккаунтов bucket-а по engagement efficiency."
+    }));
+
   return dedupeItemsByKey(
-    [bucket.topAccounts.topByOverall, bucket.topAccounts.topByEngagementEfficiency]
-      .filter((account) => account !== null)
-      .map((account) => ({
-        handle: account.handle,
-        displayName: account.displayName,
-        profileUrl: account.profileUrl,
-        metric: account.metric,
-        value: account.value,
-        usablePostCount: account.usablePostCount,
-        reason:
-          account.metric === "overallAccountScore"
-            ? "Лидер bucket-а по общему account score."
-            : "Лидер bucket-а по engagement efficiency."
-      })),
-    (account) => `${account.handle ?? "unknown"}:${account.metric}`
+    [
+      bucket.topAccounts.topByOverall
+        ? {
+            handle: bucket.topAccounts.topByOverall.handle,
+            displayName: bucket.topAccounts.topByOverall.displayName,
+            profileUrl: bucket.topAccounts.topByOverall.profileUrl,
+            metric: bucket.topAccounts.topByOverall.metric,
+            value: bucket.topAccounts.topByOverall.value,
+            usablePostCount: bucket.topAccounts.topByOverall.usablePostCount,
+            reason: "Лидер bucket-а по общему account score."
+          }
+        : null,
+      bucket.topAccounts.topByEngagementEfficiency
+        ? {
+            handle: bucket.topAccounts.topByEngagementEfficiency.handle,
+            displayName: bucket.topAccounts.topByEngagementEfficiency.displayName,
+            profileUrl: bucket.topAccounts.topByEngagementEfficiency.profileUrl,
+            metric: bucket.topAccounts.topByEngagementEfficiency.metric,
+            value: bucket.topAccounts.topByEngagementEfficiency.value,
+            usablePostCount:
+              bucket.topAccounts.topByEngagementEfficiency.usablePostCount,
+            reason: "Лидер bucket-а по engagement efficiency."
+          }
+        : null,
+      ...strongestByOverall,
+      ...strongestByEngagement
+    ].filter((account) => account !== null),
+    (account) => `${account.handle ?? "unknown"}`
   );
 }
 

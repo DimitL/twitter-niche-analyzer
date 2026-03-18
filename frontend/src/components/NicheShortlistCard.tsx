@@ -1,4 +1,5 @@
 import type { RankedNicheShortlistBucket } from "../types/nicheShortlist.js";
+import { NicheEvidencePack } from "./NicheEvidencePack.js";
 
 interface NicheShortlistCardProps {
   bucket: RankedNicheShortlistBucket;
@@ -165,6 +166,8 @@ export function NicheShortlistCard({ bucket }: NicheShortlistCardProps) {
           </div>
         ) : null}
       </div>
+
+      {bucket.shortlistIncluded ? <NicheEvidencePack bucket={bucket} /> : null}
     </article>
   );
 }
