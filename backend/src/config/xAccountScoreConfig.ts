@@ -59,7 +59,8 @@ export function getXAccountScoreNotesSeed() {
   return [
     "Скоринг ограничивается одним публичным X-аккаунтом и использует уже собранный recent-posts dataset.",
     "Первая версия score-модели опирается на явные формулы для engagement efficiency, consistency, reach и data confidence.",
-    "Uncertain items и failed hydration учитываются как часть filter layer и не ломают весь scoring flow.",
+    "Classification-aware filter layer исключает likely replies и reposts до расчёта account-level signals.",
+    "Uncertain items, quote posts и failed hydration учитываются как отдельные filter decisions и не ломают весь scoring flow.",
     xNavigationConfig.auth.sessionEnabled
       ? "Auth-сессия настроена, но текущий scoring route всё равно не выполняет login automation."
       : "Скоринг работает без авторизации и использует только публичные данные, доступные через текущие bootstrap/extraction слои."

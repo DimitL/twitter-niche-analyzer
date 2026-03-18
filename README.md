@@ -15,8 +15,8 @@
 - public X profile field extraction слой для безопасного извлечения identity/header полей публичного профиля
 - public X profile timeline URL discovery слой для безопасного поиска недавних tweet URL из публичной ленты профиля
 - public X profile timeline classification слой для rule-based разделения timeline items на original/reply/repost/quote/uncertain
-- public X account recent-posts aggregation слой для безопасного объединения profile fields, timeline URL discovery и hydration недавних твитов
-- isolated single-account scoring слой для вычисления first-pass account signals и account score на основе recent-posts dataset
+- public X account recent-posts aggregation слой для безопасного объединения profile fields, timeline URL discovery, classification enrichment и hydration недавних твитов
+- isolated single-account scoring слой для вычисления first-pass account signals и account score на основе classification-aware recent-posts dataset
 - manual multi-account comparison слой для раннего benchmarking нескольких публичных X-аккаунтов через existing scoring layer
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
@@ -307,7 +307,8 @@ npm run dev:backend
 curl -G "http://localhost:3001/api/browser/x-account-recent-posts-test" \
   --data-urlencode "handle=OpenAI" \
   --data-urlencode "limit=3" \
-  --data-urlencode "waitStrategy=load"
+  --data-urlencode "waitStrategy=load" \
+  --data-urlencode "treatQuoteAsUsable=false"
 ```
 
 5. Проверить агрегацию по profile URL:
@@ -316,15 +317,18 @@ curl -G "http://localhost:3001/api/browser/x-account-recent-posts-test" \
 curl -G "http://localhost:3001/api/browser/x-account-recent-posts-test" \
   --data-urlencode "targetUrl=https://x.com/OpenAI" \
   --data-urlencode "limit=5" \
-  --data-urlencode "waitStrategy=load"
+  --data-urlencode "waitStrategy=load" \
+  --data-urlencode "treatQuoteAsUsable=true"
 ```
 
 Что вернётся:
 - `navigationSucceeded`
 - `aggregationSucceeded`
+- `classificationSucceeded`
 - `profile` с уже доступными identity/header полями
 - `discoveredTweetRefs` с recent tweet URL discovery
-- `hydratedTweets` с объединёнными top-level fields и metrics по каждому твиту
+- `hydratedTweets` с объединёнными top-level fields, metrics и classification-полями по каждому твиту
+- `classificationSummary`
 - `accountSummary` с простыми first-pass aggregate значениями
 - `timings`
 - `error`
@@ -333,7 +337,7 @@ curl -G "http://localhost:3001/api/browser/x-account-recent-posts-test" \
 Ограничения текущего шага:
 - маршрут не извлекает timeline post content напрямую из profile page
 - маршрут не парсит replies и thread tree
-- replies/reposts пока могут попадать в выборку как uncertain items
+- classification помогает очистить scoring inputs, но recent-posts route сам по себе ещё не делает жёсткий final filtering
 - simple engagement-per-follower proxy пока является только первым приближением
 
 ## Как проверить X profile timeline classification
@@ -389,7 +393,7 @@ curl -G "http://localhost:3001/api/browser/x-profile-timeline-classification-tes
 - классификация остаётся rule-based и deliberately conservative
 - quote-post detection пока срабатывает только на сильных signals
 - thread trees и reply lists ещё не извлекаются
-- scoring/comparison pipelines пока не переведены на этот новый classification layer автоматически
+- scoring/comparison pipelines уже используют этот слой через recent-posts integration
 
 ## Как проверить X account scoring
 
@@ -417,7 +421,8 @@ npm run dev:backend
 curl -G "http://localhost:3001/api/browser/x-account-score-test" \
   --data-urlencode "handle=OpenAI" \
   --data-urlencode "limit=3" \
-  --data-urlencode "includeUncertain=false"
+  --data-urlencode "includeUncertain=false" \
+  --data-urlencode "treatQuoteAsUsable=false"
 ```
 
 5. Проверить scoring по profile URL:
@@ -426,7 +431,8 @@ curl -G "http://localhost:3001/api/browser/x-account-score-test" \
 curl -G "http://localhost:3001/api/browser/x-account-score-test" \
   --data-urlencode "targetUrl=https://x.com/OpenAI" \
   --data-urlencode "limit=5" \
-  --data-urlencode "includeUncertain=true"
+  --data-urlencode "includeUncertain=true" \
+  --data-urlencode "treatQuoteAsUsable=true"
 ```
 
 Что вернётся:
@@ -436,6 +442,7 @@ curl -G "http://localhost:3001/api/browser/x-account-score-test" \
 - `filtersApplied`
 - `usableTweets`
 - `excludedTweets`
+- `exclusionReasonsSummary`
 - `accountSignals`
 - `accountScores`
 - `timings`
@@ -445,7 +452,7 @@ curl -G "http://localhost:3001/api/browser/x-account-score-test" \
 Ограничения текущего шага:
 - scoring пока выполняется только для одного аккаунта
 - multi-account comparison и niche aggregation ещё не реализованы
-- uncertain reply/repost filtering остаётся first-pass и будет усиливаться отдельно
+- classification-aware filtering остаётся first-pass и будет усиливаться отдельно
 - overall account score пока служит как прозрачный preliminary signal, а не как финальный ranking layer
 
 ## Как проверить X multi-account comparison

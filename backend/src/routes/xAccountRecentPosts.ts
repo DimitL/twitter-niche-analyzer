@@ -6,6 +6,7 @@ interface XAccountRecentPostsQuery {
   targetUrl?: string;
   waitStrategy?: string;
   limit?: string;
+  treatQuoteAsUsable?: string;
 }
 
 export async function registerXAccountRecentPostsRoutes(app: FastifyInstance) {
@@ -16,7 +17,8 @@ export async function registerXAccountRecentPostsRoutes(app: FastifyInstance) {
         handle: query.handle,
         targetUrl: query.targetUrl,
         waitStrategy: query.waitStrategy,
-        limit: query.limit
+        limit: query.limit,
+        treatQuoteAsUsable: query.treatQuoteAsUsable
       },
       app.log
     );

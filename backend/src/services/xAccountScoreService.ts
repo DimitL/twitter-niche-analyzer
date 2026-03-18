@@ -9,6 +9,7 @@ import {
   resolveXAccountScoreIncludeUncertain,
   xAccountScoreConfig
 } from "../config/xAccountScoreConfig.js";
+import { resolveXProfileTimelineClassificationTreatQuoteAsUsable } from "../config/xProfileTimelineClassificationConfig.js";
 import { runXAccountRecentPostsDiagnostics } from "./xAccountRecentPostsService.js";
 
 interface XAccountScoreOptions {
@@ -17,6 +18,7 @@ interface XAccountScoreOptions {
   waitStrategy?: string;
   limit?: string | number;
   includeUncertain?: string | boolean;
+  treatQuoteAsUsable?: string | boolean;
 }
 
 interface XAccountScoreErrorDetails {
@@ -33,13 +35,22 @@ interface XAccountScoreTimings {
 
 export interface XAccountScoreFiltersApplied {
   includeUncertain: boolean;
+  treatQuoteAsUsable: boolean;
   excludeFailedHydration: boolean;
+  excludeReplies: boolean;
+  excludeReposts: boolean;
+  excludeQuotePosts: boolean;
   excludeUncertain: boolean;
+  excludeClassificationUnavailable: boolean;
   discoveredCount: number;
   hydratedCount: number;
   usablePostCount: number;
   excludedUncertainCount: number;
   excludedFailedCount: number;
+  excludedReplyCount: number;
+  excludedRepostCount: number;
+  excludedQuotePostCount: number;
+  excludedClassificationUnavailableCount: number;
 }
 
 export interface ScoredUsableXAccountTweet extends HydratedXAccountRecentPost {
@@ -49,6 +60,15 @@ export interface ScoredUsableXAccountTweet extends HydratedXAccountRecentPost {
 
 export interface ExcludedXAccountTweet extends HydratedXAccountRecentPost {
   exclusionReasons: string[];
+}
+
+export interface XAccountScoreExclusionReasonsSummary {
+  failedHydration: number;
+  reply: number;
+  repost: number;
+  quotePostExcluded: number;
+  uncertain: number;
+  classificationUnavailable: number;
 }
 
 export interface XAccountScoreSignals {
@@ -86,6 +106,7 @@ export interface XAccountScoreDiagnostics {
   filtersApplied: XAccountScoreFiltersApplied;
   usableTweets: ScoredUsableXAccountTweet[];
   excludedTweets: ExcludedXAccountTweet[];
+  exclusionReasonsSummary: XAccountScoreExclusionReasonsSummary;
   accountSignals: XAccountScoreSignals;
   accountScores: XAccountScoreBreakdown;
   timings: XAccountScoreTimings;
@@ -219,24 +240,77 @@ function createEmptyScores(): XAccountScoreBreakdown {
   };
 }
 
+function createEmptyExclusionReasonsSummary(): XAccountScoreExclusionReasonsSummary {
+  return {
+    failedHydration: 0,
+    reply: 0,
+    repost: 0,
+    quotePostExcluded: 0,
+    uncertain: 0,
+    classificationUnavailable: 0
+  };
+}
+
+function hasExclusionReason(
+  tweet: ExcludedXAccountTweet,
+  reason:
+    | "failedHydration"
+    | "reply"
+    | "repost"
+    | "quotePostExcluded"
+    | "uncertain"
+    | "classificationUnavailable"
+) {
+  return tweet.exclusionReasons.includes(reason);
+}
+
 function buildFiltersApplied(
   includeUncertain: boolean,
+  treatQuoteAsUsable: boolean,
   recentPostsResult: XAccountRecentPostsDiagnostics,
   usableTweets: ScoredUsableXAccountTweet[],
   excludedTweets: ExcludedXAccountTweet[]
 ): XAccountScoreFiltersApplied {
   return {
     includeUncertain,
+    treatQuoteAsUsable,
     excludeFailedHydration: true,
+    excludeReplies: true,
+    excludeReposts: true,
+    excludeQuotePosts: !treatQuoteAsUsable,
     excludeUncertain: !includeUncertain,
+    excludeClassificationUnavailable: !includeUncertain,
     discoveredCount: recentPostsResult.discoveredTweetRefs.items.length,
     hydratedCount: recentPostsResult.accountSummary.hydratedCount,
     usablePostCount: usableTweets.length,
-    excludedUncertainCount: excludedTweets.filter((tweet) =>
-      tweet.exclusionReasons.includes("uncertain")
+    excludedUncertainCount: excludedTweets.filter((tweet) => hasExclusionReason(tweet, "uncertain")).length,
+    excludedFailedCount: excludedTweets.filter((tweet) => hasExclusionReason(tweet, "failedHydration")).length,
+    excludedReplyCount: excludedTweets.filter((tweet) => hasExclusionReason(tweet, "reply")).length,
+    excludedRepostCount: excludedTweets.filter((tweet) => hasExclusionReason(tweet, "repost")).length,
+    excludedQuotePostCount: excludedTweets.filter((tweet) =>
+      hasExclusionReason(tweet, "quotePostExcluded")
     ).length,
-    excludedFailedCount: excludedTweets.filter((tweet) =>
-      tweet.exclusionReasons.includes("failedHydration")
+    excludedClassificationUnavailableCount: excludedTweets.filter((tweet) =>
+      hasExclusionReason(tweet, "classificationUnavailable")
+    ).length
+  };
+}
+
+function buildExclusionReasonsSummary(
+  excludedTweets: ExcludedXAccountTweet[]
+): XAccountScoreExclusionReasonsSummary {
+  return {
+    failedHydration: excludedTweets.filter((tweet) =>
+      hasExclusionReason(tweet, "failedHydration")
+    ).length,
+    reply: excludedTweets.filter((tweet) => hasExclusionReason(tweet, "reply")).length,
+    repost: excludedTweets.filter((tweet) => hasExclusionReason(tweet, "repost")).length,
+    quotePostExcluded: excludedTweets.filter((tweet) =>
+      hasExclusionReason(tweet, "quotePostExcluded")
+    ).length,
+    uncertain: excludedTweets.filter((tweet) => hasExclusionReason(tweet, "uncertain")).length,
+    classificationUnavailable: excludedTweets.filter((tweet) =>
+      hasExclusionReason(tweet, "classificationUnavailable")
     ).length
   };
 }
@@ -244,7 +318,8 @@ function buildFiltersApplied(
 function buildTweetBuckets(
   tweets: HydratedXAccountRecentPost[],
   followerCount: number | null,
-  includeUncertain: boolean
+  includeUncertain: boolean,
+  treatQuoteAsUsable: boolean
 ) {
   const usableTweets: ScoredUsableXAccountTweet[] = [];
   const excludedTweets: ExcludedXAccountTweet[] = [];
@@ -256,8 +331,20 @@ function buildTweetBuckets(
       exclusionReasons.push("failedHydration");
     }
 
-    if (!includeUncertain && tweet.isReplyOrRepostUncertain) {
+    if (tweet.classification === "reply") {
+      exclusionReasons.push("reply");
+    } else if (tweet.classification === "repost") {
+      exclusionReasons.push("repost");
+    } else if (tweet.classification === "quotePost" && !treatQuoteAsUsable) {
+      exclusionReasons.push("quotePostExcluded");
+    } else if (tweet.classification === "uncertain" && !includeUncertain) {
       exclusionReasons.push("uncertain");
+    } else if (!tweet.classification) {
+      if (tweet.isReplyOrRepostUncertain && !includeUncertain) {
+        exclusionReasons.push("uncertain");
+      } else if (!includeUncertain) {
+        exclusionReasons.push("classificationUnavailable");
+      }
     }
 
     if (exclusionReasons.length > 0) {
@@ -551,16 +638,26 @@ export async function runXAccountScoreDiagnostics(
   };
   let filtersApplied: XAccountScoreFiltersApplied = {
     includeUncertain: false,
+    treatQuoteAsUsable: false,
     excludeFailedHydration: true,
+    excludeReplies: true,
+    excludeReposts: true,
+    excludeQuotePosts: true,
     excludeUncertain: true,
+    excludeClassificationUnavailable: true,
     discoveredCount: 0,
     hydratedCount: 0,
     usablePostCount: 0,
     excludedUncertainCount: 0,
-    excludedFailedCount: 0
+    excludedFailedCount: 0,
+    excludedReplyCount: 0,
+    excludedRepostCount: 0,
+    excludedQuotePostCount: 0,
+    excludedClassificationUnavailableCount: 0
   };
   let usableTweets: ScoredUsableXAccountTweet[] = [];
   let excludedTweets: ExcludedXAccountTweet[] = [];
+  let exclusionReasonsSummary = createEmptyExclusionReasonsSummary();
   let accountSignals = createEmptySignals();
   let accountScores = createEmptyScores();
   let aggregationMs = 0;
@@ -571,13 +668,17 @@ export async function runXAccountScoreDiagnostics(
     const includeUncertain = resolveXAccountScoreIncludeUncertain(
       options.includeUncertain
     );
+    const treatQuoteAsUsable = resolveXProfileTimelineClassificationTreatQuoteAsUsable(
+      options.treatQuoteAsUsable
+    );
 
     logger.info(
       {
         handle: options.handle,
         targetUrl: options.targetUrl,
         limit: options.limit,
-        includeUncertain
+        includeUncertain,
+        treatQuoteAsUsable
       },
       "Starting X account scoring."
     );
@@ -587,7 +688,8 @@ export async function runXAccountScoreDiagnostics(
         handle: options.handle,
         targetUrl: options.targetUrl,
         waitStrategy: options.waitStrategy,
-        limit: options.limit
+        limit: options.limit,
+        treatQuoteAsUsable
       },
       logger
     );
@@ -599,16 +701,19 @@ export async function runXAccountScoreDiagnostics(
     const buckets = buildTweetBuckets(
       aggregationResult.hydratedTweets,
       followerCount,
-      includeUncertain
+      includeUncertain,
+      treatQuoteAsUsable
     );
     usableTweets = buckets.usableTweets;
     excludedTweets = buckets.excludedTweets;
     filtersApplied = buildFiltersApplied(
       includeUncertain,
+      treatQuoteAsUsable,
       aggregationResult,
       usableTweets,
       excludedTweets
     );
+    exclusionReasonsSummary = buildExclusionReasonsSummary(excludedTweets);
     filteringMs = Date.now() - filteringStartedAt;
 
     const scoringStartedAt = Date.now();
@@ -622,15 +727,39 @@ export async function runXAccountScoreDiagnostics(
       );
     }
 
+    if (!aggregationResult.classificationSucceeded) {
+      notes.push(
+        "Timeline classification enrichment завершился неполно, поэтому часть filter decisions использует conservative fallback."
+      );
+    }
+
     if (!includeUncertain && filtersApplied.excludedUncertainCount > 0) {
       notes.push(
         `Из usable набора исключены uncertain items: ${filtersApplied.excludedUncertainCount}.`
       );
     }
 
+    if (filtersApplied.excludedReplyCount > 0 || filtersApplied.excludedRepostCount > 0) {
+      notes.push(
+        `Classification-aware filtering исключил replies: ${filtersApplied.excludedReplyCount}, reposts: ${filtersApplied.excludedRepostCount}.`
+      );
+    }
+
+    if (!treatQuoteAsUsable && filtersApplied.excludedQuotePostCount > 0) {
+      notes.push(
+        `Quote posts исключены из usable набора: ${filtersApplied.excludedQuotePostCount}.`
+      );
+    }
+
     if (filtersApplied.excludedFailedCount > 0) {
       notes.push(
         `Из usable набора исключены failed hydration items: ${filtersApplied.excludedFailedCount}.`
+      );
+    }
+
+    if (filtersApplied.excludedClassificationUnavailableCount > 0) {
+      notes.push(
+        `Из usable набора исключены items без classification result: ${filtersApplied.excludedClassificationUnavailableCount}.`
       );
     }
 
@@ -698,6 +827,7 @@ export async function runXAccountScoreDiagnostics(
       filtersApplied,
       usableTweets,
       excludedTweets,
+      exclusionReasonsSummary,
       accountSignals,
       accountScores,
       timings: {
@@ -733,6 +863,7 @@ export async function runXAccountScoreDiagnostics(
       filtersApplied,
       usableTweets,
       excludedTweets,
+      exclusionReasonsSummary,
       accountSignals,
       accountScores,
       timings: {
@@ -747,7 +878,10 @@ export async function runXAccountScoreDiagnostics(
   }
 }
 
+// TODO: Strengthen classification confidence handling before tightening filter defaults further.
 // TODO: Add multi-account comparison only after single-account scoring is stable.
 // TODO: Add niche-level aggregation only after multi-account scoring contracts are defined.
 // TODO: Improve reply/repost filtering before promoting account scoring into discovery workflows.
+// TODO: Add automatic account discovery only after single-account scoring inputs are reliable.
+// TODO: Add richer account-quality scoring only after classification-aware filtering stabilizes.
 // TODO: Add persistent run history only after scoring inputs and outputs are stable.

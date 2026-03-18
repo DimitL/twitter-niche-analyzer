@@ -170,13 +170,22 @@ function createEmptyProfile(): ExtractedXProfileFieldsData {
 function createEmptyFiltersApplied(): XAccountScoreFiltersApplied {
   return {
     includeUncertain: false,
+    treatQuoteAsUsable: false,
     excludeFailedHydration: true,
+    excludeReplies: true,
+    excludeReposts: true,
+    excludeQuotePosts: true,
     excludeUncertain: true,
+    excludeClassificationUnavailable: true,
     discoveredCount: 0,
     hydratedCount: 0,
     usablePostCount: 0,
     excludedUncertainCount: 0,
-    excludedFailedCount: 0
+    excludedFailedCount: 0,
+    excludedReplyCount: 0,
+    excludedRepostCount: 0,
+    excludedQuotePostCount: 0,
+    excludedClassificationUnavailableCount: 0
   };
 }
 

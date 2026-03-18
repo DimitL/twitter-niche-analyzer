@@ -7,6 +7,7 @@ interface XAccountScoreQuery {
   waitStrategy?: string;
   limit?: string;
   includeUncertain?: string;
+  treatQuoteAsUsable?: string;
 }
 
 export async function registerXAccountScoreRoutes(app: FastifyInstance) {
@@ -18,7 +19,8 @@ export async function registerXAccountScoreRoutes(app: FastifyInstance) {
         targetUrl: query.targetUrl,
         waitStrategy: query.waitStrategy,
         limit: query.limit,
-        includeUncertain: query.includeUncertain
+        includeUncertain: query.includeUncertain,
+        treatQuoteAsUsable: query.treatQuoteAsUsable
       },
       app.log
     );

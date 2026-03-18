@@ -16,6 +16,12 @@ import type {
   XTweetMetricValue,
   XTweetMetricsDiagnostics
 } from "./xTweetMetricsService.js";
+import type {
+  ClassifiedXProfileTimelineItem,
+  XProfileTimelineClassificationSummary,
+  XTimelineClassificationConfidence,
+  XTimelinePostClassification
+} from "./xProfileTimelineClassificationService.js";
 import {
   getXAccountRecentPostsNotesSeed,
   resolveXAccountRecentPostsLimit,
@@ -23,6 +29,7 @@ import {
   resolveXAccountRecentPostsWaitStrategy
 } from "../config/xAccountRecentPostsConfig.js";
 import { runXProfileFieldsDiagnostics } from "./xProfileFieldsService.js";
+import { classifyXProfileTimelineDiscoveredItems } from "./xProfileTimelineClassificationService.js";
 import { runXProfileTimelineUrlsDiagnostics } from "./xProfileTimelineUrlsService.js";
 import { runXTweetFieldsDiagnostics } from "./xTweetFieldsService.js";
 import { runXTweetMetricsDiagnostics } from "./xTweetMetricsService.js";
@@ -32,6 +39,7 @@ interface XAccountRecentPostsOptions {
   targetUrl?: string;
   waitStrategy?: string;
   limit?: string | number;
+  treatQuoteAsUsable?: string | boolean;
 }
 
 type HydrationStatus = "ok" | "partial" | "error";
@@ -51,6 +59,7 @@ interface XAccountRecentPostErrorDetails {
 interface XAccountRecentPostsTimings {
   profileFieldsMs: number;
   timelineDiscoveryMs: number;
+  classificationMs: number;
   tweetHydrationMs: number;
   perTweetHydrationMs: Array<{
     tweetUrl: string | null;
@@ -65,6 +74,12 @@ export interface HydratedXAccountRecentPost {
   isPinned: boolean;
   isReplyOrRepostUncertain: boolean;
   uncertaintyReasons: string[];
+  classificationStatus: "ok" | "notAvailable";
+  classification: XTimelinePostClassification | null;
+  classificationConfidence: XTimelineClassificationConfidence | null;
+  classificationReasons: string[];
+  evidenceMarkers: string[];
+  usableForScoring: boolean | null;
   tweetUrl: string | null;
   tweetId: string | null;
   authorHandle: string | null;
@@ -96,9 +111,11 @@ export interface XAccountRecentPostsDiagnostics {
   status: "ok" | "partial" | "error";
   navigationSucceeded: boolean;
   aggregationSucceeded: boolean;
+  classificationSucceeded: boolean;
   profile: ExtractedXProfileFieldsData;
   discoveredTweetRefs: ExtractedXProfileTimelineUrlsData;
   hydratedTweets: HydratedXAccountRecentPost[];
+  classificationSummary: XProfileTimelineClassificationSummary;
   accountSummary: XAccountRecentPostsSummary;
   timings: XAccountRecentPostsTimings;
   error: XAccountRecentPostErrorDetails | null;
@@ -175,6 +192,18 @@ function createEmptyTweetMetricsData(): ExtractedXTweetMetricsData {
   };
 }
 
+function createEmptyClassificationSummary(): XProfileTimelineClassificationSummary {
+  return {
+    discoveredCount: 0,
+    originalPostCount: 0,
+    replyCount: 0,
+    repostCount: 0,
+    quotePostCount: 0,
+    uncertainCount: 0,
+    usableForScoringCount: 0
+  };
+}
+
 function serializeError(error: unknown): XAccountRecentPostErrorDetails {
   if (error instanceof Error) {
     return {
@@ -238,10 +267,19 @@ function getHydrationStatus(
   return "error";
 }
 
+function buildClassificationLookupKey(input: {
+  tweetUrl: string | null;
+  tweetId: string | null;
+  sortIndex: number;
+}) {
+  return input.tweetUrl || input.tweetId || `sort:${input.sortIndex}`;
+}
+
 function buildHydratedTweet(
   discoveredRef: DiscoveredXProfileTimelineTweetRef,
   fieldResult: XTweetFieldsDiagnostics | null,
-  metricsResult: XTweetMetricsDiagnostics | null
+  metricsResult: XTweetMetricsDiagnostics | null,
+  classifiedItem: ClassifiedXProfileTimelineItem | null
 ): HydratedXAccountRecentPost {
   const fieldsData = fieldResult?.extractedData ?? createEmptyTweetFieldsData();
   const metricsData = metricsResult?.extractedData ?? createEmptyTweetMetricsData();
@@ -251,6 +289,14 @@ function buildHydratedTweet(
     isPinned: discoveredRef.isPinned,
     isReplyOrRepostUncertain: discoveredRef.isReplyOrRepostUncertain,
     uncertaintyReasons: [...discoveredRef.uncertaintyReasons],
+    classificationStatus: classifiedItem ? "ok" : "notAvailable",
+    classification: classifiedItem?.classification ?? null,
+    classificationConfidence: classifiedItem?.confidence ?? null,
+    classificationReasons: classifiedItem ? [...classifiedItem.reasons] : [],
+    evidenceMarkers: classifiedItem
+      ? [...classifiedItem.evidenceMarkers]
+      : [...discoveredRef.evidenceMarkers],
+    usableForScoring: classifiedItem?.usableForScoring ?? null,
     tweetUrl: fieldsData.tweetUrl || discoveredRef.tweetUrl,
     tweetId: fieldsData.tweetId || discoveredRef.tweetId,
     authorHandle: fieldsData.authorHandle || discoveredRef.authorHandle,
@@ -324,10 +370,13 @@ function buildAccountSummary(
 async function hydrateTweetRef(
   discoveredRef: DiscoveredXProfileTimelineTweetRef,
   waitStrategy: string,
+  classifiedItem: ClassifiedXProfileTimelineItem | null,
+  preloadedFieldResult: XTweetFieldsDiagnostics | null,
   logger: FastifyBaseLogger
 ) {
   const startedAt = Date.now();
-  let fieldResult: XTweetFieldsDiagnostics | null = null;
+  const usedPreloadedFieldResult = Boolean(preloadedFieldResult);
+  let fieldResult: XTweetFieldsDiagnostics | null = preloadedFieldResult;
   let metricsResult: XTweetMetricsDiagnostics | null = null;
   const notes: string[] = [];
 
@@ -337,25 +386,35 @@ async function hydrateTweetRef(
     );
 
     return {
-      hydratedTweet: buildHydratedTweet(discoveredRef, fieldResult, metricsResult),
+      hydratedTweet: buildHydratedTweet(
+        discoveredRef,
+        fieldResult,
+        metricsResult,
+        classifiedItem
+      ),
       notes,
       totalMs: Date.now() - startedAt
     };
   }
 
-  try {
-    fieldResult = await runXTweetFieldsDiagnostics(
-      {
-        targetUrl: discoveredRef.tweetUrl,
-        waitStrategy
-      },
-      logger
-    );
-  } catch (error) {
-    notes.push(
-      `Top-level tweet field extraction завершился исключением для ${discoveredRef.tweetUrl}.`
-    );
-    logger.error({ err: serializeError(error), tweetUrl: discoveredRef.tweetUrl }, "Tweet field hydration failed.");
+  if (!fieldResult) {
+    try {
+      fieldResult = await runXTweetFieldsDiagnostics(
+        {
+          targetUrl: discoveredRef.tweetUrl,
+          waitStrategy
+        },
+        logger
+      );
+    } catch (error) {
+      notes.push(
+        `Top-level tweet field extraction завершился исключением для ${discoveredRef.tweetUrl}.`
+      );
+      logger.error(
+        { err: serializeError(error), tweetUrl: discoveredRef.tweetUrl },
+        "Tweet field hydration failed."
+      );
+    }
   }
 
   try {
@@ -391,14 +450,31 @@ async function hydrateTweetRef(
     );
   }
 
+  if (classifiedItem) {
+    notes.push(
+      `Tweet ${discoveredRef.tweetId || discoveredRef.tweetUrl} классифицирован как ${classifiedItem.classification} (${classifiedItem.confidence}).`
+    );
+  } else {
+    notes.push(
+      `Для твита ${discoveredRef.tweetId || discoveredRef.tweetUrl} classification data недоступны, поэтому route возвращает hydration без classification enrichment.`
+    );
+  }
+
   return {
-    hydratedTweet: buildHydratedTweet(discoveredRef, fieldResult, metricsResult),
+    hydratedTweet: buildHydratedTweet(
+      discoveredRef,
+      fieldResult,
+      metricsResult,
+      classifiedItem
+    ),
     notes: [
       ...notes,
-      ...prefixNotes(
-        `tweet-fields ${discoveredRef.tweetId || discoveredRef.sortIndex}`,
-        fieldResult?.notes ?? []
-      ),
+      ...(!usedPreloadedFieldResult
+        ? prefixNotes(
+            `tweet-fields ${discoveredRef.tweetId || discoveredRef.sortIndex}`,
+            fieldResult?.notes ?? []
+          )
+        : []),
       ...prefixNotes(
         `tweet-metrics ${discoveredRef.tweetId || discoveredRef.sortIndex}`,
         metricsResult?.notes ?? []
@@ -426,10 +502,13 @@ export async function runXAccountRecentPostsDiagnostics(
   let profile = createEmptyProfileData();
   let discoveredTweetRefs = createEmptyDiscoveredTweetRefs(requestedLimit);
   const hydratedTweets: HydratedXAccountRecentPost[] = [];
+  let classificationSummary = createEmptyClassificationSummary();
   const perTweetHydrationMs: XAccountRecentPostsTimings["perTweetHydrationMs"] = [];
   let profileFieldsMs = 0;
   let timelineDiscoveryMs = 0;
+  let classificationMs = 0;
   let tweetHydrationMs = 0;
+  let classificationSucceeded = false;
 
   try {
     waitStrategy = resolveXAccountRecentPostsWaitStrategy(options.waitStrategy);
@@ -483,8 +562,64 @@ export async function runXAccountRecentPostsDiagnostics(
     };
     notes.push(...prefixNotes("timeline-urls", timelineResult.notes));
 
+    const classificationLookup = new Map<
+      string,
+      {
+        classifiedItem: ClassifiedXProfileTimelineItem;
+        tweetFieldResult: XTweetFieldsDiagnostics | null;
+      }
+    >();
+
+    try {
+      const classificationResult = await classifyXProfileTimelineDiscoveredItems(
+        {
+          discoveredItems: discoveredTweetRefs.items,
+          profileHandle: profile.handle || resolvedTarget.normalizedHandle || null,
+          waitStrategy,
+          treatQuoteAsUsable: options.treatQuoteAsUsable
+        },
+        logger
+      );
+      classificationMs = classificationResult.timings.totalMs;
+      classificationSummary = classificationResult.classificationSummary;
+      classificationSucceeded =
+        classificationResult.classifiedItems.length > 0 ||
+        discoveredTweetRefs.items.length === 0;
+      notes.push(...prefixNotes("timeline-classification", classificationResult.notes));
+
+      for (const supportItem of classificationResult.classifiedItemSupport) {
+        classificationLookup.set(
+          buildClassificationLookupKey(supportItem.classifiedItem),
+          {
+            classifiedItem: supportItem.classifiedItem,
+            tweetFieldResult: supportItem.tweetFieldResult
+          }
+        );
+      }
+    } catch (error) {
+      logger.error(
+        {
+          err: serializeError(error),
+          handle: resolvedTarget.normalizedHandle,
+          targetUrl: resolvedTarget.targetUrl
+        },
+        "Timeline classification enrichment failed inside X account recent-posts aggregation."
+      );
+      notes.push(
+        "Timeline classification enrichment завершился исключением, поэтому recent-posts route возвращает hydrated tweets без полной classification-разметки."
+      );
+    }
+
     for (const discoveredRef of discoveredTweetRefs.items) {
-      const hydrationResult = await hydrateTweetRef(discoveredRef, waitStrategy, logger);
+      const classificationSupport =
+        classificationLookup.get(buildClassificationLookupKey(discoveredRef)) ?? null;
+      const hydrationResult = await hydrateTweetRef(
+        discoveredRef,
+        waitStrategy,
+        classificationSupport?.classifiedItem ?? null,
+        classificationSupport?.tweetFieldResult ?? null,
+        logger
+      );
       hydratedTweets.push(hydrationResult.hydratedTweet);
       perTweetHydrationMs.push({
         tweetUrl: hydrationResult.hydratedTweet.tweetUrl,
@@ -526,10 +661,15 @@ export async function runXAccountRecentPostsDiagnostics(
     const allHydrationsSuccessful =
       hydratedTweets.length > 0 &&
       hydratedTweets.every((tweet) => tweet.hydrationStatus === "ok");
+    const allClassificationsAvailable =
+      hydratedTweets.length === 0 ||
+      hydratedTweets.every((tweet) => tweet.classificationStatus === "ok");
     const status =
       aggregationSucceeded &&
       profileFieldsResult.status === "ok" &&
       timelineResult.status === "ok" &&
+      classificationSucceeded &&
+      allClassificationsAvailable &&
       allHydrationsSuccessful
         ? "ok"
         : navigationSucceeded || hydratedTweets.length > 0 || discoveredTweetRefs.items.length > 0
@@ -550,13 +690,16 @@ export async function runXAccountRecentPostsDiagnostics(
       status,
       navigationSucceeded,
       aggregationSucceeded,
+      classificationSucceeded,
       profile,
       discoveredTweetRefs,
       hydratedTweets,
+      classificationSummary,
       accountSummary,
       timings: {
         profileFieldsMs,
         timelineDiscoveryMs,
+        classificationMs,
         tweetHydrationMs,
         perTweetHydrationMs,
         totalMs: Date.now() - startedAt
@@ -571,7 +714,7 @@ export async function runXAccountRecentPostsDiagnostics(
                   : "XAccountRecentPostsAggregationError",
               message:
                 status === "partial"
-                  ? "Не все recent posts удалось гидратировать полностью, но частичные account-level данные доступны."
+                  ? "Не все recent posts удалось гидратировать и классифицировать полностью, но частичные account-level данные доступны."
                   : "Не удалось собрать даже частичный recent-posts набор для публичного профиля X."
             },
       notes: dedupeNotes(notes)
@@ -591,6 +734,7 @@ export async function runXAccountRecentPostsDiagnostics(
       status: "error",
       navigationSucceeded: false,
       aggregationSucceeded: false,
+      classificationSucceeded,
       profile: {
         ...profile,
         profileUrl: profile.profileUrl || resolvedTarget.targetUrl || null,
@@ -598,6 +742,7 @@ export async function runXAccountRecentPostsDiagnostics(
       },
       discoveredTweetRefs,
       hydratedTweets,
+      classificationSummary,
       accountSummary: buildAccountSummary(
         discoveredTweetRefs,
         hydratedTweets,
@@ -606,6 +751,7 @@ export async function runXAccountRecentPostsDiagnostics(
       timings: {
         profileFieldsMs,
         timelineDiscoveryMs,
+        classificationMs,
         tweetHydrationMs,
         perTweetHydrationMs,
         totalMs: Date.now() - startedAt
@@ -616,7 +762,10 @@ export async function runXAccountRecentPostsDiagnostics(
   }
 }
 
+// TODO: Strengthen confidence handling before relying on classification for all scoring decisions.
 // TODO: Filter reposts and replies more reliably before using timeline items in scoring.
 // TODO: Add richer account-level scoring only after recent-posts aggregation is stable.
+// TODO: Add topic-level aggregation only after single-account contracts are stable.
 // TODO: Add lightweight batching or bounded concurrency only after baseline aggregation quality is validated.
+// TODO: Add automatic account discovery only after manual account pipelines are reliable.
 // TODO: Integrate a persistence layer only after account-level aggregation contracts are stable.

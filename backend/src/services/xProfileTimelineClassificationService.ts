@@ -21,14 +21,21 @@ interface XProfileTimelineClassificationOptions {
   treatQuoteAsUsable?: string | boolean;
 }
 
-type TimelinePostClassification =
+interface XProfileTimelineItemClassificationOptions {
+  discoveredItems: DiscoveredXProfileTimelineTweetRef[];
+  profileHandle: string | null;
+  waitStrategy?: string;
+  treatQuoteAsUsable?: string | boolean;
+}
+
+export type XTimelinePostClassification =
   | "originalPost"
   | "reply"
   | "repost"
   | "quotePost"
   | "uncertain";
 
-type ClassificationConfidence = "high" | "medium" | "low";
+export type XTimelineClassificationConfidence = "high" | "medium" | "low";
 
 interface XProfileTimelineClassificationErrorDetails {
   name: string;
@@ -54,9 +61,9 @@ interface XProfileTimelineClassificationProfile {
   displayName: string | null;
 }
 
-interface ClassifiedXProfileTimelineItem extends DiscoveredXProfileTimelineTweetRef {
-  classification: TimelinePostClassification;
-  confidence: ClassificationConfidence;
+export interface ClassifiedXProfileTimelineItem extends DiscoveredXProfileTimelineTweetRef {
+  classification: XTimelinePostClassification;
+  confidence: XTimelineClassificationConfidence;
   usableForScoring: boolean;
   reasons: string[];
   tweetFieldStatus: "ok" | "partial" | "error" | "notAvailable";
@@ -65,7 +72,7 @@ interface ClassifiedXProfileTimelineItem extends DiscoveredXProfileTimelineTweet
   tweetTextAvailable: boolean;
 }
 
-interface XProfileTimelineClassificationSummary {
+export interface XProfileTimelineClassificationSummary {
   discoveredCount: number;
   originalPostCount: number;
   replyCount: number;
@@ -73,6 +80,25 @@ interface XProfileTimelineClassificationSummary {
   quotePostCount: number;
   uncertainCount: number;
   usableForScoringCount: number;
+}
+
+export interface XProfileTimelineClassifiedItemSupport {
+  classifiedItem: ClassifiedXProfileTimelineItem;
+  tweetFieldResult: XTweetFieldsDiagnostics | null;
+  totalMs: number;
+}
+
+export interface XProfileTimelineItemClassificationSupport {
+  classifiedItems: ClassifiedXProfileTimelineItem[];
+  classifiedItemSupport: XProfileTimelineClassifiedItemSupport[];
+  classificationSummary: XProfileTimelineClassificationSummary;
+  notes: string[];
+  timings: {
+    tweetFieldHydrationMs: number;
+    perItemMs: XProfileTimelineClassificationTimings["perItemMs"];
+    classificationMs: number;
+    totalMs: number;
+  };
 }
 
 export interface XProfileTimelineClassificationDiagnostics {
@@ -127,6 +153,21 @@ function createEmptySummary(): XProfileTimelineClassificationSummary {
     quotePostCount: 0,
     uncertainCount: 0,
     usableForScoringCount: 0
+  };
+}
+
+function createEmptyClassificationSupport(): XProfileTimelineItemClassificationSupport {
+  return {
+    classifiedItems: [],
+    classifiedItemSupport: [],
+    classificationSummary: createEmptySummary(),
+    notes: [],
+    timings: {
+      tweetFieldHydrationMs: 0,
+      perItemMs: [],
+      classificationMs: 0,
+      totalMs: 0
+    }
   };
 }
 
@@ -212,8 +253,8 @@ function classifyTimelineItem(input: {
     ])
   );
   const reasons: string[] = [];
-  let classification: TimelinePostClassification = "uncertain";
-  let confidence: ClassificationConfidence = "low";
+  let classification: XTimelinePostClassification = "uncertain";
+  let confidence: XTimelineClassificationConfidence = "low";
 
   const authorMatchesProfile = Boolean(
     profileHandleNormalized &&
@@ -341,6 +382,80 @@ async function hydrateTweetFieldClassificationSupport(
   }
 }
 
+export async function classifyXProfileTimelineDiscoveredItems(
+  options: XProfileTimelineItemClassificationOptions,
+  logger: FastifyBaseLogger
+): Promise<XProfileTimelineItemClassificationSupport> {
+  const startedAt = Date.now();
+  const notes: string[] = [];
+  const classifiedItems: ClassifiedXProfileTimelineItem[] = [];
+  const classifiedItemSupport: XProfileTimelineClassifiedItemSupport[] = [];
+  const perItemMs: XProfileTimelineClassificationTimings["perItemMs"] = [];
+  let tweetFieldHydrationMs = 0;
+  const treatQuoteAsUsable = resolveXProfileTimelineClassificationTreatQuoteAsUsable(
+    options.treatQuoteAsUsable
+  );
+
+  if (options.discoveredItems.length === 0) {
+    notes.push("Timeline classification пропущен: discovery не вернул ни одного timeline item.");
+
+    return {
+      ...createEmptyClassificationSupport(),
+      notes,
+      timings: {
+        tweetFieldHydrationMs: 0,
+        perItemMs,
+        classificationMs: 0,
+        totalMs: Date.now() - startedAt
+      }
+    };
+  }
+
+  const classificationStartedAt = Date.now();
+
+  for (const discoveredItem of options.discoveredItems) {
+    const hydrationResult = await hydrateTweetFieldClassificationSupport(
+      discoveredItem,
+      options.waitStrategy,
+      logger
+    );
+    tweetFieldHydrationMs += hydrationResult.totalMs;
+    perItemMs.push({
+      tweetUrl: discoveredItem.tweetUrl,
+      tweetId: discoveredItem.tweetId,
+      totalMs: hydrationResult.totalMs
+    });
+    notes.push(...hydrationResult.notes);
+
+    const classifiedItem = classifyTimelineItem({
+      discoveredItem,
+      profileHandle: options.profileHandle,
+      treatQuoteAsUsable,
+      tweetFieldResult: hydrationResult.tweetFieldResult
+    });
+
+    classifiedItems.push(classifiedItem);
+    classifiedItemSupport.push({
+      classifiedItem,
+      tweetFieldResult: hydrationResult.tweetFieldResult,
+      totalMs: hydrationResult.totalMs
+    });
+  }
+
+  return {
+    classifiedItems,
+    classifiedItemSupport,
+    classificationSummary: buildClassificationSummary(classifiedItems),
+    notes: dedupeNotes(notes),
+    timings: {
+      tweetFieldHydrationMs,
+      perItemMs,
+      classificationMs: Date.now() - classificationStartedAt,
+      totalMs: Date.now() - startedAt
+    }
+  };
+}
+
 export async function runXProfileTimelineClassificationDiagnostics(
   options: XProfileTimelineClassificationOptions,
   logger: FastifyBaseLogger
@@ -352,7 +467,8 @@ export async function runXProfileTimelineClassificationDiagnostics(
   );
   let profile = createEmptyProfile();
   let discoveredItems: DiscoveredXProfileTimelineTweetRef[] = [];
-  const classifiedItems: ClassifiedXProfileTimelineItem[] = [];
+  let classifiedItems: ClassifiedXProfileTimelineItem[] = [];
+  let classificationSummary = createEmptySummary();
   let profileFieldsMs = 0;
   let timelineDiscoveryMs = 0;
   let tweetFieldHydrationMs = 0;
@@ -399,36 +515,21 @@ export async function runXProfileTimelineClassificationDiagnostics(
       profileFieldsResult.extractedData,
       timelineResult.resolvedHandle
     );
-
-    const classificationStartedAt = Date.now();
-
-    for (const discoveredItem of discoveredItems) {
-      const hydrationResult = await hydrateTweetFieldClassificationSupport(
-        discoveredItem,
-        options.waitStrategy,
-        logger
-      );
-      tweetFieldHydrationMs += hydrationResult.totalMs;
-      perItemMs.push({
-        tweetUrl: discoveredItem.tweetUrl,
-        tweetId: discoveredItem.tweetId,
-        totalMs: hydrationResult.totalMs
-      });
-      notes.push(...hydrationResult.notes);
-
-      classifiedItems.push(
-        classifyTimelineItem({
-          discoveredItem,
-          profileHandle,
-          treatQuoteAsUsable,
-          tweetFieldResult: hydrationResult.tweetFieldResult
-        })
-      );
-    }
-
-    classificationMs = Date.now() - classificationStartedAt;
-
-    const classificationSummary = buildClassificationSummary(classifiedItems);
+    const classificationSupport = await classifyXProfileTimelineDiscoveredItems(
+      {
+        discoveredItems,
+        profileHandle,
+        waitStrategy: options.waitStrategy,
+        treatQuoteAsUsable
+      },
+      logger
+    );
+    classifiedItems = classificationSupport.classifiedItems;
+    classificationSummary = classificationSupport.classificationSummary;
+    tweetFieldHydrationMs = classificationSupport.timings.tweetFieldHydrationMs;
+    classificationMs = classificationSupport.timings.classificationMs;
+    perItemMs.push(...classificationSupport.timings.perItemMs);
+    notes.push(...classificationSupport.notes);
     const navigationSucceeded =
       profileFieldsResult.navigationSucceeded || timelineResult.navigationSucceeded;
     const classificationSucceeded =

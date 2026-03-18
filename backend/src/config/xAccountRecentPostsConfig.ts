@@ -98,7 +98,8 @@ export function getXAccountRecentPostsNotesSeed() {
   return [
     "Агрегация ограничивается небольшим recent-posts набором из одного публичного профиля X.",
     "Текущий маршрут комбинирует profile fields, timeline URL discovery, top-level tweet fields и tweet metrics без timeline-level extraction.",
-    "Replies и reposts пока фильтруются нестрого и при сомнениях помечаются как uncertain.",
+    "Recent-posts dataset теперь обогащается classification signals для original posts, replies, reposts, quote posts и uncertain items.",
+    "Replies и reposts пока не удаляются жёстко на этом маршруте, но classification делает последующий scoring более чистым.",
     xNavigationConfig.auth.sessionEnabled
       ? "Auth-сессия настроена, но текущий маршрут всё равно не выполняет login automation."
       : "Маршрут работает без авторизации и использует только публичный профиль и публичные страницы твитов."
