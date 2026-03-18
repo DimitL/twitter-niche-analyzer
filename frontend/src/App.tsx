@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { appConfig, type AnalysisRequest, type AnalysisResponse } from "@twitter-niche-analyzer/shared";
 import { getApiHealth, runMockAnalysis, runNicheShortlist } from "./api/client.js";
 import {
@@ -10,6 +10,7 @@ import { BucketEditor } from "./components/BucketEditor.js";
 import { NicheCard } from "./components/NicheCard.js";
 import { NicheShortlistCard } from "./components/NicheShortlistCard.js";
 import { ShortlistPayloadPreview } from "./components/ShortlistPayloadPreview.js";
+import { ShortlistScenarioComparison } from "./components/ShortlistScenarioComparison.js";
 import { ShortlistScenarioSwitcher } from "./components/ShortlistScenarioSwitcher.js";
 import { NicheShortlistSummary } from "./components/NicheShortlistSummary.js";
 import type {
@@ -34,6 +35,7 @@ import {
   createScenarioFromFormState,
   duplicateScenario,
   loadScenarioBootstrapState,
+  pinScenarioResult,
   persistScenarioCollection,
   renameScenario,
   restoreFormStateFromSnapshot,
@@ -55,6 +57,8 @@ const shortlistSortOptions: Array<{
   { value: "contentEase", label: "Простота контента" },
   { value: "dataConfidence", label: "Надёжность данных" }
 ];
+
+const maxScenarioCompareCount = 3;
 
 function buildShortlistFormState(exampleId = defaultNicheShortlistExampleId): NicheShortlistFormState {
   const example =
@@ -129,6 +133,9 @@ export default function App() {
   const [selectedShortlistExampleId, setSelectedShortlistExampleId] = useState<string | null>(null);
   const [shortlistScenarios, setShortlistScenarios] = useState(() => scenarioBootstrap.scenarios);
   const [activeScenarioId, setActiveScenarioId] = useState(() => scenarioBootstrap.activeScenarioId);
+  const [comparedScenarioIds, setComparedScenarioIds] = useState<string[]>(() =>
+    scenarioBootstrap.activeScenarioId ? [scenarioBootstrap.activeScenarioId] : []
+  );
   const [scenarioStorageNotice, setScenarioStorageNotice] = useState<string | null>(
     () => scenarioBootstrap.storageNotice
   );
@@ -141,6 +148,7 @@ export default function App() {
   );
   const [shortlistErrorMessage, setShortlistErrorMessage] = useState("");
   const [showShortlistValidation, setShowShortlistValidation] = useState(false);
+  const activeScenarioIdRef = useRef(scenarioBootstrap.activeScenarioId);
 
   const currentShortlistValidations = useMemo(
     () => validateBucketDrafts(shortlistForm.buckets),
@@ -170,8 +178,26 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    activeScenarioIdRef.current = activeScenarioId;
+  }, [activeScenarioId]);
+
+  useEffect(() => {
+    setComparedScenarioIds((current) => {
+      const validScenarioIds = new Set(shortlistScenarios.map((scenario) => scenario.scenarioId));
+      const nextComparedScenarioIds = current.filter((scenarioId) => validScenarioIds.has(scenarioId));
+
+      if (nextComparedScenarioIds.length > 0) {
+        return nextComparedScenarioIds.slice(0, maxScenarioCompareCount);
+      }
+
+      return activeScenarioId ? [activeScenarioId] : [];
+    });
+  }, [activeScenarioId, shortlistScenarios]);
+
+  useEffect(() => {
     try {
       persistScenarioCollection(shortlistScenarios, activeScenarioId);
+      setScenarioStorageNotice(null);
     } catch {
       setScenarioStorageNotice(
         "Не удалось сохранить сценарии в localStorage. Проверьте доступность хранилища браузера."
@@ -202,13 +228,40 @@ export default function App() {
   }
 
   async function loadShortlist(nextForm: NicheShortlistFormState) {
+    const targetScenarioId = activeScenarioIdRef.current;
+
     try {
       setShortlistStatus("loading");
       setShortlistErrorMessage("");
-      const response = await runNicheShortlist(buildShortlistRequestPayload(nextForm));
+      const requestPayload = buildShortlistRequestPayload(nextForm);
+      const response = await runNicheShortlist(requestPayload);
 
       setShortlistResult(response);
       setShortlistStatus("ready");
+      setShortlistScenarios((current) => {
+        const activeScenario = current.find((scenario) => scenario.scenarioId === targetScenarioId);
+
+        if (!activeScenario) {
+          return current;
+        }
+
+        return current.map((scenario) =>
+          scenario.scenarioId === targetScenarioId
+            ? pinScenarioResult(scenario, nextForm, requestPayload, response)
+            : scenario
+        );
+      });
+      setComparedScenarioIds((current) => {
+        if (!targetScenarioId) {
+          return current.slice(0, maxScenarioCompareCount);
+        }
+
+        if (current.includes(targetScenarioId)) {
+          return current.slice(0, maxScenarioCompareCount);
+        }
+
+        return [targetScenarioId, ...current].slice(0, maxScenarioCompareCount);
+      });
     } catch (error) {
       setShortlistStatus("error");
       setShortlistErrorMessage(
@@ -274,6 +327,7 @@ export default function App() {
       return;
     }
 
+    activeScenarioIdRef.current = scenario.scenarioId;
     setActiveScenarioId(scenario.scenarioId);
     setSelectedShortlistExampleId(null);
     setShortlistForm(restoreFormStateFromSnapshot(scenario.formSnapshot));
@@ -288,7 +342,9 @@ export default function App() {
       );
 
       setShortlistScenarios((current) => [...current, nextScenario]);
+      activeScenarioIdRef.current = nextScenario.scenarioId;
       setActiveScenarioId(nextScenario.scenarioId);
+      setComparedScenarioIds((current) => [nextScenario.scenarioId, ...current].slice(0, maxScenarioCompareCount));
       return;
     }
 
@@ -314,7 +370,9 @@ export default function App() {
     const nextScenario = createScenarioFromFormState(shortlistForm, nextName || defaultName);
 
     setShortlistScenarios((current) => [nextScenario, ...current]);
+    activeScenarioIdRef.current = nextScenario.scenarioId;
     setActiveScenarioId(nextScenario.scenarioId);
+    setComparedScenarioIds((current) => [nextScenario.scenarioId, ...current].slice(0, maxScenarioCompareCount));
   }
 
   function handleScenarioRename(scenarioId: string) {
@@ -347,10 +405,22 @@ export default function App() {
     const nextScenario = duplicateScenario(scenario);
 
     setShortlistScenarios((current) => [nextScenario, ...current]);
+    activeScenarioIdRef.current = nextScenario.scenarioId;
     setActiveScenarioId(nextScenario.scenarioId);
+    setComparedScenarioIds((current) => [nextScenario.scenarioId, ...current].slice(0, maxScenarioCompareCount));
     setSelectedShortlistExampleId(null);
     setShortlistForm(restoreFormStateFromSnapshot(nextScenario.formSnapshot));
     resetShortlistTransientState();
+  }
+
+  function handleScenarioCompareToggle(scenarioId: string) {
+    setComparedScenarioIds((current) => {
+      if (current.includes(scenarioId)) {
+        return current.filter((entry) => entry !== scenarioId);
+      }
+
+      return [scenarioId, ...current].slice(0, maxScenarioCompareCount);
+    });
   }
 
   function handleScenarioDelete(scenarioId: string) {
@@ -377,6 +447,7 @@ export default function App() {
       );
 
       setShortlistScenarios([defaultScenario]);
+      activeScenarioIdRef.current = defaultScenario.scenarioId;
       setActiveScenarioId(defaultScenario.scenarioId);
       setSelectedShortlistExampleId(null);
       setShortlistForm(restoreFormStateFromSnapshot(defaultScenario.formSnapshot));
@@ -388,6 +459,7 @@ export default function App() {
 
     if (activeScenarioId === scenarioId) {
       const nextActiveScenario = nextScenarios[0];
+      activeScenarioIdRef.current = nextActiveScenario.scenarioId;
       setActiveScenarioId(nextActiveScenario.scenarioId);
       setSelectedShortlistExampleId(null);
       setShortlistForm(restoreFormStateFromSnapshot(nextActiveScenario.formSnapshot));
@@ -516,8 +588,11 @@ export default function App() {
             <ShortlistScenarioSwitcher
               scenarios={shortlistScenarios}
               activeScenarioId={activeScenarioId}
+              selectedScenarioIds={comparedScenarioIds}
+              maxCompareCount={maxScenarioCompareCount}
               hasUnsavedChanges={hasUnsavedScenarioChanges}
               storageNotice={scenarioStorageNotice}
+              onScenarioCompareToggle={handleScenarioCompareToggle}
               onScenarioLoad={handleScenarioLoad}
               onScenarioSave={handleScenarioSave}
               onScenarioSaveAsNew={handleScenarioSaveAsNew}
@@ -707,6 +782,12 @@ export default function App() {
             </button>
           </form>
         </section>
+
+        <ShortlistScenarioComparison
+          scenarios={shortlistScenarios}
+          selectedScenarioIds={comparedScenarioIds}
+          maxCompareCount={maxScenarioCompareCount}
+        />
 
         {shortlistErrorMessage ? (
           <section className="panel state-panel">

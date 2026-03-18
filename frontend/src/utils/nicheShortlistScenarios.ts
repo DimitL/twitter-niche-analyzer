@@ -1,7 +1,13 @@
 import type {
   NicheShortlistFormSnapshot,
   NicheShortlistFormState,
+  NicheShortlistRequest,
+  NicheShortlistResponse,
   NicheShortlistScenario,
+  NicheShortlistScenarioRankedBucketSummary,
+  NicheShortlistScenarioRequestSnapshot,
+  NicheShortlistScenarioResultSummary,
+  NicheShortlistSummaryEntry,
   NicheShortlistSortBy
 } from "../types/nicheShortlist.js";
 import {
@@ -39,6 +45,111 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isValidSortValue(value: unknown): value is NicheShortlistSortBy {
   return typeof value === "string" && validSortValues.includes(value as NicheShortlistSortBy);
+}
+
+function parseSummaryEntry(value: unknown): NicheShortlistSummaryEntry | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  if (
+    typeof value.bucketId !== "string" ||
+    typeof value.label !== "string" ||
+    typeof value.score !== "number"
+  ) {
+    return null;
+  }
+
+  return {
+    bucketId: value.bucketId,
+    label: value.label,
+    score: value.score
+  };
+}
+
+function parseRequestSnapshot(value: unknown): NicheShortlistScenarioRequestSnapshot | null {
+  if (!isRecord(value) || !isValidSortValue(value.sortBy) || !Array.isArray(value.buckets)) {
+    return null;
+  }
+
+  const buckets = value.buckets
+    .filter((bucket) => isRecord(bucket))
+    .map((bucket) => ({
+      bucketId: typeof bucket.bucketId === "string" ? bucket.bucketId : "",
+      label: typeof bucket.label === "string" ? bucket.label : "",
+      handleCount: typeof bucket.handleCount === "number" ? bucket.handleCount : 0
+    }));
+
+  return {
+    limit: typeof value.limit === "number" ? value.limit : undefined,
+    topN: typeof value.topN === "number" ? value.topN : undefined,
+    includeUncertain: Boolean(value.includeUncertain),
+    treatQuoteAsUsable: Boolean(value.treatQuoteAsUsable),
+    sortBy: value.sortBy,
+    emphasizeGrowth: Boolean(value.emphasizeGrowth),
+    emphasizeMonetization: Boolean(value.emphasizeMonetization),
+    emphasizeEase: Boolean(value.emphasizeEase),
+    bucketCount: typeof value.bucketCount === "number" ? value.bucketCount : buckets.length,
+    buckets
+  };
+}
+
+function parseResultSummary(value: unknown): NicheShortlistScenarioResultSummary | null {
+  if (
+    !isRecord(value) ||
+    typeof value.status !== "string" ||
+    !["ok", "partial", "error"].includes(value.status) ||
+    !isValidSortValue(value.rankingSortBy)
+  ) {
+    return null;
+  }
+
+  return {
+    status: value.status as "ok" | "partial" | "error",
+    totalRequestedBuckets:
+      typeof value.totalRequestedBuckets === "number" ? value.totalRequestedBuckets : 0,
+    successfullyRankedBuckets:
+      typeof value.successfullyRankedBuckets === "number" ? value.successfullyRankedBuckets : 0,
+    shortlistSize: typeof value.shortlistSize === "number" ? value.shortlistSize : 0,
+    rankingSortBy: value.rankingSortBy,
+    bestOverall: parseSummaryEntry(value.bestOverall),
+    bestForGrowth: parseSummaryEntry(value.bestForGrowth),
+    bestForMonetization: parseSummaryEntry(value.bestForMonetization),
+    easiestToStart: parseSummaryEntry(value.easiestToStart),
+    bestBalanced: parseSummaryEntry(value.bestBalanced),
+    totalMs: typeof value.totalMs === "number" ? value.totalMs : 0
+  };
+}
+
+function parseRankedBucketSummary(value: unknown): NicheShortlistScenarioRankedBucketSummary | null {
+  if (
+    !isRecord(value) ||
+    typeof value.bucketId !== "string" ||
+    typeof value.label !== "string" ||
+    typeof value.shortlistIncluded !== "boolean" ||
+    typeof value.status !== "string" ||
+    !["ok", "partial", "error"].includes(value.status) ||
+    typeof value.overallTopicScore !== "number" ||
+    typeof value.growthPotential !== "number" ||
+    typeof value.monetizationPotential !== "number" ||
+    typeof value.contentEase !== "number" ||
+    typeof value.dataConfidence !== "number"
+  ) {
+    return null;
+  }
+
+  return {
+    bucketId: value.bucketId,
+    label: value.label,
+    rank: typeof value.rank === "number" ? value.rank : null,
+    shortlistIncluded: value.shortlistIncluded,
+    status: value.status as "ok" | "partial" | "error",
+    overallTopicScore: value.overallTopicScore,
+    growthPotential: value.growthPotential,
+    monetizationPotential: value.monetizationPotential,
+    contentEase: value.contentEase,
+    dataConfidence: value.dataConfidence
+  };
 }
 
 function createScenarioId() {
@@ -185,7 +296,15 @@ function parseScenario(value: unknown): NicheShortlistScenario | null {
     name: value.name,
     createdAt: value.createdAt,
     updatedAt: value.updatedAt,
-    formSnapshot
+    formSnapshot,
+    lastRunAt: typeof value.lastRunAt === "string" ? value.lastRunAt : undefined,
+    lastRequestSnapshot: parseRequestSnapshot(value.lastRequestSnapshot) ?? undefined,
+    lastResultSummary: parseResultSummary(value.lastResultSummary) ?? undefined,
+    lastRankedBuckets: Array.isArray(value.lastRankedBuckets)
+      ? value.lastRankedBuckets
+          .map(parseRankedBucketSummary)
+          .filter((bucket): bucket is NicheShortlistScenarioRankedBucketSummary => Boolean(bucket))
+      : undefined
   };
 }
 
@@ -216,6 +335,81 @@ export function updateScenarioFromFormState(
     ...scenario,
     updatedAt: new Date().toISOString(),
     formSnapshot: createFormSnapshotFromState(formState)
+  };
+}
+
+export function buildScenarioRequestSnapshot(
+  request: NicheShortlistRequest
+): NicheShortlistScenarioRequestSnapshot {
+  return {
+    limit: request.limit,
+    topN: request.topN,
+    includeUncertain: Boolean(request.includeUncertain),
+    treatQuoteAsUsable: Boolean(request.treatQuoteAsUsable),
+    sortBy: request.sortBy ?? "overallTopicScore",
+    emphasizeGrowth: Boolean(request.emphasizeGrowth),
+    emphasizeMonetization: Boolean(request.emphasizeMonetization),
+    emphasizeEase: Boolean(request.emphasizeEase),
+    bucketCount: request.buckets.length,
+    buckets: request.buckets.map((bucket) => ({
+      bucketId: bucket.bucketId,
+      label: bucket.label,
+      handleCount: bucket.handles?.length ?? 0
+    }))
+  };
+}
+
+export function buildScenarioResultSummary(
+  response: NicheShortlistResponse
+): NicheShortlistScenarioResultSummary {
+  return {
+    status: response.status,
+    totalRequestedBuckets: response.shortlistSummary.totalRequestedBuckets,
+    successfullyRankedBuckets: response.shortlistSummary.successfullyRankedBuckets,
+    shortlistSize: response.shortlistSummary.shortlistSize,
+    rankingSortBy: response.shortlistSummary.rankingSortBy,
+    bestOverall: response.shortlistSummary.bestOverall,
+    bestForGrowth: response.shortlistSummary.bestForGrowth,
+    bestForMonetization: response.shortlistSummary.bestForMonetization,
+    easiestToStart: response.shortlistSummary.easiestToStart,
+    bestBalanced: response.shortlistSummary.bestBalanced,
+    totalMs: response.timings.totalMs
+  };
+}
+
+export function buildScenarioRankedBuckets(
+  response: NicheShortlistResponse
+): NicheShortlistScenarioRankedBucketSummary[] {
+  return response.rankedBuckets.slice(0, 5).map((bucket) => ({
+    bucketId: bucket.bucketId,
+    label: bucket.label,
+    rank: bucket.rank,
+    shortlistIncluded: bucket.shortlistIncluded,
+    status: bucket.status,
+    overallTopicScore: bucket.topicScores.overallTopicScore,
+    growthPotential: bucket.topicScores.growthPotential,
+    monetizationPotential: bucket.topicScores.monetizationPotential,
+    contentEase: bucket.topicScores.contentEase,
+    dataConfidence: bucket.topicScores.dataConfidence
+  }));
+}
+
+export function pinScenarioResult(
+  scenario: NicheShortlistScenario,
+  formState: NicheShortlistFormState,
+  request: NicheShortlistRequest,
+  response: NicheShortlistResponse
+): NicheShortlistScenario {
+  const now = new Date().toISOString();
+
+  return {
+    ...scenario,
+    updatedAt: now,
+    lastRunAt: now,
+    formSnapshot: createFormSnapshotFromState(formState),
+    lastRequestSnapshot: buildScenarioRequestSnapshot(request),
+    lastResultSummary: buildScenarioResultSummary(response),
+    lastRankedBuckets: buildScenarioRankedBuckets(response)
   };
 }
 

@@ -98,6 +98,10 @@ button {
   margin-bottom: 20px;
 }
 
+.scenario-compare-panel {
+  margin-bottom: 20px;
+}
+
 .hero__copy h1,
 .control-panel h2,
 .notes-panel h2 {
@@ -318,9 +322,100 @@ button {
 
 .scenario-card__meta {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin: 14px 0;
+}
+
+.scenario-card__result-summary,
+.scenario-compare-grid,
+.scenario-compare-card__meta,
+.scenario-compare-card__summary {
+  display: grid;
+  gap: 12px;
+}
+
+.scenario-card__result-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.scenario-compare-panel__header {
+  margin-bottom: 18px;
+}
+
+.scenario-compare-panel__empty {
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(72, 53, 41, 0.08);
+}
+
+.scenario-compare-panel__empty p:last-child {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.scenario-compare-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.scenario-compare-card,
+.scenario-diff-panel {
+  padding: 20px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(72, 53, 41, 0.08);
+}
+
+.scenario-compare-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.scenario-compare-card__header h3 {
+  margin: 0;
+  font-size: 1.18rem;
+}
+
+.scenario-compare-card__meta {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.scenario-compare-card__summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.scenario-compare-card__buckets > span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.scenario-diff-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.scenario-diff-row {
+  display: grid;
+  gap: 12px;
+}
+
+.scenario-diff-row > strong {
+  font-size: 0.95rem;
+}
+
+.scenario-diff-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .bucket-editor__header,
@@ -998,7 +1093,12 @@ button {
   .signal-grid,
   .strong-account-grid,
   .bucket-card-editor__fields,
-  .scenario-card__meta {
+  .scenario-card__meta,
+  .scenario-card__result-summary,
+  .scenario-compare-grid,
+  .scenario-compare-card__meta,
+  .scenario-compare-card__summary,
+  .scenario-diff-values {
     grid-template-columns: 1fr;
   }
 
@@ -1013,7 +1113,8 @@ button {
   .payload-preview__summary,
   .scenario-switcher__header,
   .scenario-card__header,
-  .scenario-card__footer {
+  .scenario-card__footer,
+  .scenario-compare-card__header {
     flex-direction: column;
   }
 

@@ -66,6 +66,10 @@ export interface NicheShortlistScenario {
   createdAt: string;
   updatedAt: string;
   formSnapshot: NicheShortlistFormSnapshot;
+  lastRunAt?: string;
+  lastRequestSnapshot?: NicheShortlistScenarioRequestSnapshot;
+  lastResultSummary?: NicheShortlistScenarioResultSummary;
+  lastRankedBuckets?: NicheShortlistScenarioRankedBucketSummary[];
 }
 
 export interface NicheShortlistRequest {
@@ -201,6 +205,52 @@ export interface NicheShortlistSummaryEntry {
   bucketId: string;
   label: string;
   score: number;
+}
+
+export interface NicheShortlistScenarioRequestBucketSummary {
+  bucketId: string;
+  label: string;
+  handleCount: number;
+}
+
+export interface NicheShortlistScenarioRequestSnapshot {
+  limit?: number;
+  topN?: number;
+  includeUncertain: boolean;
+  treatQuoteAsUsable: boolean;
+  sortBy: NicheShortlistSortBy;
+  emphasizeGrowth: boolean;
+  emphasizeMonetization: boolean;
+  emphasizeEase: boolean;
+  bucketCount: number;
+  buckets: NicheShortlistScenarioRequestBucketSummary[];
+}
+
+export interface NicheShortlistScenarioResultSummary {
+  status: "ok" | "partial" | "error";
+  totalRequestedBuckets: number;
+  successfullyRankedBuckets: number;
+  shortlistSize: number;
+  rankingSortBy: NicheShortlistSortBy;
+  bestOverall: NicheShortlistSummaryEntry | null;
+  bestForGrowth: NicheShortlistSummaryEntry | null;
+  bestForMonetization: NicheShortlistSummaryEntry | null;
+  easiestToStart: NicheShortlistSummaryEntry | null;
+  bestBalanced: NicheShortlistSummaryEntry | null;
+  totalMs: number;
+}
+
+export interface NicheShortlistScenarioRankedBucketSummary {
+  bucketId: string;
+  label: string;
+  rank: number | null;
+  shortlistIncluded: boolean;
+  status: "ok" | "partial" | "error";
+  overallTopicScore: number;
+  growthPotential: number;
+  monetizationPotential: number;
+  contentEase: number;
+  dataConfidence: number;
 }
 
 export interface NicheShortlistSummary {

@@ -25,6 +25,7 @@
 - first structured bucket editor слой во frontend для работы с shortlist без ручного JSON
 - next bucket UX improvement слой во frontend: duplicate bucket, быстрый handle entry и inline payload preview
 - first frontend scenario switcher / local history слой для сохранения нескольких shortlist-конфигураций в localStorage
+- first frontend scenario diff / pinned last-result слой для локального сравнения 2-3 shortlist-сценариев по последнему сохранённому результату
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -108,6 +109,7 @@
 │   │   │   ├── NicheCard.tsx
 │   │   │   ├── NicheShortlistCard.tsx
 │   │   │   ├── NicheShortlistSummary.tsx
+│   │   │   ├── ShortlistScenarioComparison.tsx
 │   │   │   ├── ShortlistScenarioSwitcher.tsx
 │   │   │   └── ShortlistPayloadPreview.tsx
 │   │   ├── data
@@ -795,6 +797,9 @@ http://localhost:5173
 - при необходимости открыть `Предпросмотр запроса в backend` и проверить итоговый payload перед submit
 - при первом запуске оставить `limit=1` и `topN=2`
 - нажать `Запустить shortlist ниш`
+- после успешного run убедиться, что активный сценарий получил pinned result с `Последний run`, `Best overall` и `Shortlist size`
+- нажать `Добавить к сравнению` у 1-2 дополнительных сценариев и проверить блок `Сравнение сохранённых сценариев`
+- в `Scenario Diff` сравнить flags, bucket labels, handle counts и top summary без ручного переключения editor-а
 
 6. Что появится в UI:
 - summary card с `bestOverall`, `bestForGrowth`, `bestForMonetization`, `easiestToStart`, `bestBalanced`
@@ -803,14 +808,18 @@ http://localhost:5173
 - ranking reasons
 - pros / cons
 - strongest accounts
+- pinned result snapshot у каждого локального сценария
+- отдельный comparison panel для 2-3 сценариев с lightweight diff по настройкам и последнему shortlist result
 
 Ограничения текущего frontend шага:
 - buckets пока задаются только вручную через structured editor
 - target URLs из UI пока не редактируются, только handles
 - сценарии сохраняются только локально в браузере, без backend persistence
+- pinned results и diff тоже сохраняются только локально в `localStorage`, без общей истории запусков на backend
+- comparison panel хранит только lightweight snapshot последнего успешного run, а не полный архив всех shortlist результатов
 - UI ещё не умеет автоматически находить topics
 - текущий frontend только визуализирует existing backend shortlist route и не меняет scoring model
-- следующий UI шаг лучше делать уже с более удобным scenario diff/evidence view для сравнения нескольких shortlist прогонов
+- следующий UI шаг лучше делать уже с более явным cross-scenario evidence/history view, чтобы сравнивать не только summary, но и закреплённые shortlist cards по нескольким прогонам
 
 ## Как проверить X profile shell
 
