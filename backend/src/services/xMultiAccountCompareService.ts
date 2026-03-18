@@ -1,6 +1,7 @@
 import type { FastifyBaseLogger } from "fastify";
 import type { ExtractedXProfileFieldsData } from "./xProfileFieldsService.js";
 import type {
+  ScoredUsableXAccountTweet,
   XAccountScoreBreakdown,
   XAccountScoreDiagnostics,
   XAccountScoreFiltersApplied,
@@ -42,6 +43,16 @@ interface XMultiAccountCompareTimings {
   totalMs: number;
 }
 
+interface ComparedXAccountTweetReference {
+  tweetUrl: string | null;
+  publishedAt: string | null;
+  tweetTextSnippet: string | null;
+  language: string | null;
+  likeCount: ScoredUsableXAccountTweet["likeCount"];
+  repostCount: ScoredUsableXAccountTweet["repostCount"];
+  replyCount: ScoredUsableXAccountTweet["replyCount"];
+}
+
 export interface ComparedXAccountResult {
   request: RequestedXCompareAccountInput;
   status: "ok" | "partial" | "error";
@@ -51,6 +62,9 @@ export interface ComparedXAccountResult {
   filtersApplied: XAccountScoreFiltersApplied;
   accountSignals: XAccountScoreSignals;
   accountScores: XAccountScoreBreakdown;
+  recentTweetReferencesCount: number;
+  recentTweetReferences: ComparedXAccountTweetReference[];
+  recentTweetReferencesNote: string | null;
   error: XMultiAccountCompareErrorDetails | null;
   notes: string[];
   totalMs: number;
@@ -221,6 +235,68 @@ function createEmptyScores(): XAccountScoreBreakdown {
   };
 }
 
+function buildTweetTextSnippet(tweetText: string | null, maxLength = 180) {
+  if (!tweetText) {
+    return null;
+  }
+
+  const normalizedText = tweetText.replace(/\s+/g, " ").trim();
+
+  if (normalizedText.length <= maxLength) {
+    return normalizedText;
+  }
+
+  return `${normalizedText.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function getRecentTweetPublishedTimestamp(tweet: ScoredUsableXAccountTweet) {
+  if (!tweet.publishedAt) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  const parsedTimestamp = Date.parse(tweet.publishedAt);
+
+  if (!Number.isFinite(parsedTimestamp)) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  return parsedTimestamp;
+}
+
+function buildRecentTweetReferences(
+  usableTweets: ScoredUsableXAccountTweet[]
+): ComparedXAccountTweetReference[] {
+  return [...usableTweets]
+    .sort((left, right) => {
+      const timestampDifference =
+        getRecentTweetPublishedTimestamp(right) - getRecentTweetPublishedTimestamp(left);
+
+      if (timestampDifference !== 0) {
+        return timestampDifference;
+      }
+
+      return left.sortIndex - right.sortIndex;
+    })
+    .slice(0, 2)
+    .map((tweet) => ({
+      tweetUrl: tweet.tweetUrl,
+      publishedAt: tweet.publishedAt,
+      tweetTextSnippet: buildTweetTextSnippet(tweet.tweetText),
+      language: tweet.language,
+      likeCount: tweet.likeCount,
+      repostCount: tweet.repostCount,
+      replyCount: tweet.replyCount
+    }));
+}
+
+function buildRecentTweetReferencesNote(recentTweetReferencesCount: number) {
+  if (recentTweetReferencesCount > 0) {
+    return null;
+  }
+
+  return "Подходящие recent tweet references пока недоступны: usable sample для этого аккаунта слишком мал или неполон.";
+}
+
 function getSortableMetricValue(
   account: ComparedXAccountResult,
   sortBy: XMultiAccountCompareSortBy
@@ -323,6 +399,7 @@ async function compareSingleAccount(
       },
       logger
     );
+    const recentTweetReferences = buildRecentTweetReferences(result.usableTweets);
 
     return {
       request,
@@ -333,6 +410,11 @@ async function compareSingleAccount(
       filtersApplied: result.filtersApplied,
       accountSignals: result.accountSignals,
       accountScores: result.accountScores,
+      recentTweetReferencesCount: recentTweetReferences.length,
+      recentTweetReferences,
+      recentTweetReferencesNote: buildRecentTweetReferencesNote(
+        recentTweetReferences.length
+      ),
       error: result.error,
       notes: result.notes,
       totalMs: result.timings.totalMs
@@ -347,6 +429,10 @@ async function compareSingleAccount(
       filtersApplied: createEmptyFiltersApplied(),
       accountSignals: createEmptySignals(),
       accountScores: createEmptyScores(),
+      recentTweetReferencesCount: 0,
+      recentTweetReferences: [],
+      recentTweetReferencesNote:
+        "Подходящие recent tweet references не удалось собрать из-за ошибки account scoring.",
       error: serializeError(error),
       notes: [
         `Comparison для ${request.label} завершился исключением до возврата scoring result.`

@@ -61,6 +61,29 @@ interface XNicheSupportingAccountSummary {
   reachScore: number;
   consistencyScore: number;
   reason: string;
+  recentTweetReferencesCount: number;
+  recentTweetReferences: Array<{
+    tweetUrl: string | null;
+    publishedAt: string | null;
+    tweetTextSnippet: string | null;
+    language: string | null;
+    likeCount: {
+      rawText: string | null;
+      normalizedNumber: number | null;
+      available: boolean;
+    };
+    repostCount: {
+      rawText: string | null;
+      normalizedNumber: number | null;
+      available: boolean;
+    };
+    replyCount: {
+      rawText: string | null;
+      normalizedNumber: number | null;
+      available: boolean;
+    };
+  }>;
+  recentTweetReferencesNote: string | null;
 }
 
 interface XNicheRankingComponent {
@@ -497,7 +520,10 @@ function buildTopSupportingAccounts(
       engagementEfficiencyScore: account.engagementEfficiencyScore,
       reachScore: account.reachScore,
       consistencyScore: account.consistencyScore,
-      reason: buildSupportingAccountReason(account)
+      reason: buildSupportingAccountReason(account),
+      recentTweetReferencesCount: account.recentTweetReferencesCount,
+      recentTweetReferences: account.recentTweetReferences,
+      recentTweetReferencesNote: account.recentTweetReferencesNote
     }));
 }
 

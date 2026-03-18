@@ -114,6 +114,31 @@ export interface NicheShortlistSupportingAccount {
   reachScore: number;
   consistencyScore: number;
   reason: string;
+  recentTweetReferencesCount: number;
+  recentTweetReferences: NicheShortlistSupportingTweetReference[];
+  recentTweetReferencesNote: string | null;
+}
+
+export interface NicheShortlistSupportingTweetReference {
+  tweetUrl: string | null;
+  publishedAt: string | null;
+  tweetTextSnippet: string | null;
+  language: string | null;
+  likeCount: {
+    rawText: string | null;
+    normalizedNumber: number | null;
+    available: boolean;
+  };
+  repostCount: {
+    rawText: string | null;
+    normalizedNumber: number | null;
+    available: boolean;
+  };
+  replyCount: {
+    rawText: string | null;
+    normalizedNumber: number | null;
+    available: boolean;
+  };
 }
 
 export interface NicheShortlistDecisionLabels {

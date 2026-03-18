@@ -61,6 +61,9 @@ interface SuccessfulTopicBucketAccountSummary {
   dataConfidenceScore: number;
   avgEngagementPerFollowerProxy: number | null;
   usablePostCount: number;
+  recentTweetReferencesCount: number;
+  recentTweetReferences: ComparedXAccountResult["recentTweetReferences"];
+  recentTweetReferencesNote: string | null;
 }
 
 interface FailedTopicBucketAccountSummary {
@@ -292,7 +295,10 @@ function buildSuccessfulAccountSummary(
     consistencyScore: account.accountScores.consistencyScore,
     dataConfidenceScore: account.accountScores.dataConfidenceScore,
     avgEngagementPerFollowerProxy: account.accountSignals.avgEngagementPerFollowerProxy,
-    usablePostCount: account.filtersApplied.usablePostCount
+    usablePostCount: account.filtersApplied.usablePostCount,
+    recentTweetReferencesCount: account.recentTweetReferencesCount,
+    recentTweetReferences: account.recentTweetReferences,
+    recentTweetReferencesNote: account.recentTweetReferencesNote
   };
 }
 

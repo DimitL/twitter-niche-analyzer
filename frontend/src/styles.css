@@ -985,6 +985,61 @@ button {
   gap: 8px;
 }
 
+.supporting-account-card__tweets {
+  border-radius: 16px;
+  border: 1px solid rgba(72, 53, 41, 0.08);
+  background: rgba(255, 255, 255, 0.56);
+  overflow: hidden;
+}
+
+.supporting-account-card__tweets summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.supporting-account-card__tweets summary::-webkit-details-marker {
+  display: none;
+}
+
+.supporting-account-card__tweets-summary {
+  padding: 12px 14px;
+  color: var(--accent);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.supporting-account-card__tweet-list {
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.supporting-tweet-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(72, 53, 41, 0.05);
+}
+
+.supporting-tweet-card__meta,
+.supporting-tweet-card__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.supporting-tweet-card__meta span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.supporting-tweet-card p,
+.supporting-account-card__note {
+  margin: 0;
+  color: var(--muted);
+}
+
 .score-chip {
   display: inline-flex;
   align-items: center;

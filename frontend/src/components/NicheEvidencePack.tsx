@@ -1,8 +1,44 @@
 import { buildNicheEvidencePack } from "../utils/nicheEvidencePack.js";
-import type { RankedNicheShortlistBucket } from "../types/nicheShortlist.js";
+import type {
+  NicheShortlistSupportingTweetReference,
+  RankedNicheShortlistBucket
+} from "../types/nicheShortlist.js";
 
 interface NicheEvidencePackProps {
   bucket: RankedNicheShortlistBucket;
+}
+
+function formatPublishedAt(value: string | null) {
+  if (!value) {
+    return "Дата недоступна";
+  }
+
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    dateStyle: "medium"
+  }).format(parsedDate);
+}
+
+function formatMetricChip(
+  label: string,
+  metric: NicheShortlistSupportingTweetReference["likeCount"]
+) {
+  if (!metric.available) {
+    return null;
+  }
+
+  const value =
+    metric.rawText ??
+    (metric.normalizedNumber !== null
+      ? metric.normalizedNumber.toLocaleString("ru-RU")
+      : "н/д");
+
+  return `${label} ${value}`;
 }
 
 export function NicheEvidencePack({ bucket }: NicheEvidencePackProps) {
@@ -130,6 +166,68 @@ export function NicheEvidencePack({ bucket }: NicheEvidencePackProps) {
                         Consistency {account.consistencyScore.toFixed(1)}
                       </span>
                     </div>
+
+                    {account.recentTweetReferences.length > 0 ? (
+                      <details className="supporting-account-card__tweets">
+                        <summary className="supporting-account-card__tweets-summary">
+                          Недавние твиты ({account.recentTweetReferencesCount})
+                        </summary>
+
+                        <div className="supporting-account-card__tweet-list">
+                          {account.recentTweetReferences.map((tweetReference, tweetIndex) => {
+                            const metricChips = [
+                              formatMetricChip("Лайки", tweetReference.likeCount),
+                              formatMetricChip("Репосты", tweetReference.repostCount),
+                              formatMetricChip("Ответы", tweetReference.replyCount)
+                            ].filter((value): value is string => Boolean(value));
+
+                            return (
+                              <div
+                                key={`${bucket.bucketId}-${account.handle ?? "unknown"}-tweet-${tweetIndex}`}
+                                className="supporting-tweet-card"
+                              >
+                                <div className="supporting-tweet-card__meta">
+                                  <span>{formatPublishedAt(tweetReference.publishedAt)}</span>
+                                  {tweetReference.language ? (
+                                    <span>Язык: {tweetReference.language}</span>
+                                  ) : null}
+                                </div>
+
+                                <p>
+                                  {tweetReference.tweetTextSnippet ??
+                                    "Короткий текстовый snippet для этого твита пока недоступен."}
+                                </p>
+
+                                {metricChips.length > 0 ? (
+                                  <div className="supporting-tweet-card__metrics">
+                                    {metricChips.map((metricChip) => (
+                                      <span key={metricChip} className="score-chip">
+                                        {metricChip}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : null}
+
+                                {tweetReference.tweetUrl ? (
+                                  <a
+                                    className="supporting-account-card__link"
+                                    href={tweetReference.tweetUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    Открыть твит
+                                  </a>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </details>
+                    ) : account.recentTweetReferencesNote ? (
+                      <p className="supporting-account-card__note">
+                        {account.recentTweetReferencesNote}
+                      </p>
+                    ) : null}
 
                     {account.profileUrl ? (
                       <a
