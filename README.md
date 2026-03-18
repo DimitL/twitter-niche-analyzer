@@ -19,6 +19,7 @@
 - isolated single-account scoring слой для вычисления first-pass account signals и account score на основе classification-aware recent-posts dataset
 - manual multi-account comparison слой для раннего benchmarking нескольких публичных X-аккаунтов через existing scoring layer
 - manual topic-bucket comparison слой для раннего benchmarking вручную заданных групп X-аккаунтов как первых topic/niche proxies
+- first topic-level scoring слой для перевода bucket aggregates в явные topic scores для ранней niche evaluation
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -44,6 +45,7 @@
 │   │   │   ├── xProfileTimelineClassificationConfig.ts
 │   │   │   ├── xProfileTimelineUrlsConfig.ts
 │   │   │   ├── xTopicBucketCompareConfig.ts
+│   │   │   ├── xTopicScoreConfig.ts
 │   │   │   ├── xTweetFieldsConfig.ts
 │   │   │   ├── xTweetMetricsConfig.ts
 │   │   │   ├── xProfileShellConfig.ts
@@ -62,6 +64,7 @@
 │   │   │   ├── xProfileTimelineUrls.ts
 │   │   │   ├── xProfileShell.ts
 │   │   │   ├── xTopicBucketCompare.ts
+│   │   │   ├── xTopicScore.ts
 │   │   │   ├── xTweetFields.ts
 │   │   │   ├── xTweetMetrics.ts
 │   │   │   └── xTweetShell.ts
@@ -76,6 +79,7 @@
 │   │       ├── xProfileTimelineClassificationService.ts
 │   │       ├── xProfileTimelineUrlsService.ts
 │   │       ├── xTopicBucketCompareService.ts
+│   │       ├── xTopicScoreService.ts
 │   │       ├── xTweetFieldsService.ts
 │   │       ├── xTweetMetricsService.ts
 │   │       ├── xTweetPageShellService.ts
@@ -157,6 +161,7 @@ http://localhost:3001/api/browser/x-account-recent-posts-test
 http://localhost:3001/api/browser/x-account-score-test
 http://localhost:3001/api/browser/x-multi-account-compare-test
 http://localhost:3001/api/browser/x-topic-bucket-compare-test
+http://localhost:3001/api/browser/x-topic-score-test
 http://localhost:3001/api/browser/x-tweet-shell-test
 http://localhost:3001/api/browser/x-tweet-fields-test
 http://localhost:3001/api/browser/x-tweet-metrics-test
@@ -456,7 +461,7 @@ curl -G "http://localhost:3001/api/browser/x-account-score-test" \
 
 Ограничения текущего шага:
 - scoring пока выполняется только для одного аккаунта
-- final niche discovery и topic-level ranking ещё не реализованы
+- final niche discovery и large-scale ranking across many topics ещё не реализованы
 - classification-aware filtering остаётся first-pass и будет усиливаться отдельно
 - overall account score пока служит как прозрачный preliminary signal, а не как финальный ranking layer
 
@@ -581,6 +586,69 @@ curl -X POST "http://localhost:3001/api/browser/x-topic-bucket-compare-test" \
 - bucket scoring остаётся first-pass и агрегирует существующие account-level scores
 - sequential execution сохранён намеренно для прозрачности и низкого риска
 - automatic account discovery, persistence/history и UI integration ещё не реализованы
+
+## Как проверить X topic scoring
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить backend:
+
+```bash
+npm run dev:backend
+```
+
+4. Проверить topic scoring через POST JSON payload:
+
+```bash
+curl -X POST "http://localhost:3001/api/browser/x-topic-score-test" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "limit": 1,
+    "includeUncertain": false,
+    "treatQuoteAsUsable": false,
+    "sortBy": "overallTopicScore",
+    "buckets": [
+      {
+        "bucketId": "frontier-labs",
+        "label": "Frontier Labs",
+        "description": "Публичные аккаунты frontier-model лабораторий",
+        "handles": ["OpenAI", "AnthropicAI"]
+      },
+      {
+        "bucketId": "research-platforms",
+        "label": "Research Platforms",
+        "description": "Платформы и исследовательские экосистемы",
+        "handles": ["GoogleDeepMind", "huggingface"]
+      }
+    ]
+  }'
+```
+
+Что вернётся:
+- `scoringSucceeded`
+- `requestedBuckets`
+- `scoredBuckets`
+- `topicRanking`
+- `comparisonSummary`
+- `timings`
+- `error`
+- `notes`
+
+Ограничения текущего шага:
+- topic scoring пока работает только по вручную переданным bucket definitions
+- monetization potential пока является прозрачным proxy, а не прямой revenue estimate
+- final top-10 niche discovery и automatic topic discovery ещё не реализованы
+- persistence/history и interactive UI integration будут вынесены в отдельные следующие шаги
 
 ## Как проверить X profile shell
 
