@@ -47,6 +47,8 @@ export interface DiscoveredXProfileTimelineTweetRef {
   isPinned: boolean;
   isReplyOrRepostUncertain: boolean;
   uncertaintyReasons: string[];
+  evidenceMarkers: string[];
+  additionalStatusLinkCount: number;
 }
 
 export interface ExtractedXProfileTimelineUrlsData {
@@ -212,6 +214,18 @@ function computeTimelineScanLimit(limit: number) {
   return Math.min(Math.max(limit * 4, limit + 5), 60);
 }
 
+function countDistinctRelatedStatusLinks(statusUrls: string[], canonicalTweetId: string | null) {
+  if (!canonicalTweetId) {
+    return 0;
+  }
+
+  const relatedTweetIds = statusUrls
+    .map((statusUrl) => extractTweetPartsFromUrl(statusUrl).tweetId)
+    .filter((tweetId): tweetId is string => Boolean(tweetId) && tweetId !== canonicalTweetId);
+
+  return new Set(relatedTweetIds).size;
+}
+
 async function getTimelineCanonicalHref(articleLocator: Locator) {
   const timeLocator = articleLocator.locator(xSelectors.profile.timelinePublishedTime).first();
 
@@ -234,6 +248,26 @@ async function getTimelineCanonicalHref(articleLocator: Locator) {
   }
 
   return statusLinkLocator.getAttribute("href");
+}
+
+async function getTimelineStatusUrls(articleLocator: Locator, currentPageUrl: string) {
+  const statusLinkLocator = articleLocator.locator(xSelectors.profile.timelineStatusLink);
+
+  if ((await statusLinkLocator.count()) === 0) {
+    return [];
+  }
+
+  const rawHrefs = await statusLinkLocator.evaluateAll((links) =>
+    links
+      .map((link) => link.getAttribute("href"))
+      .filter((value): value is string => Boolean(value))
+  );
+
+  const normalizedUrls = rawHrefs
+    .map((href) => normalizeStatusUrl(href, currentPageUrl))
+    .filter((value): value is string => Boolean(value));
+
+  return Array.from(new Set(normalizedUrls));
 }
 
 async function getTimelineSocialContextText(articleLocator: Locator) {
@@ -287,6 +321,7 @@ async function discoverTimelineTweetRefs(
     ]);
 
     const tweetUrl = normalizeStatusUrl(canonicalHref, runtime.page.url());
+    const statusUrls = await getTimelineStatusUrls(articleLocator, runtime.page.url());
     const { authorHandle, tweetId } = extractTweetPartsFromUrl(tweetUrl);
 
     if (!tweetUrl || !tweetId || seenTweetUrls.has(tweetUrl)) {
@@ -296,18 +331,26 @@ async function discoverTimelineTweetRefs(
     seenTweetUrls.add(tweetUrl);
 
     const uncertaintyReasons: string[] = [];
+    const evidenceMarkers: string[] = [];
     const normalizedSocialContext = socialContextText?.toLowerCase() || "";
     const normalizedArticleText = articleText?.toLowerCase() || "";
     const isPinned =
       normalizedSocialContext.includes("pinned") ||
       normalizedArticleText.includes("pinned");
+    const additionalStatusLinkCount = countDistinctRelatedStatusLinks(statusUrls, tweetId);
+
+    if (isPinned) {
+      evidenceMarkers.push("pinnedItem");
+    }
 
     if (socialContextText && !normalizedSocialContext.includes("pinned")) {
       uncertaintyReasons.push("socialContextPresent");
+      evidenceMarkers.push("socialContextPresent");
     }
 
     if (normalizedArticleText.includes("replying to")) {
       uncertaintyReasons.push("replyingContextVisible");
+      evidenceMarkers.push("replyingContextVisible");
     }
 
     if (
@@ -316,6 +359,11 @@ async function discoverTimelineTweetRefs(
       authorHandle.toLowerCase() !== resolvedHandle.toLowerCase()
     ) {
       uncertaintyReasons.push("authorHandleMismatch");
+      evidenceMarkers.push("authorHandleMismatch");
+    }
+
+    if (additionalStatusLinkCount > 0) {
+      evidenceMarkers.push("additionalStatusLinkVisible");
     }
 
     const discoveredItem = {
@@ -324,7 +372,9 @@ async function discoverTimelineTweetRefs(
       authorHandle,
       isPinned,
       isReplyOrRepostUncertain: uncertaintyReasons.length > 0,
-      uncertaintyReasons
+      uncertaintyReasons,
+      evidenceMarkers,
+      additionalStatusLinkCount
     };
 
     if (discoveredItem.isReplyOrRepostUncertain) {

@@ -14,6 +14,7 @@
 - public X profile shell diagnostic слой для проверки каркаса публичного профиля
 - public X profile field extraction слой для безопасного извлечения identity/header полей публичного профиля
 - public X profile timeline URL discovery слой для безопасного поиска недавних tweet URL из публичной ленты профиля
+- public X profile timeline classification слой для rule-based разделения timeline items на original/reply/repost/quote/uncertain
 - public X account recent-posts aggregation слой для безопасного объединения profile fields, timeline URL discovery и hydration недавних твитов
 - isolated single-account scoring слой для вычисления first-pass account signals и account score на основе recent-posts dataset
 - manual multi-account comparison слой для раннего benchmarking нескольких публичных X-аккаунтов через existing scoring layer
@@ -39,6 +40,7 @@
 │   │   │   ├── xMultiAccountCompareConfig.ts
 │   │   │   ├── xNavigationConfig.ts
 │   │   │   ├── xProfileFieldsConfig.ts
+│   │   │   ├── xProfileTimelineClassificationConfig.ts
 │   │   │   ├── xProfileTimelineUrlsConfig.ts
 │   │   │   ├── xTweetFieldsConfig.ts
 │   │   │   ├── xTweetMetricsConfig.ts
@@ -54,6 +56,7 @@
 │   │   │   ├── xMultiAccountCompare.ts
 │   │   │   ├── xBootstrap.ts
 │   │   │   ├── xProfileFields.ts
+│   │   │   ├── xProfileTimelineClassification.ts
 │   │   │   ├── xProfileTimelineUrls.ts
 │   │   │   ├── xProfileShell.ts
 │   │   │   ├── xTweetFields.ts
@@ -67,6 +70,7 @@
 │   │       ├── xMultiAccountCompareService.ts
 │   │       ├── xProfileFieldsService.ts
 │   │       ├── xProfilePageShellService.ts
+│   │       ├── xProfileTimelineClassificationService.ts
 │   │       ├── xProfileTimelineUrlsService.ts
 │   │       ├── xTweetFieldsService.ts
 │   │       ├── xTweetMetricsService.ts
@@ -144,6 +148,7 @@ http://localhost:3001/api/browser/x-bootstrap-test
 http://localhost:3001/api/browser/x-profile-shell-test
 http://localhost:3001/api/browser/x-profile-fields-test
 http://localhost:3001/api/browser/x-profile-timeline-urls-test
+http://localhost:3001/api/browser/x-profile-timeline-classification-test
 http://localhost:3001/api/browser/x-account-recent-posts-test
 http://localhost:3001/api/browser/x-account-score-test
 http://localhost:3001/api/browser/x-multi-account-compare-test
@@ -198,6 +203,7 @@ X_PROFILE_TIMELINE_URLS_WAIT_STRATEGY=load
 X_PROFILE_TIMELINE_URLS_EXTRACTION_TIMEOUT_MS=2500
 X_PROFILE_TIMELINE_URLS_DEFAULT_LIMIT=10
 X_PROFILE_TIMELINE_URLS_MAX_LIMIT=20
+X_PROFILE_TIMELINE_CLASSIFICATION_TREAT_QUOTE_AS_USABLE=false
 X_ACCOUNT_RECENT_POSTS_DEFAULT_HANDLE=
 X_ACCOUNT_RECENT_POSTS_DEFAULT_URL=
 X_ACCOUNT_RECENT_POSTS_WAIT_STRATEGY=load
@@ -329,6 +335,61 @@ curl -G "http://localhost:3001/api/browser/x-account-recent-posts-test" \
 - маршрут не парсит replies и thread tree
 - replies/reposts пока могут попадать в выборку как uncertain items
 - simple engagement-per-follower proxy пока является только первым приближением
+
+## Как проверить X profile timeline classification
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить backend:
+
+```bash
+npm run dev:backend
+```
+
+4. Проверить classification по handle:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-profile-timeline-classification-test" \
+  --data-urlencode "handle=OpenAI" \
+  --data-urlencode "limit=5" \
+  --data-urlencode "treatQuoteAsUsable=false"
+```
+
+5. Проверить classification по profile URL:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-profile-timeline-classification-test" \
+  --data-urlencode "targetUrl=https://x.com/OpenAI" \
+  --data-urlencode "limit=5" \
+  --data-urlencode "treatQuoteAsUsable=true"
+```
+
+Что вернётся:
+- `navigationSucceeded`
+- `classificationSucceeded`
+- `profile`
+- `discoveredItems`
+- `classifiedItems`
+- `classificationSummary`
+- `timings`
+- `error`
+- `notes`
+
+Ограничения текущего шага:
+- классификация остаётся rule-based и deliberately conservative
+- quote-post detection пока срабатывает только на сильных signals
+- thread trees и reply lists ещё не извлекаются
+- scoring/comparison pipelines пока не переведены на этот новый classification layer автоматически
 
 ## Как проверить X account scoring
 
