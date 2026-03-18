@@ -16,6 +16,7 @@
 - public X profile timeline URL discovery слой для безопасного поиска недавних tweet URL из публичной ленты профиля
 - public X account recent-posts aggregation слой для безопасного объединения profile fields, timeline URL discovery и hydration недавних твитов
 - isolated single-account scoring слой для вычисления first-pass account signals и account score на основе recent-posts dataset
+- manual multi-account comparison слой для раннего benchmarking нескольких публичных X-аккаунтов через existing scoring layer
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -35,6 +36,7 @@
 │   │   │   ├── browserConfig.ts
 │   │   │   ├── xAccountRecentPostsConfig.ts
 │   │   │   ├── xAccountScoreConfig.ts
+│   │   │   ├── xMultiAccountCompareConfig.ts
 │   │   │   ├── xNavigationConfig.ts
 │   │   │   ├── xProfileFieldsConfig.ts
 │   │   │   ├── xProfileTimelineUrlsConfig.ts
@@ -49,6 +51,7 @@
 │   │   │   ├── index.ts
 │   │   │   ├── xAccountRecentPosts.ts
 │   │   │   ├── xAccountScore.ts
+│   │   │   ├── xMultiAccountCompare.ts
 │   │   │   ├── xBootstrap.ts
 │   │   │   ├── xProfileFields.ts
 │   │   │   ├── xProfileTimelineUrls.ts
@@ -61,6 +64,7 @@
 │   │       ├── mockAnalysisService.ts
 │   │       ├── xAccountRecentPostsService.ts
 │   │       ├── xAccountScoreService.ts
+│   │       ├── xMultiAccountCompareService.ts
 │   │       ├── xProfileFieldsService.ts
 │   │       ├── xProfilePageShellService.ts
 │   │       ├── xProfileTimelineUrlsService.ts
@@ -142,6 +146,7 @@ http://localhost:3001/api/browser/x-profile-fields-test
 http://localhost:3001/api/browser/x-profile-timeline-urls-test
 http://localhost:3001/api/browser/x-account-recent-posts-test
 http://localhost:3001/api/browser/x-account-score-test
+http://localhost:3001/api/browser/x-multi-account-compare-test
 http://localhost:3001/api/browser/x-tweet-shell-test
 http://localhost:3001/api/browser/x-tweet-fields-test
 http://localhost:3001/api/browser/x-tweet-metrics-test
@@ -381,6 +386,63 @@ curl -G "http://localhost:3001/api/browser/x-account-score-test" \
 - multi-account comparison и niche aggregation ещё не реализованы
 - uncertain reply/repost filtering остаётся first-pass и будет усиливаться отдельно
 - overall account score пока служит как прозрачный preliminary signal, а не как финальный ranking layer
+
+## Как проверить X multi-account comparison
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить backend:
+
+```bash
+npm run dev:backend
+```
+
+4. Проверить сравнение по handles:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-multi-account-compare-test" \
+  --data-urlencode "handles=OpenAI,AnthropicAI" \
+  --data-urlencode "limit=3" \
+  --data-urlencode "includeUncertain=false" \
+  --data-urlencode "sortBy=overallAccountScore"
+```
+
+5. Проверить mixed input с profile URLs:
+
+```bash
+curl -G "http://localhost:3001/api/browser/x-multi-account-compare-test" \
+  --data-urlencode "handles=OpenAI" \
+  --data-urlencode "targetUrls=https://x.com/AnthropicAI,https://x.com/home" \
+  --data-urlencode "limit=3" \
+  --data-urlencode "sortBy=engagementEfficiencyScore"
+```
+
+Что вернётся:
+- `comparisonSucceeded`
+- `requestedAccounts`
+- `successfulComparisons`
+- `failedComparisons`
+- `comparedAccounts`
+- `comparisonSummary`
+- `timings`
+- `error`
+- `notes`
+
+Ограничения текущего шага:
+- сравнение пока работает только по вручную переданному списку аккаунтов
+- sequential execution сохранён намеренно, без batching/concurrency optimization
+- automatic account discovery by topic и niche-level aggregation ещё не реализованы
+- better reply/repost classification будет вынесена в отдельный следующий шаг
 
 ## Как проверить X profile shell
 
