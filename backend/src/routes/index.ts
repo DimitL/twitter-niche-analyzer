@@ -8,6 +8,7 @@ import { registerXProfileFieldsRoutes } from "./xProfileFields.js";
 import { registerXProfileTimelineClassificationRoutes } from "./xProfileTimelineClassification.js";
 import { registerXProfileTimelineUrlsRoutes } from "./xProfileTimelineUrls.js";
 import { registerXBootstrapRoutes } from "./xBootstrap.js";
+import { registerXNicheShortlistRoutes } from "./xNicheShortlist.js";
 import { registerXTopicBucketCompareRoutes } from "./xTopicBucketCompare.js";
 import { registerXTopicScoreRoutes } from "./xTopicScore.js";
 import { registerXTweetFieldsRoutes } from "./xTweetFields.js";
@@ -30,5 +31,6 @@ export async function registerRoutes(app: FastifyInstance) {
   await registerXMultiAccountCompareRoutes(app);
   await registerXTopicBucketCompareRoutes(app);
   await registerXTopicScoreRoutes(app);
+  await registerXNicheShortlistRoutes(app);
   await registerAnalysisRoutes(app);
 }

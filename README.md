@@ -20,6 +20,7 @@
 - manual multi-account comparison слой для раннего benchmarking нескольких публичных X-аккаунтов через existing scoring layer
 - manual topic-bucket comparison слой для раннего benchmarking вручную заданных групп X-аккаунтов как первых topic/niche proxies
 - first topic-level scoring слой для перевода bucket aggregates в явные topic scores для ранней niche evaluation
+- first manual niche shortlist / ranking слой для decision-ready выбора направления блога на основе вручную scored topic buckets
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -41,6 +42,7 @@
 │   │   │   ├── xAccountScoreConfig.ts
 │   │   │   ├── xMultiAccountCompareConfig.ts
 │   │   │   ├── xNavigationConfig.ts
+│   │   │   ├── xNicheShortlistConfig.ts
 │   │   │   ├── xProfileFieldsConfig.ts
 │   │   │   ├── xProfileTimelineClassificationConfig.ts
 │   │   │   ├── xProfileTimelineUrlsConfig.ts
@@ -59,6 +61,7 @@
 │   │   │   ├── xAccountScore.ts
 │   │   │   ├── xMultiAccountCompare.ts
 │   │   │   ├── xBootstrap.ts
+│   │   │   ├── xNicheShortlist.ts
 │   │   │   ├── xProfileFields.ts
 │   │   │   ├── xProfileTimelineClassification.ts
 │   │   │   ├── xProfileTimelineUrls.ts
@@ -71,6 +74,7 @@
 │   │   └── services
 │   │       ├── browserBootstrapService.ts
 │   │       ├── mockAnalysisService.ts
+│   │       ├── xNicheShortlistService.ts
 │   │       ├── xAccountRecentPostsService.ts
 │   │       ├── xAccountScoreService.ts
 │   │       ├── xMultiAccountCompareService.ts
@@ -162,6 +166,7 @@ http://localhost:3001/api/browser/x-account-score-test
 http://localhost:3001/api/browser/x-multi-account-compare-test
 http://localhost:3001/api/browser/x-topic-bucket-compare-test
 http://localhost:3001/api/browser/x-topic-score-test
+http://localhost:3001/api/browser/x-niche-shortlist-test
 http://localhost:3001/api/browser/x-tweet-shell-test
 http://localhost:3001/api/browser/x-tweet-fields-test
 http://localhost:3001/api/browser/x-tweet-metrics-test
@@ -649,6 +654,90 @@ curl -X POST "http://localhost:3001/api/browser/x-topic-score-test" \
 - monetization potential пока является прозрачным proxy, а не прямой revenue estimate
 - final top-10 niche discovery и automatic topic discovery ещё не реализованы
 - persistence/history и interactive UI integration будут вынесены в отдельные следующие шаги
+
+## Как проверить X niche shortlist
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить backend:
+
+```bash
+npm run dev:backend
+```
+
+4. Проверить niche shortlist через POST JSON payload:
+
+```bash
+curl -X POST "http://localhost:3001/api/browser/x-niche-shortlist-test" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "limit": 1,
+    "topN": 2,
+    "sortBy": "overallTopicScore",
+    "includeUncertain": false,
+    "treatQuoteAsUsable": false,
+    "emphasizeGrowth": true,
+    "emphasizeMonetization": false,
+    "emphasizeEase": false,
+    "buckets": [
+      {
+        "bucketId": "frontier-labs",
+        "label": "Frontier Labs",
+        "description": "Публичные аккаунты frontier-model лабораторий",
+        "handles": ["OpenAI", "AnthropicAI"]
+      },
+      {
+        "bucketId": "research-platforms",
+        "label": "Research Platforms",
+        "description": "Платформы и исследовательские экосистемы",
+        "handles": ["GoogleDeepMind", "huggingface"]
+      },
+      {
+        "bucketId": "ai-builders",
+        "label": "AI Builders",
+        "description": "Публичные аккаунты builder-oriented AI проектов",
+        "handles": ["cursor_ai", "v0", "Replit"]
+      }
+    ]
+  }'
+```
+
+Что вернётся:
+- `shortlistSucceeded`
+- `requestedBuckets`
+- `rankedBuckets`
+- `shortlistSummary`
+- `timings`
+- `error`
+- `notes`
+
+Что именно появится в `rankedBuckets`:
+- `rank`
+- `rankingReason`
+- `pros`
+- `cons`
+- `recommendedUseCase`
+- `strongestAccounts`
+- `decisionLabels`
+- `topicSignals`
+- `topicScores`
+- `rankingBreakdown`
+
+Ограничения текущего шага:
+- shortlist работает только по вручную переданным buckets
+- ranking logic остаётся first-pass и строится поверх уже готовых topic scores
+- monetization остаётся прозрачным proxy, а не прямой business estimate
+- automatic topic discovery, final top-10 niche generation и UI shortlist display ещё не реализованы
 
 ## Как проверить X profile shell
 
