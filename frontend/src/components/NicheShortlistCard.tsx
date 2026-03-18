@@ -5,7 +5,7 @@ interface NicheShortlistCardProps {
 }
 
 const decisionLabelMap = [
-  { key: "bestOverall", label: "Лучший overall" },
+  { key: "bestOverall", label: "Лучший по общему score" },
   { key: "bestForGrowth", label: "Лучший для роста" },
   { key: "bestForMonetization", label: "Лучший для монетизации" },
   { key: "easiestToStart", label: "Самый лёгкий старт" },
@@ -13,11 +13,11 @@ const decisionLabelMap = [
 ] as const;
 
 const scoreMetricLabels = [
-  { key: "overallTopicScore", label: "Overall topic score" },
-  { key: "growthPotential", label: "Growth potential" },
-  { key: "monetizationPotential", label: "Monetization potential" },
-  { key: "contentEase", label: "Content ease" },
-  { key: "dataConfidence", label: "Data confidence" }
+  { key: "overallTopicScore", label: "Итоговый score ниши" },
+  { key: "growthPotential", label: "Потенциал роста" },
+  { key: "monetizationPotential", label: "Потенциал монетизации" },
+  { key: "contentEase", label: "Простота контента" },
+  { key: "dataConfidence", label: "Надёжность данных" }
 ] as const;
 
 const signalLabels = [
@@ -58,7 +58,7 @@ export function NicheShortlistCard({ bucket }: NicheShortlistCardProps) {
         </div>
 
         <div className="score-badge">
-          <span>Overall topic score</span>
+          <span>Итоговый score ниши</span>
           <strong>{bucket.topicScores.overallTopicScore.toFixed(1)}</strong>
         </div>
       </div>
@@ -71,11 +71,11 @@ export function NicheShortlistCard({ bucket }: NicheShortlistCardProps) {
             </span>
           ))
         ) : (
-          <span className="decision-chip decision-chip--neutral">Без special label</span>
+          <span className="decision-chip decision-chip--neutral">Без специальной метки</span>
         )}
 
         {!bucket.shortlistIncluded ? (
-          <span className="decision-chip decision-chip--neutral">Вне top shortlist</span>
+          <span className="decision-chip decision-chip--neutral">Вне итогового shortlist</span>
         ) : null}
       </div>
 
@@ -159,7 +159,7 @@ export function NicheShortlistCard({ bucket }: NicheShortlistCardProps) {
 
         {bucket.rankingBreakdown ? (
           <div className="ranking-breakdown-box">
-            <p className="eyebrow">Ranking rule</p>
+            <p className="eyebrow">Правило ранжирования</p>
             <strong>{bucket.rankingBreakdown.rankingScore.toFixed(1)}</strong>
             <p>{bucket.rankingBreakdown.formula}</p>
           </div>

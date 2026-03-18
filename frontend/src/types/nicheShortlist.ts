@@ -13,6 +13,24 @@ export interface NicheShortlistBucketInput {
   targetUrls?: string[];
 }
 
+export interface NicheShortlistHandleDraft {
+  handleId: string;
+  value: string;
+}
+
+export interface NicheShortlistBucketDraft {
+  editorId: string;
+  bucketId: string;
+  label: string;
+  description: string;
+  handles: NicheShortlistHandleDraft[];
+}
+
+export interface NicheShortlistBucketDraftValidation {
+  label?: string;
+  handles?: string;
+}
+
 export interface NicheShortlistRequest {
   buckets: NicheShortlistBucketInput[];
   limit?: number;

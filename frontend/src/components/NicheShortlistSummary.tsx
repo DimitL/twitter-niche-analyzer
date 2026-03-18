@@ -20,7 +20,7 @@ export function NicheShortlistSummary({ shortlist }: NicheShortlistSummaryProps)
       <div className="shortlist-summary__header">
         <div>
           <p className="eyebrow">Niche Shortlist</p>
-          <h2>Decision-ready shortlist</h2>
+          <h2>Готовый shortlist для выбора ниши</h2>
           <p className="section-copy">
             Здесь собраны ключевые decision labels и итоговая сводка по текущему ручному
             shortlist запуску.

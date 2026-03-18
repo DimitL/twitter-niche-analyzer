@@ -1,20 +1,28 @@
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { appConfig, type AnalysisRequest, type AnalysisResponse } from "@twitter-niche-analyzer/shared";
 import { getApiHealth, runMockAnalysis, runNicheShortlist } from "./api/client.js";
 import {
   defaultNicheShortlistExampleId,
-  nicheShortlistExamples,
-  serializeBucketsForTextarea
+  nicheShortlistExamples
 } from "./data/nicheShortlistExamples.js";
+import { BucketEditor } from "./components/BucketEditor.js";
 import { NicheCard } from "./components/NicheCard.js";
 import { NicheShortlistCard } from "./components/NicheShortlistCard.js";
 import { NicheShortlistSummary } from "./components/NicheShortlistSummary.js";
 import type {
-  NicheShortlistBucketInput,
+  NicheShortlistBucketDraft,
   NicheShortlistResponse,
   NicheShortlistSortBy
 } from "./types/nicheShortlist.js";
+import {
+  buildBucketDraftsFromInputs,
+  buildBucketInputsFromDrafts,
+  createEmptyBucketDraft,
+  createEmptyHandleDraft,
+  hasBucketDraftValidationErrors,
+  validateBucketDrafts
+} from "./utils/nicheShortlistBucketEditor.js";
 
 const initialRequest: AnalysisRequest = {
   marketHint: "англоязычный tech X",
@@ -22,7 +30,7 @@ const initialRequest: AnalysisRequest = {
 };
 
 interface NicheShortlistFormState {
-  bucketsText: string;
+  buckets: NicheShortlistBucketDraft[];
   limit: string;
   topN: string;
   includeUncertain: boolean;
@@ -37,12 +45,26 @@ const shortlistSortOptions: Array<{
   value: NicheShortlistSortBy;
   label: string;
 }> = [
-  { value: "overallTopicScore", label: "Overall topic score" },
-  { value: "growthPotential", label: "Growth potential" },
-  { value: "monetizationPotential", label: "Monetization potential" },
-  { value: "contentEase", label: "Content ease" },
-  { value: "dataConfidence", label: "Data confidence" }
+  { value: "overallTopicScore", label: "Итоговый score ниши" },
+  { value: "growthPotential", label: "Потенциал роста" },
+  { value: "monetizationPotential", label: "Потенциал монетизации" },
+  { value: "contentEase", label: "Простота контента" },
+  { value: "dataConfidence", label: "Надёжность данных" }
 ];
+
+function buildEmptyShortlistFormState(): NicheShortlistFormState {
+  return {
+    buckets: [createEmptyBucketDraft()],
+    limit: "1",
+    topN: "2",
+    includeUncertain: false,
+    treatQuoteAsUsable: false,
+    sortBy: "overallTopicScore",
+    emphasizeGrowth: false,
+    emphasizeMonetization: false,
+    emphasizeEase: false
+  };
+}
 
 function buildShortlistFormState(exampleId = defaultNicheShortlistExampleId): NicheShortlistFormState {
   const example =
@@ -50,7 +72,7 @@ function buildShortlistFormState(exampleId = defaultNicheShortlistExampleId): Ni
     nicheShortlistExamples[0];
 
   return {
-    bucketsText: serializeBucketsForTextarea(example.buckets),
+    buckets: buildBucketDraftsFromInputs(example.buckets),
     limit: example.limit,
     topN: example.topN,
     includeUncertain: example.includeUncertain,
@@ -72,26 +94,10 @@ function parseOptionalInteger(value: string) {
   const parsedValue = Number.parseInt(normalizedValue, 10);
 
   if (!Number.isFinite(parsedValue) || parsedValue < 1) {
-    throw new Error("Числовые поля limit и topN должны быть положительными числами.");
+    throw new Error("Поля limit и topN должны быть положительными числами.");
   }
 
   return parsedValue;
-}
-
-function parseBucketsText(bucketsText: string): NicheShortlistBucketInput[] {
-  let parsedValue: unknown;
-
-  try {
-    parsedValue = JSON.parse(bucketsText);
-  } catch {
-    throw new Error("Не удалось прочитать JSON в поле buckets. Проверьте синтаксис.");
-  }
-
-  if (!Array.isArray(parsedValue) || parsedValue.length === 0) {
-    throw new Error("Поле buckets должно содержать непустой JSON-массив.");
-  }
-
-  return parsedValue as NicheShortlistBucketInput[];
 }
 
 export default function App() {
@@ -100,17 +106,21 @@ export default function App() {
   const [healthStatus, setHealthStatus] = useState<"checking" | "online" | "offline">("checking");
   const [analysisStatus, setAnalysisStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
-  const [selectedShortlistExampleId, setSelectedShortlistExampleId] = useState(
-    defaultNicheShortlistExampleId
-  );
+  const [selectedShortlistExampleId, setSelectedShortlistExampleId] = useState<string | null>(null);
   const [shortlistForm, setShortlistForm] = useState<NicheShortlistFormState>(() =>
-    buildShortlistFormState()
+    buildEmptyShortlistFormState()
   );
   const [shortlistResult, setShortlistResult] = useState<NicheShortlistResponse | null>(null);
   const [shortlistStatus, setShortlistStatus] = useState<"idle" | "loading" | "ready" | "error">(
     "idle"
   );
   const [shortlistErrorMessage, setShortlistErrorMessage] = useState("");
+  const [showShortlistValidation, setShowShortlistValidation] = useState(false);
+
+  const shortlistValidations = useMemo(
+    () => (showShortlistValidation ? validateBucketDrafts(shortlistForm.buckets) : {}),
+    [showShortlistValidation, shortlistForm.buckets]
+  );
 
   useEffect(() => {
     void loadHealth();
@@ -145,7 +155,7 @@ export default function App() {
       setShortlistErrorMessage("");
 
       const response = await runNicheShortlist({
-        buckets: parseBucketsText(nextForm.bucketsText),
+        buckets: buildBucketInputsFromDrafts(nextForm.buckets),
         limit: parseOptionalInteger(nextForm.limit),
         topN: parseOptionalInteger(nextForm.topN),
         includeUncertain: nextForm.includeUncertain,
@@ -168,6 +178,18 @@ export default function App() {
     }
   }
 
+  function patchShortlistForm(
+    updater: (current: NicheShortlistFormState) => NicheShortlistFormState,
+    options?: { keepPreset?: boolean }
+  ) {
+    if (!options?.keepPreset) {
+      setSelectedShortlistExampleId(null);
+    }
+
+    setShortlistErrorMessage("");
+    setShortlistForm((current) => updater(current));
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void loadAnalysis(request);
@@ -175,6 +197,16 @@ export default function App() {
 
   function handleShortlistSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setShowShortlistValidation(true);
+
+    const validations = validateBucketDrafts(shortlistForm.buckets);
+
+    if (hasBucketDraftValidationErrors(validations)) {
+      setShortlistStatus("error");
+      setShortlistErrorMessage("Исправьте поля bucket editor и попробуйте снова.");
+      return;
+    }
+
     void loadShortlist(shortlistForm);
   }
 
@@ -182,6 +214,95 @@ export default function App() {
     setSelectedShortlistExampleId(exampleId);
     setShortlistForm(buildShortlistFormState(exampleId));
     setShortlistErrorMessage("");
+    setShortlistStatus("idle");
+    setShowShortlistValidation(false);
+  }
+
+  function resetShortlistEditor() {
+    setSelectedShortlistExampleId(null);
+    setShortlistForm(buildEmptyShortlistFormState());
+    setShortlistErrorMessage("");
+    setShortlistStatus("idle");
+    setShowShortlistValidation(false);
+  }
+
+  function handleBucketFieldChange(
+    bucketEditorId: string,
+    field: "bucketId" | "label" | "description",
+    value: string
+  ) {
+    patchShortlistForm((current) => ({
+      ...current,
+      buckets: current.buckets.map((bucket) =>
+        bucket.editorId === bucketEditorId ? { ...bucket, [field]: value } : bucket
+      )
+    }));
+  }
+
+  function handleBucketAdd() {
+    patchShortlistForm((current) => ({
+      ...current,
+      buckets: [...current.buckets, createEmptyBucketDraft()]
+    }));
+  }
+
+  function handleBucketRemove(bucketEditorId: string) {
+    patchShortlistForm((current) => {
+      const nextBuckets = current.buckets.filter((bucket) => bucket.editorId !== bucketEditorId);
+
+      return {
+        ...current,
+        buckets: nextBuckets.length > 0 ? nextBuckets : [createEmptyBucketDraft()]
+      };
+    });
+  }
+
+  function handleHandleChange(bucketEditorId: string, handleId: string, value: string) {
+    patchShortlistForm((current) => ({
+      ...current,
+      buckets: current.buckets.map((bucket) =>
+        bucket.editorId === bucketEditorId
+          ? {
+              ...bucket,
+              handles: bucket.handles.map((handle) =>
+                handle.handleId === handleId ? { ...handle, value } : handle
+              )
+            }
+          : bucket
+      )
+    }));
+  }
+
+  function handleHandleAdd(bucketEditorId: string) {
+    patchShortlistForm((current) => ({
+      ...current,
+      buckets: current.buckets.map((bucket) =>
+        bucket.editorId === bucketEditorId
+          ? {
+              ...bucket,
+              handles: [...bucket.handles, createEmptyHandleDraft()]
+            }
+          : bucket
+      )
+    }));
+  }
+
+  function handleHandleRemove(bucketEditorId: string, handleId: string) {
+    patchShortlistForm((current) => ({
+      ...current,
+      buckets: current.buckets.map((bucket) => {
+        if (bucket.editorId !== bucketEditorId) {
+          return bucket;
+        }
+
+        const nextHandles = bucket.handles.filter((handle) => handle.handleId !== handleId);
+
+        return {
+          ...bucket,
+          handles: nextHandles.length > 0 ? nextHandles : [createEmptyHandleDraft()]
+        };
+      })
+    }));
   }
 
   return (
@@ -195,8 +316,8 @@ export default function App() {
             <h1>Поиск перспективных ниш для Twitter/X-блога</h1>
             <p className="hero__lead">
               В интерфейсе уже есть два слоя: старый mock flow для scaffold-проверки и
-              новый manual niche shortlist flow, который отправляет реальные topic
-              buckets в backend niche ranking route.
+              новый shortlist flow с ручным bucket editor, который отправляет реальные
+              topic buckets в backend niche ranking route.
             </p>
           </div>
 
@@ -211,7 +332,7 @@ export default function App() {
               Top niches: {appConfig.analysis.defaultTopNiches}
             </div>
             <div className={`status-pill status-pill--${shortlistStatus === "error" ? "offline" : shortlistStatus === "loading" ? "checking" : "neutral"}`}>
-              Shortlist UI: {shortlistStatus === "loading" ? "запрос идёт" : shortlistStatus === "error" ? "есть ошибка" : "готово к запуску"}
+              Shortlist: {shortlistStatus === "loading" ? "запрос идёт" : shortlistStatus === "error" ? "есть ошибка" : "готово к запуску"}
             </div>
           </div>
         </section>
@@ -222,9 +343,8 @@ export default function App() {
               <p className="eyebrow">Manual Niche Shortlist</p>
               <h2>Собрать shortlist без curl</h2>
               <p className="section-copy">
-                Вставьте ручные topic buckets, выберите ranking акценты и запустите
-                shortlist прямо из UI. Для первого шага достаточно JSON textarea и
-                пары предустановленных presets.
+                Используйте presets или соберите buckets вручную через понятный редактор.
+                JSON больше не нужен: достаточно добавить названия bucket-ов и X handles.
               </p>
             </div>
 
@@ -240,6 +360,15 @@ export default function App() {
                   <span>{example.description}</span>
                 </button>
               ))}
+
+              <button
+                type="button"
+                className={`preset-button ${selectedShortlistExampleId === null ? "preset-button--active" : ""}`}
+                onClick={resetShortlistEditor}
+              >
+                <strong>Пустой editor</strong>
+                <span>Начать вручную с одного пустого bucket-а и постепенно собрать shortlist.</span>
+              </button>
             </div>
 
             <div className="state-box">
@@ -252,20 +381,18 @@ export default function App() {
           </div>
 
           <form className="shortlist-form" onSubmit={handleShortlistSubmit}>
-            <label className="shortlist-form__full">
-              <span>Buckets JSON</span>
-              <textarea
-                rows={16}
-                value={shortlistForm.bucketsText}
-                onChange={(event) =>
-                  setShortlistForm((current) => ({
-                    ...current,
-                    bucketsText: event.target.value
-                  }))
-                }
-                placeholder='[{"bucketId":"frontier-labs","label":"Frontier Labs","handles":["OpenAI","AnthropicAI"]}]'
+            <div className="shortlist-form__full">
+              <BucketEditor
+                buckets={shortlistForm.buckets}
+                validations={shortlistValidations}
+                onBucketAdd={handleBucketAdd}
+                onBucketRemove={handleBucketRemove}
+                onBucketFieldChange={handleBucketFieldChange}
+                onHandleAdd={handleHandleAdd}
+                onHandleChange={handleHandleChange}
+                onHandleRemove={handleHandleRemove}
               />
-            </label>
+            </div>
 
             <div className="field-grid">
               <label>
@@ -273,7 +400,7 @@ export default function App() {
                 <input
                   value={shortlistForm.limit}
                   onChange={(event) =>
-                    setShortlistForm((current) => ({
+                    patchShortlistForm((current) => ({
                       ...current,
                       limit: event.target.value
                     }))
@@ -287,7 +414,7 @@ export default function App() {
                 <input
                   value={shortlistForm.topN}
                   onChange={(event) =>
-                    setShortlistForm((current) => ({
+                    patchShortlistForm((current) => ({
                       ...current,
                       topN: event.target.value
                     }))
@@ -297,11 +424,11 @@ export default function App() {
               </label>
 
               <label>
-                <span>Sort by</span>
+                <span>Как ранжировать shortlist</span>
                 <select
                   value={shortlistForm.sortBy}
                   onChange={(event) =>
-                    setShortlistForm((current) => ({
+                    patchShortlistForm((current) => ({
                       ...current,
                       sortBy: event.target.value as NicheShortlistSortBy
                     }))
@@ -322,13 +449,13 @@ export default function App() {
                   type="checkbox"
                   checked={shortlistForm.includeUncertain}
                   onChange={(event) =>
-                    setShortlistForm((current) => ({
+                    patchShortlistForm((current) => ({
                       ...current,
                       includeUncertain: event.target.checked
                     }))
                   }
                 />
-                <span>Включать uncertain items</span>
+                <span>Включать сомнительные посты</span>
               </label>
 
               <label className="checkbox-row">
@@ -336,13 +463,13 @@ export default function App() {
                   type="checkbox"
                   checked={shortlistForm.treatQuoteAsUsable}
                   onChange={(event) =>
-                    setShortlistForm((current) => ({
+                    patchShortlistForm((current) => ({
                       ...current,
                       treatQuoteAsUsable: event.target.checked
                     }))
                   }
                 />
-                <span>Считать quote posts usable</span>
+                <span>Считать quote-посты пригодными</span>
               </label>
 
               <label className="checkbox-row">
@@ -350,13 +477,13 @@ export default function App() {
                   type="checkbox"
                   checked={shortlistForm.emphasizeGrowth}
                   onChange={(event) =>
-                    setShortlistForm((current) => ({
+                    patchShortlistForm((current) => ({
                       ...current,
                       emphasizeGrowth: event.target.checked
                     }))
                   }
                 />
-                <span>Усилить growth</span>
+                <span>Усилить сигнал роста</span>
               </label>
 
               <label className="checkbox-row">
@@ -364,13 +491,13 @@ export default function App() {
                   type="checkbox"
                   checked={shortlistForm.emphasizeMonetization}
                   onChange={(event) =>
-                    setShortlistForm((current) => ({
+                    patchShortlistForm((current) => ({
                       ...current,
                       emphasizeMonetization: event.target.checked
                     }))
                   }
                 />
-                <span>Усилить monetization</span>
+                <span>Усилить сигнал монетизации</span>
               </label>
 
               <label className="checkbox-row">
@@ -378,27 +505,27 @@ export default function App() {
                   type="checkbox"
                   checked={shortlistForm.emphasizeEase}
                   onChange={(event) =>
-                    setShortlistForm((current) => ({
+                    patchShortlistForm((current) => ({
                       ...current,
                       emphasizeEase: event.target.checked
                     }))
                   }
                 />
-                <span>Усилить ease</span>
+                <span>Усилить простоту запуска</span>
               </label>
             </div>
 
             <button type="submit" disabled={shortlistStatus === "loading"}>
               {shortlistStatus === "loading"
                 ? "Собираем shortlist..."
-                : "Запустить niche shortlist"}
+                : "Запустить shortlist ниш"}
             </button>
           </form>
         </section>
 
         {shortlistErrorMessage ? (
           <section className="panel state-panel">
-            <p className="eyebrow">Request Error</p>
+            <p className="eyebrow">Ошибка запроса</p>
             <h2>Shortlist пока не получен</h2>
             <p className="error-text">{shortlistErrorMessage}</p>
           </section>
@@ -406,7 +533,7 @@ export default function App() {
 
         {shortlistStatus === "loading" ? (
           <section className="panel state-panel">
-            <p className="eyebrow">Loading</p>
+            <p className="eyebrow">Загрузка</p>
             <h2>Backend собирает shortlist</h2>
             <p className="section-copy">
               Маршрут проходит через topic scoring pipeline и может занимать до минуты.
@@ -427,10 +554,10 @@ export default function App() {
           </>
         ) : shortlistStatus === "idle" ? (
           <section className="panel state-panel">
-            <p className="eyebrow">Empty State</p>
+            <p className="eyebrow">Пустое состояние</p>
             <h2>Shortlist появится здесь</h2>
             <p className="section-copy">
-              Выберите один из example presets или вставьте свой JSON buckets payload, затем
+              Выберите один из preset-ов или соберите buckets через editor, затем
               запустите shortlist. Результат покажет ranking reasons, decision labels и
               сильнейшие аккаунты по каждой нише.
             </p>

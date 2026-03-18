@@ -22,6 +22,7 @@
 - first topic-level scoring слой для перевода bucket aggregates в явные topic scores для ранней niche evaluation
 - first manual niche shortlist / ranking слой для decision-ready выбора направления блога на основе вручную scored topic buckets
 - first frontend niche shortlist integration слой для запуска shortlist flow напрямую из web UI без ручного curl
+- first structured bucket editor слой во frontend для работы с shortlist без ручного JSON
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -99,6 +100,9 @@
 │   │   ├── api
 │   │   │   └── client.ts
 │   │   ├── components
+│   │   │   ├── BucketCardEditor.tsx
+│   │   │   ├── BucketEditor.tsx
+│   │   │   ├── HandleListEditor.tsx
 │   │   │   ├── NicheCard.tsx
 │   │   │   ├── NicheShortlistCard.tsx
 │   │   │   └── NicheShortlistSummary.tsx
@@ -106,6 +110,8 @@
 │   │   │   └── nicheShortlistExamples.ts
 │   │   ├── types
 │   │   │   └── nicheShortlist.ts
+│   │   ├── utils
+│   │   │   └── nicheShortlistBucketEditor.ts
 │   │   ├── App.tsx
 │   │   ├── main.tsx
 │   │   ├── styles.css
@@ -774,9 +780,10 @@ http://localhost:5173
 
 5. В интерфейсе:
 - найти блок `Собрать shortlist без curl`
-- нажать один из example presets
+- либо нажать один из example presets, либо оставить `Пустой editor`
+- заполнить хотя бы один bucket: `Название bucket` + минимум один `X handle`
 - при первом запуске оставить `limit=1` и `topN=2`
-- нажать `Запустить niche shortlist`
+- нажать `Запустить shortlist ниш`
 
 6. Что появится в UI:
 - summary card с `bestOverall`, `bestForGrowth`, `bestForMonetization`, `easiestToStart`, `bestBalanced`
@@ -787,10 +794,11 @@ http://localhost:5173
 - strongest accounts
 
 Ограничения текущего frontend шага:
-- buckets пока редактируются через JSON textarea
+- buckets пока задаются только вручную через structured editor
+- target URLs из UI пока не редактируются, только handles
 - UI ещё не умеет автоматически находить topics
 - текущий frontend только визуализирует existing backend shortlist route и не меняет scoring model
-- следующий UI шаг лучше делать уже с более удобным bucket editor вместо чистого JSON
+- следующий UI шаг лучше делать уже с более удобным inline summary/editing для strongest accounts и bucket evidence
 
 ## Как проверить X profile shell
 
