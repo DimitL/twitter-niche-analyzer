@@ -9,6 +9,7 @@ interface XMultiAccountCompareQuery {
   waitStrategy?: string;
   limit?: string;
   includeUncertain?: string;
+  treatQuoteAsUsable?: string;
   sortBy?: string;
 }
 
@@ -24,6 +25,7 @@ export async function registerXMultiAccountCompareRoutes(app: FastifyInstance) {
         waitStrategy: query.waitStrategy,
         limit: query.limit,
         includeUncertain: query.includeUncertain,
+        treatQuoteAsUsable: query.treatQuoteAsUsable,
         sortBy: query.sortBy
       },
       app.log

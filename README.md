@@ -18,6 +18,7 @@
 - public X account recent-posts aggregation слой для безопасного объединения profile fields, timeline URL discovery, classification enrichment и hydration недавних твитов
 - isolated single-account scoring слой для вычисления first-pass account signals и account score на основе classification-aware recent-posts dataset
 - manual multi-account comparison слой для раннего benchmarking нескольких публичных X-аккаунтов через existing scoring layer
+- manual topic-bucket comparison слой для раннего benchmarking вручную заданных групп X-аккаунтов как первых topic/niche proxies
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -42,6 +43,7 @@
 │   │   │   ├── xProfileFieldsConfig.ts
 │   │   │   ├── xProfileTimelineClassificationConfig.ts
 │   │   │   ├── xProfileTimelineUrlsConfig.ts
+│   │   │   ├── xTopicBucketCompareConfig.ts
 │   │   │   ├── xTweetFieldsConfig.ts
 │   │   │   ├── xTweetMetricsConfig.ts
 │   │   │   ├── xProfileShellConfig.ts
@@ -59,6 +61,7 @@
 │   │   │   ├── xProfileTimelineClassification.ts
 │   │   │   ├── xProfileTimelineUrls.ts
 │   │   │   ├── xProfileShell.ts
+│   │   │   ├── xTopicBucketCompare.ts
 │   │   │   ├── xTweetFields.ts
 │   │   │   ├── xTweetMetrics.ts
 │   │   │   └── xTweetShell.ts
@@ -72,6 +75,7 @@
 │   │       ├── xProfilePageShellService.ts
 │   │       ├── xProfileTimelineClassificationService.ts
 │   │       ├── xProfileTimelineUrlsService.ts
+│   │       ├── xTopicBucketCompareService.ts
 │   │       ├── xTweetFieldsService.ts
 │   │       ├── xTweetMetricsService.ts
 │   │       ├── xTweetPageShellService.ts
@@ -152,6 +156,7 @@ http://localhost:3001/api/browser/x-profile-timeline-classification-test
 http://localhost:3001/api/browser/x-account-recent-posts-test
 http://localhost:3001/api/browser/x-account-score-test
 http://localhost:3001/api/browser/x-multi-account-compare-test
+http://localhost:3001/api/browser/x-topic-bucket-compare-test
 http://localhost:3001/api/browser/x-tweet-shell-test
 http://localhost:3001/api/browser/x-tweet-fields-test
 http://localhost:3001/api/browser/x-tweet-metrics-test
@@ -451,7 +456,7 @@ curl -G "http://localhost:3001/api/browser/x-account-score-test" \
 
 Ограничения текущего шага:
 - scoring пока выполняется только для одного аккаунта
-- multi-account comparison и niche aggregation ещё не реализованы
+- final niche discovery и topic-level ranking ещё не реализованы
 - classification-aware filtering остаётся first-pass и будет усиливаться отдельно
 - overall account score пока служит как прозрачный preliminary signal, а не как финальный ranking layer
 
@@ -509,8 +514,73 @@ curl -G "http://localhost:3001/api/browser/x-multi-account-compare-test" \
 Ограничения текущего шага:
 - сравнение пока работает только по вручную переданному списку аккаунтов
 - sequential execution сохранён намеренно, без batching/concurrency optimization
-- automatic account discovery by topic и niche-level aggregation ещё не реализованы
+- automatic account discovery by topic и финальный niche discovery ещё не реализованы
 - better reply/repost classification будет вынесена в отдельный следующий шаг
+
+## Как проверить X topic-bucket comparison
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить backend:
+
+```bash
+npm run dev:backend
+```
+
+4. Проверить topic buckets через POST JSON payload:
+
+```bash
+curl -X POST "http://localhost:3001/api/browser/x-topic-bucket-compare-test" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "limit": 1,
+    "includeUncertain": false,
+    "treatQuoteAsUsable": false,
+    "sortBy": "avgOverallAccountScore",
+    "buckets": [
+      {
+        "bucketId": "frontier-labs",
+        "label": "Frontier Labs",
+        "description": "Публичные аккаунты frontier-model лабораторий",
+        "handles": ["OpenAI", "AnthropicAI"]
+      },
+      {
+        "bucketId": "research-platforms",
+        "label": "Research Platforms",
+        "description": "Платформы и исследовательские экосистемы",
+        "handles": ["GoogleDeepMind", "huggingface"]
+      }
+    ]
+  }'
+```
+
+Что вернётся:
+- `comparisonSucceeded`
+- `requestedBuckets`
+- `successfulBuckets`
+- `failedBuckets`
+- `comparedBuckets`
+- `bucketRanking`
+- `comparisonSummary`
+- `timings`
+- `error`
+- `notes`
+
+Ограничения текущего шага:
+- topic buckets пока задаются только вручную
+- bucket scoring остаётся first-pass и агрегирует существующие account-level scores
+- sequential execution сохранён намеренно для прозрачности и низкого риска
+- automatic account discovery, persistence/history и UI integration ещё не реализованы
 
 ## Как проверить X profile shell
 

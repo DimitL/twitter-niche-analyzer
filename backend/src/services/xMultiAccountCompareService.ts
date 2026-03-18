@@ -23,6 +23,7 @@ interface XMultiAccountCompareOptions {
   waitStrategy?: string;
   limit?: string | number;
   includeUncertain?: string | boolean;
+  treatQuoteAsUsable?: string | boolean;
   sortBy?: string;
 }
 
@@ -317,7 +318,8 @@ async function compareSingleAccount(
           request.source === "targetUrl" ? request.targetUrl || undefined : undefined,
         waitStrategy: options.waitStrategy,
         limit: options.limit,
-        includeUncertain: options.includeUncertain
+        includeUncertain: options.includeUncertain,
+        treatQuoteAsUsable: options.treatQuoteAsUsable
       },
       logger
     );
