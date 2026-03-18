@@ -104,6 +104,18 @@ export interface NicheShortlistStrongestAccount {
   reason: string;
 }
 
+export interface NicheShortlistSupportingAccount {
+  handle: string | null;
+  displayName: string | null;
+  profileUrl: string | null;
+  relevanceNote: string;
+  overallAccountScore: number;
+  engagementEfficiencyScore: number;
+  reachScore: number;
+  consistencyScore: number;
+  reason: string;
+}
+
 export interface NicheShortlistDecisionLabels {
   bestOverall: boolean;
   bestForGrowth: boolean;
@@ -189,6 +201,8 @@ export interface RankedNicheShortlistBucket {
   cons: string[];
   recommendedUseCase: string;
   strongestAccounts: NicheShortlistStrongestAccount[];
+  supportingAccountsCount: number;
+  topSupportingAccounts: NicheShortlistSupportingAccount[];
   decisionLabels: NicheShortlistDecisionLabels;
   bucketAggregates: NicheShortlistBucketAggregates;
   topicSignals: NicheShortlistTopicSignals;

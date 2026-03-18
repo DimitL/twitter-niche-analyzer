@@ -17,6 +17,9 @@ interface EvidenceMetricSummary {
 export interface NicheEvidencePackViewModel {
   scoreBreakdownSummary: string;
   strongestAccounts: RankedNicheShortlistBucket["strongestAccounts"];
+  topSupportingAccounts: RankedNicheShortlistBucket["topSupportingAccounts"];
+  supportingAccountsCount: number;
+  supportingAccountsAvailabilityNote: string;
   strongestSignals: EvidenceComponentSummary[];
   weakestSignals: EvidenceMetricSummary[];
   coverageNotes: string[];
@@ -182,7 +185,7 @@ function buildPromisingSummary(
     .slice(0, 2)
     .map((signal) => signal.label.toLowerCase())
     .join(" и ");
-  const supportingAccounts = bucket.strongestAccounts
+  const supportingAccounts = bucket.topSupportingAccounts
     .slice(0, 3)
     .map((account) => account.displayName ?? account.handle ?? "без имени")
     .join(", ");
@@ -195,6 +198,22 @@ function buildPromisingSummary(
     : "";
 
   return `${bucket.rankingReason}${signalSuffix}${accountSuffix}`;
+}
+
+function buildSupportingAccountsAvailabilityNote(bucket: RankedNicheShortlistBucket) {
+  if (bucket.supportingAccountsCount === 0) {
+    return "По этой нише пока нет поддерживающих аккаунтов, которые можно уверенно использовать как evidence pack.";
+  }
+
+  if (bucket.supportingAccountsCount < 10) {
+    return `Сейчас доступно ${bucket.supportingAccountsCount} поддерживающих аккаунтов из желаемых 10. Этого уже достаточно для первого manual review, но не для финального насыщенного набора.`;
+  }
+
+  if (bucket.supportingAccountsCount === bucket.topSupportingAccounts.length) {
+    return `Показываем все ${bucket.supportingAccountsCount} поддерживающих аккаунтов, доступных по этой нише.`;
+  }
+
+  return `Показываем топ-${bucket.topSupportingAccounts.length} из ${bucket.supportingAccountsCount} поддерживающих аккаунтов по явному правилу сортировки через overall score и engagement efficiency.`;
 }
 
 function buildMisleadingSummary(
@@ -263,6 +282,9 @@ export function buildNicheEvidencePack(
   return {
     scoreBreakdownSummary: buildScoreBreakdownSummary(bucket, rankingComponents),
     strongestAccounts: bucket.strongestAccounts.slice(0, 5),
+    topSupportingAccounts: bucket.topSupportingAccounts.slice(0, 10),
+    supportingAccountsCount: bucket.supportingAccountsCount,
+    supportingAccountsAvailabilityNote: buildSupportingAccountsAvailabilityNote(bucket),
     strongestSignals: rankingComponents,
     weakestSignals,
     coverageNotes,

@@ -199,6 +199,7 @@ button {
 .shortlist-score-box,
 .signal-box,
 .strong-account-box,
+.supporting-account-card,
 .ranking-breakdown-box {
   padding: 14px;
   border-radius: 18px;
@@ -911,7 +912,8 @@ button {
 
 .evidence-pack__intro,
 .evidence-pack__grid,
-.evidence-pack__account-list {
+.evidence-pack__account-list,
+.evidence-pack__supporting-list {
   display: grid;
   gap: 14px;
 }
@@ -929,6 +931,11 @@ button {
   margin-top: 10px;
 }
 
+.evidence-pack__supporting-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 12px;
+}
+
 .evidence-pack__subheading {
   display: inline-block;
   margin-top: 12px;
@@ -938,6 +945,65 @@ button {
 
 .evidence-pack__flags {
   margin-top: 12px;
+}
+
+.supporting-account-card {
+  display: grid;
+  gap: 12px;
+}
+
+.supporting-account-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.supporting-account-card__header strong {
+  display: block;
+}
+
+.supporting-account-card__handle {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.supporting-account-card__role {
+  margin: 0;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.supporting-account-card p:last-of-type {
+  margin: 0;
+  color: var(--muted);
+}
+
+.supporting-account-card__scores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.score-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(24, 51, 63, 0.08);
+  color: #18333f;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.supporting-account-card__link {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.supporting-account-card__link:hover {
+  text-decoration: underline;
 }
 
 .analysis-form {
@@ -1155,6 +1221,7 @@ button {
   .evidence-pack__intro,
   .evidence-pack__grid,
   .evidence-pack__account-list,
+  .evidence-pack__supporting-list,
   .insight-grid,
   .influencer-list__grid,
   .analysis-meta,
@@ -1185,6 +1252,7 @@ button {
   .handle-input-row,
   .payload-preview__summary,
   .evidence-pack__summary,
+  .supporting-account-card__header,
   .scenario-switcher__header,
   .scenario-card__header,
   .scenario-card__footer,

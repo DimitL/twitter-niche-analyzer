@@ -51,6 +51,18 @@ interface XNicheStrongestAccountSummary {
   reason: string;
 }
 
+interface XNicheSupportingAccountSummary {
+  handle: string | null;
+  displayName: string | null;
+  profileUrl: string | null;
+  relevanceNote: string;
+  overallAccountScore: number;
+  engagementEfficiencyScore: number;
+  reachScore: number;
+  consistencyScore: number;
+  reason: string;
+}
+
 interface XNicheRankingComponent {
   key: string;
   label: string;
@@ -106,6 +118,8 @@ export interface RankedXNicheBucket {
   cons: string[];
   recommendedUseCase: string;
   strongestAccounts: XNicheStrongestAccountSummary[];
+  supportingAccountsCount: number;
+  topSupportingAccounts: XNicheSupportingAccountSummary[];
   decisionLabels: XNicheDecisionLabels;
   bucketAggregates: ScoredXTopicBucketResult["bucketAggregates"];
   topicSignals: ScoredXTopicBucketResult["topicSignals"];
@@ -402,6 +416,91 @@ function buildStrongestAccounts(
   );
 }
 
+function getSupportingAccountRelevanceNote(
+  account: ScoredXTopicBucketResult["successfulAccounts"][number]
+) {
+  const scorePairs = [
+    {
+      key: "overallAccountScore",
+      value: account.overallAccountScore,
+      note: "Сильный общий ориентир внутри bucket-а."
+    },
+    {
+      key: "engagementEfficiencyScore",
+      value: account.engagementEfficiencyScore,
+      note: "Полезен как ориентир по engagement efficiency."
+    },
+    {
+      key: "reachScore",
+      value: account.reachScore,
+      note: "Поддерживает нишу как аккаунт с заметным reach."
+    },
+    {
+      key: "consistencyScore",
+      value: account.consistencyScore,
+      note: "Показывает устойчивость и повторяемость публикаций."
+    }
+  ];
+
+  const [strongestMetric] = scorePairs.sort((left, right) => right.value - left.value);
+
+  if (!strongestMetric) {
+    return "Используется как дополнительный подтверждающий аккаунт.";
+  }
+
+  return strongestMetric.note;
+}
+
+function buildSupportingAccountReason(
+  account: ScoredXTopicBucketResult["successfulAccounts"][number]
+) {
+  return `Включён в подборку благодаря общему score ${account.overallAccountScore.toFixed(
+    1
+  )}, engagement efficiency ${account.engagementEfficiencyScore.toFixed(
+    1
+  )} и ${account.usablePostCount} пригодным постам для scoring.`;
+}
+
+function buildTopSupportingAccounts(
+  bucket: ScoredXTopicBucketResult
+): XNicheSupportingAccountSummary[] {
+  return [...bucket.successfulAccounts]
+    .sort((left, right) => {
+      const overallDifference = right.overallAccountScore - left.overallAccountScore;
+
+      if (overallDifference !== 0) {
+        return overallDifference;
+      }
+
+      const engagementDifference =
+        right.engagementEfficiencyScore - left.engagementEfficiencyScore;
+
+      if (engagementDifference !== 0) {
+        return engagementDifference;
+      }
+
+      const usablePostsDifference = right.usablePostCount - left.usablePostCount;
+
+      if (usablePostsDifference !== 0) {
+        return usablePostsDifference;
+      }
+
+      return left.request.index - right.request.index;
+    })
+    .slice(0, 10)
+    .map((account) => ({
+      handle: account.profile.handle,
+      displayName: account.profile.displayName,
+      profileUrl: account.profile.profileUrl,
+      relevanceNote: getSupportingAccountRelevanceNote(account),
+      overallAccountScore: account.overallAccountScore,
+      engagementEfficiencyScore: account.engagementEfficiencyScore,
+      reachScore: account.reachScore,
+      consistencyScore: account.consistencyScore,
+      reason: buildSupportingAccountReason(account)
+    }));
+}
+
 function getPrimaryStrengths(bucket: ScoredXTopicBucketResult) {
   const strengths: Array<[XNicheShortlistSortBy, number]> = [
     ["growthPotential", bucket.topicScores.growthPotential],
@@ -551,6 +650,8 @@ function buildEmptySummary(
 function buildFailedRankedBucket(
   bucket: ScoredXTopicBucketResult
 ): RankedXNicheBucket {
+  const topSupportingAccounts = buildTopSupportingAccounts(bucket);
+
   return {
     bucketId: bucket.bucket.bucketId,
     label: bucket.bucket.label,
@@ -568,6 +669,8 @@ function buildFailedRankedBucket(
     recommendedUseCase:
       "Пока не подходит для shortlist-решения; лучше вернуться к нему после усиления upstream signals.",
     strongestAccounts: buildStrongestAccounts(bucket),
+    supportingAccountsCount: bucket.successfulAccounts.length,
+    topSupportingAccounts,
     decisionLabels: {
       bestOverall: false,
       bestForGrowth: false,
@@ -688,6 +791,7 @@ export async function runXNicheShortlistDiagnostics(
             leaders.bestBalanced?.bucket.bucket.bucketId === entry.bucket.bucket.bucketId
         };
         const shortlistIncluded = shortlistIds.has(entry.bucket.bucket.bucketId);
+        const topSupportingAccounts = buildTopSupportingAccounts(entry.bucket);
 
         return {
           bucketId: entry.bucket.bucket.bucketId,
@@ -705,6 +809,8 @@ export async function runXNicheShortlistDiagnostics(
           cons: buildCons(entry.bucket),
           recommendedUseCase: buildRecommendedUseCase(entry.bucket, decisionLabels),
           strongestAccounts: buildStrongestAccounts(entry.bucket),
+          supportingAccountsCount: entry.bucket.successfulAccounts.length,
+          topSupportingAccounts,
           decisionLabels,
           bucketAggregates: entry.bucket.bucketAggregates,
           topicSignals: entry.bucket.topicSignals,

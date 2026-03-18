@@ -24,6 +24,9 @@ export function NicheEvidencePack({ bucket }: NicheEvidencePackProps) {
             {evidencePack.strongestSignals.length} сильных сигнала
           </span>
           <span className="decision-chip decision-chip--neutral">
+            {evidencePack.topSupportingAccounts.length} поддерживающих аккаунтов
+          </span>
+          <span className="decision-chip decision-chip--neutral">
             {evidencePack.cautionFlags.length} зоны риска
           </span>
         </div>
@@ -85,24 +88,65 @@ export function NicheEvidencePack({ bucket }: NicheEvidencePackProps) {
 
         <div className="evidence-pack__grid">
           <div className="insight-box">
-            <span>Сильнейшие подтверждающие аккаунты</span>
+            <span>Топ поддерживающих аккаунтов</span>
+            <p className="section-copy">{evidencePack.supportingAccountsAvailabilityNote}</p>
 
-            {evidencePack.strongestAccounts.length > 0 ? (
-              <div className="evidence-pack__account-list">
-                {evidencePack.strongestAccounts.map((account) => (
+            {evidencePack.topSupportingAccounts.length > 0 ? (
+              <div className="evidence-pack__supporting-list">
+                {evidencePack.topSupportingAccounts.map((account, index) => (
                   <div
-                    key={`${bucket.bucketId}-${account.handle ?? "unknown"}-${account.metric}`}
-                    className="strong-account-box"
+                    key={`${bucket.bucketId}-${account.handle ?? "unknown"}-${index}`}
+                    className="supporting-account-card"
                   >
-                    <strong>{account.displayName ?? account.handle ?? "Без имени"}</strong>
-                    <span>{account.handle ? `@${account.handle}` : "handle недоступен"}</span>
+                    <div className="supporting-account-card__header">
+                      <div>
+                        <strong>
+                          {account.displayName ?? account.handle ?? "Без имени"}
+                        </strong>
+                        <span className="supporting-account-card__handle">
+                          {account.handle ? `@${account.handle}` : "handle недоступен"}
+                        </span>
+                      </div>
+
+                      <span className="decision-chip decision-chip--neutral">
+                        #{index + 1}
+                      </span>
+                    </div>
+
+                    <p className="supporting-account-card__role">{account.relevanceNote}</p>
                     <p>{account.reason}</p>
+
+                    <div className="supporting-account-card__scores">
+                      <span className="score-chip">
+                        Overall {account.overallAccountScore.toFixed(1)}
+                      </span>
+                      <span className="score-chip">
+                        Engagement {account.engagementEfficiencyScore.toFixed(1)}
+                      </span>
+                      <span className="score-chip">
+                        Reach {account.reachScore.toFixed(1)}
+                      </span>
+                      <span className="score-chip">
+                        Consistency {account.consistencyScore.toFixed(1)}
+                      </span>
+                    </div>
+
+                    {account.profileUrl ? (
+                      <a
+                        className="supporting-account-card__link"
+                        href={account.profileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Открыть профиль
+                      </a>
+                    ) : null}
                   </div>
                 ))}
               </div>
             ) : (
               <p className="section-copy">
-                Для этой ниши пока нет достаточного summary по подтверждающим аккаунтам.
+                Для этой ниши пока нет достаточного набора поддерживающих аккаунтов.
               </p>
             )}
           </div>
