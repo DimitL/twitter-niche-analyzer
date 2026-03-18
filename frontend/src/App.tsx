@@ -10,9 +10,10 @@ import { BucketEditor } from "./components/BucketEditor.js";
 import { NicheCard } from "./components/NicheCard.js";
 import { NicheShortlistCard } from "./components/NicheShortlistCard.js";
 import { ShortlistPayloadPreview } from "./components/ShortlistPayloadPreview.js";
+import { ShortlistScenarioSwitcher } from "./components/ShortlistScenarioSwitcher.js";
 import { NicheShortlistSummary } from "./components/NicheShortlistSummary.js";
 import type {
-  NicheShortlistBucketDraft,
+  NicheShortlistFormState,
   NicheShortlistRequest,
   NicheShortlistResponse,
   NicheShortlistSortBy
@@ -26,23 +27,23 @@ import {
   hasBucketDraftValidationErrors,
   validateBucketDrafts
 } from "./utils/nicheShortlistBucketEditor.js";
+import {
+  areFormStateAndScenarioEqual,
+  buildDefaultShortlistFormState,
+  buildNextScenarioName,
+  createScenarioFromFormState,
+  duplicateScenario,
+  loadScenarioBootstrapState,
+  persistScenarioCollection,
+  renameScenario,
+  restoreFormStateFromSnapshot,
+  updateScenarioFromFormState
+} from "./utils/nicheShortlistScenarios.js";
 
 const initialRequest: AnalysisRequest = {
   marketHint: "англоязычный tech X",
   creatorGoal: "найти ниши с высоким engagement относительно размера аудитории"
 };
-
-interface NicheShortlistFormState {
-  buckets: NicheShortlistBucketDraft[];
-  limit: string;
-  topN: string;
-  includeUncertain: boolean;
-  treatQuoteAsUsable: boolean;
-  sortBy: NicheShortlistSortBy;
-  emphasizeGrowth: boolean;
-  emphasizeMonetization: boolean;
-  emphasizeEase: boolean;
-}
 
 const shortlistSortOptions: Array<{
   value: NicheShortlistSortBy;
@@ -54,20 +55,6 @@ const shortlistSortOptions: Array<{
   { value: "contentEase", label: "Простота контента" },
   { value: "dataConfidence", label: "Надёжность данных" }
 ];
-
-function buildEmptyShortlistFormState(): NicheShortlistFormState {
-  return {
-    buckets: [createEmptyBucketDraft()],
-    limit: "1",
-    topN: "2",
-    includeUncertain: false,
-    treatQuoteAsUsable: false,
-    sortBy: "overallTopicScore",
-    emphasizeGrowth: false,
-    emphasizeMonetization: false,
-    emphasizeEase: false
-  };
-}
 
 function buildShortlistFormState(exampleId = defaultNicheShortlistExampleId): NicheShortlistFormState {
   const example =
@@ -133,14 +120,20 @@ function buildShortlistRequestPayload(
 }
 
 export default function App() {
+  const [scenarioBootstrap] = useState(() => loadScenarioBootstrapState());
   const [request, setRequest] = useState<AnalysisRequest>(initialRequest);
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [healthStatus, setHealthStatus] = useState<"checking" | "online" | "offline">("checking");
   const [analysisStatus, setAnalysisStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedShortlistExampleId, setSelectedShortlistExampleId] = useState<string | null>(null);
-  const [shortlistForm, setShortlistForm] = useState<NicheShortlistFormState>(() =>
-    buildEmptyShortlistFormState()
+  const [shortlistScenarios, setShortlistScenarios] = useState(() => scenarioBootstrap.scenarios);
+  const [activeScenarioId, setActiveScenarioId] = useState(() => scenarioBootstrap.activeScenarioId);
+  const [scenarioStorageNotice, setScenarioStorageNotice] = useState<string | null>(
+    () => scenarioBootstrap.storageNotice
+  );
+  const [shortlistForm, setShortlistForm] = useState<NicheShortlistFormState>(
+    () => scenarioBootstrap.formState
   );
   const [shortlistResult, setShortlistResult] = useState<NicheShortlistResponse | null>(null);
   const [shortlistStatus, setShortlistStatus] = useState<"idle" | "loading" | "ready" | "error">(
@@ -161,11 +154,30 @@ export default function App() {
     () => buildShortlistRequestPayload(shortlistForm, { safeNumericParsing: true }),
     [shortlistForm]
   );
+  const activeScenario = useMemo(
+    () =>
+      shortlistScenarios.find((scenario) => scenario.scenarioId === activeScenarioId) ?? null,
+    [activeScenarioId, shortlistScenarios]
+  );
+  const hasUnsavedScenarioChanges = useMemo(
+    () => !areFormStateAndScenarioEqual(shortlistForm, activeScenario),
+    [activeScenario, shortlistForm]
+  );
 
   useEffect(() => {
     void loadHealth();
     void loadAnalysis(initialRequest);
   }, []);
+
+  useEffect(() => {
+    try {
+      persistScenarioCollection(shortlistScenarios, activeScenarioId);
+    } catch {
+      setScenarioStorageNotice(
+        "Не удалось сохранить сценарии в localStorage. Проверьте доступность хранилища браузера."
+      );
+    }
+  }, [activeScenarioId, shortlistScenarios]);
 
   async function loadHealth() {
     try {
@@ -237,20 +249,150 @@ export default function App() {
     void loadShortlist(shortlistForm);
   }
 
-  function applyShortlistExample(exampleId: string) {
-    setSelectedShortlistExampleId(exampleId);
-    setShortlistForm(buildShortlistFormState(exampleId));
+  function resetShortlistTransientState() {
     setShortlistErrorMessage("");
     setShortlistStatus("idle");
     setShowShortlistValidation(false);
   }
 
+  function applyShortlistExample(exampleId: string) {
+    setSelectedShortlistExampleId(exampleId);
+    setShortlistForm(buildShortlistFormState(exampleId));
+    resetShortlistTransientState();
+  }
+
   function resetShortlistEditor() {
     setSelectedShortlistExampleId(null);
-    setShortlistForm(buildEmptyShortlistFormState());
-    setShortlistErrorMessage("");
-    setShortlistStatus("idle");
-    setShowShortlistValidation(false);
+    setShortlistForm(buildDefaultShortlistFormState());
+    resetShortlistTransientState();
+  }
+
+  function handleScenarioLoad(scenarioId: string) {
+    const scenario = shortlistScenarios.find((entry) => entry.scenarioId === scenarioId);
+
+    if (!scenario) {
+      return;
+    }
+
+    setActiveScenarioId(scenario.scenarioId);
+    setSelectedShortlistExampleId(null);
+    setShortlistForm(restoreFormStateFromSnapshot(scenario.formSnapshot));
+    resetShortlistTransientState();
+  }
+
+  function handleScenarioSave() {
+    if (!activeScenario) {
+      const nextScenario = createScenarioFromFormState(
+        shortlistForm,
+        buildNextScenarioName(shortlistScenarios)
+      );
+
+      setShortlistScenarios((current) => [...current, nextScenario]);
+      setActiveScenarioId(nextScenario.scenarioId);
+      return;
+    }
+
+    setShortlistScenarios((current) =>
+      current.map((scenario) =>
+        scenario.scenarioId === activeScenario.scenarioId
+          ? updateScenarioFromFormState(scenario, shortlistForm)
+          : scenario
+      )
+    );
+  }
+
+  function handleScenarioSaveAsNew() {
+    const defaultName = activeScenario
+      ? `${activeScenario.name} копия`
+      : buildNextScenarioName(shortlistScenarios);
+    const nextName = window.prompt("Как назвать новый сценарий?", defaultName);
+
+    if (nextName === null) {
+      return;
+    }
+
+    const nextScenario = createScenarioFromFormState(shortlistForm, nextName || defaultName);
+
+    setShortlistScenarios((current) => [nextScenario, ...current]);
+    setActiveScenarioId(nextScenario.scenarioId);
+  }
+
+  function handleScenarioRename(scenarioId: string) {
+    const scenario = shortlistScenarios.find((entry) => entry.scenarioId === scenarioId);
+
+    if (!scenario) {
+      return;
+    }
+
+    const nextName = window.prompt("Новое имя сценария", scenario.name);
+
+    if (nextName === null) {
+      return;
+    }
+
+    setShortlistScenarios((current) =>
+      current.map((entry) =>
+        entry.scenarioId === scenarioId ? renameScenario(entry, nextName) : entry
+      )
+    );
+  }
+
+  function handleScenarioDuplicate(scenarioId: string) {
+    const scenario = shortlistScenarios.find((entry) => entry.scenarioId === scenarioId);
+
+    if (!scenario) {
+      return;
+    }
+
+    const nextScenario = duplicateScenario(scenario);
+
+    setShortlistScenarios((current) => [nextScenario, ...current]);
+    setActiveScenarioId(nextScenario.scenarioId);
+    setSelectedShortlistExampleId(null);
+    setShortlistForm(restoreFormStateFromSnapshot(nextScenario.formSnapshot));
+    resetShortlistTransientState();
+  }
+
+  function handleScenarioDelete(scenarioId: string) {
+    const scenario = shortlistScenarios.find((entry) => entry.scenarioId === scenarioId);
+
+    if (!scenario) {
+      return;
+    }
+
+    const shouldDelete = window.confirm(
+      `Удалить сценарий «${scenario.name}»? Его ещё можно будет пересобрать вручную, но локальная история этого варианта исчезнет.`
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    const nextScenarios = shortlistScenarios.filter((entry) => entry.scenarioId !== scenarioId);
+
+    if (nextScenarios.length === 0) {
+      const defaultScenario = createScenarioFromFormState(
+        buildDefaultShortlistFormState(),
+        "Сценарий 1"
+      );
+
+      setShortlistScenarios([defaultScenario]);
+      setActiveScenarioId(defaultScenario.scenarioId);
+      setSelectedShortlistExampleId(null);
+      setShortlistForm(restoreFormStateFromSnapshot(defaultScenario.formSnapshot));
+      resetShortlistTransientState();
+      return;
+    }
+
+    setShortlistScenarios(nextScenarios);
+
+    if (activeScenarioId === scenarioId) {
+      const nextActiveScenario = nextScenarios[0];
+      setActiveScenarioId(nextActiveScenario.scenarioId);
+      setSelectedShortlistExampleId(null);
+      setShortlistForm(restoreFormStateFromSnapshot(nextActiveScenario.formSnapshot));
+      resetShortlistTransientState();
+    }
   }
 
   function handleBucketFieldChange(
@@ -370,6 +512,19 @@ export default function App() {
                 JSON больше не нужен: достаточно добавить названия bucket-ов и X handles.
               </p>
             </div>
+
+            <ShortlistScenarioSwitcher
+              scenarios={shortlistScenarios}
+              activeScenarioId={activeScenarioId}
+              hasUnsavedChanges={hasUnsavedScenarioChanges}
+              storageNotice={scenarioStorageNotice}
+              onScenarioLoad={handleScenarioLoad}
+              onScenarioSave={handleScenarioSave}
+              onScenarioSaveAsNew={handleScenarioSaveAsNew}
+              onScenarioRename={handleScenarioRename}
+              onScenarioDuplicate={handleScenarioDuplicate}
+              onScenarioDelete={handleScenarioDelete}
+            />
 
             <div className="preset-grid">
               {nicheShortlistExamples.map((example) => (

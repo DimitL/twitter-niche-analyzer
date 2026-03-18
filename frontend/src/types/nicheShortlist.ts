@@ -31,6 +31,43 @@ export interface NicheShortlistBucketDraftValidation {
   handles?: string;
 }
 
+export interface NicheShortlistFormState {
+  buckets: NicheShortlistBucketDraft[];
+  limit: string;
+  topN: string;
+  includeUncertain: boolean;
+  treatQuoteAsUsable: boolean;
+  sortBy: NicheShortlistSortBy;
+  emphasizeGrowth: boolean;
+  emphasizeMonetization: boolean;
+  emphasizeEase: boolean;
+}
+
+export interface NicheShortlistFormSnapshot {
+  buckets: Array<{
+    bucketId: string;
+    label: string;
+    description: string;
+    handles: string[];
+  }>;
+  limit: string;
+  topN: string;
+  includeUncertain: boolean;
+  treatQuoteAsUsable: boolean;
+  sortBy: NicheShortlistSortBy;
+  emphasizeGrowth: boolean;
+  emphasizeMonetization: boolean;
+  emphasizeEase: boolean;
+}
+
+export interface NicheShortlistScenario {
+  scenarioId: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  formSnapshot: NicheShortlistFormSnapshot;
+}
+
 export interface NicheShortlistRequest {
   buckets: NicheShortlistBucketInput[];
   limit?: number;

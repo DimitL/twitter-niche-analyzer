@@ -24,6 +24,7 @@
 - first frontend niche shortlist integration слой для запуска shortlist flow напрямую из web UI без ручного curl
 - first structured bucket editor слой во frontend для работы с shortlist без ручного JSON
 - next bucket UX improvement слой во frontend: duplicate bucket, быстрый handle entry и inline payload preview
+- first frontend scenario switcher / local history слой для сохранения нескольких shortlist-конфигураций в localStorage
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -107,13 +108,15 @@
 │   │   │   ├── NicheCard.tsx
 │   │   │   ├── NicheShortlistCard.tsx
 │   │   │   ├── NicheShortlistSummary.tsx
+│   │   │   ├── ShortlistScenarioSwitcher.tsx
 │   │   │   └── ShortlistPayloadPreview.tsx
 │   │   ├── data
 │   │   │   └── nicheShortlistExamples.ts
 │   │   ├── types
 │   │   │   └── nicheShortlist.ts
 │   │   ├── utils
-│   │   │   └── nicheShortlistBucketEditor.ts
+│   │   │   ├── nicheShortlistBucketEditor.ts
+│   │   │   └── nicheShortlistScenarios.ts
 │   │   ├── App.tsx
 │   │   ├── main.tsx
 │   │   ├── styles.css
@@ -782,6 +785,9 @@ http://localhost:5173
 
 5. В интерфейсе:
 - найти блок `Собрать shortlist без curl`
+- в секции `Локальные сценарии` увидеть активный сценарий, который создаётся автоматически при пустом localStorage
+- при необходимости сохранить текущую конфигурацию через `Сохранить текущий` или сделать новый вариант через `Сохранить как новый`
+- для возврата к старому варианту использовать `Загрузить`, для чистого эксперимента `Дублировать`, для переименования `Переименовать`
 - либо нажать один из example presets, либо оставить `Пустой editor`
 - заполнить хотя бы один bucket: `Название bucket` + минимум один `X handle`
 - для быстрого ввода handles можно вставить несколько значений через пробел, запятую или новую строку
@@ -801,9 +807,10 @@ http://localhost:5173
 Ограничения текущего frontend шага:
 - buckets пока задаются только вручную через structured editor
 - target URLs из UI пока не редактируются, только handles
+- сценарии сохраняются только локально в браузере, без backend persistence
 - UI ещё не умеет автоматически находить topics
 - текущий frontend только визуализирует existing backend shortlist route и не меняет scoring model
-- следующий UI шаг лучше делать уже с более удобным evidence view по bucket-ам и быстрым re-run сравнением нескольких shortlist сценариев
+- следующий UI шаг лучше делать уже с более удобным scenario diff/evidence view для сравнения нескольких shortlist прогонов
 
 ## Как проверить X profile shell
 

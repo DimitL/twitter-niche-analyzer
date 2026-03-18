@@ -251,6 +251,78 @@ button {
   gap: 16px;
 }
 
+.scenario-switcher,
+.scenario-switcher__list {
+  display: grid;
+  gap: 14px;
+}
+
+.scenario-switcher {
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.54);
+  border: 1px solid rgba(72, 53, 41, 0.08);
+}
+
+.scenario-switcher__header,
+.scenario-card__header,
+.scenario-card__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.scenario-switcher__header span,
+.scenario-card__meta span {
+  font-size: 0.92rem;
+}
+
+.scenario-switcher__header p,
+.scenario-switcher__notice {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.scenario-switcher__notice {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(217, 111, 50, 0.1);
+  border: 1px solid rgba(217, 111, 50, 0.14);
+}
+
+.scenario-switcher__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.scenario-card {
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(72, 53, 41, 0.08);
+}
+
+.scenario-card--active {
+  border-color: rgba(217, 111, 50, 0.28);
+  box-shadow: 0 10px 24px rgba(98, 52, 24, 0.08);
+}
+
+.scenario-card__header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.scenario-card__meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
 .bucket-editor__header,
 .bucket-card-editor__header,
 .bucket-card-editor__section-header,
@@ -925,7 +997,8 @@ button {
   .shortlist-score-grid,
   .signal-grid,
   .strong-account-grid,
-  .bucket-card-editor__fields {
+  .bucket-card-editor__fields,
+  .scenario-card__meta {
     grid-template-columns: 1fr;
   }
 
@@ -937,7 +1010,10 @@ button {
   .bucket-card-editor__header,
   .bucket-card-editor__section-header,
   .handle-input-row,
-  .payload-preview__summary {
+  .payload-preview__summary,
+  .scenario-switcher__header,
+  .scenario-card__header,
+  .scenario-card__footer {
     flex-direction: column;
   }
 
