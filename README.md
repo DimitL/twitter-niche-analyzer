@@ -21,6 +21,7 @@
 - manual topic-bucket comparison слой для раннего benchmarking вручную заданных групп X-аккаунтов как первых topic/niche proxies
 - first topic-level scoring слой для перевода bucket aggregates в явные topic scores для ранней niche evaluation
 - first manual niche shortlist / ranking слой для decision-ready выбора направления блога на основе вручную scored topic buckets
+- first frontend niche shortlist integration слой для запуска shortlist flow напрямую из web UI без ручного curl
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -98,7 +99,13 @@
 │   │   ├── api
 │   │   │   └── client.ts
 │   │   ├── components
-│   │   │   └── NicheCard.tsx
+│   │   │   ├── NicheCard.tsx
+│   │   │   ├── NicheShortlistCard.tsx
+│   │   │   └── NicheShortlistSummary.tsx
+│   │   ├── data
+│   │   │   └── nicheShortlistExamples.ts
+│   │   ├── types
+│   │   │   └── nicheShortlist.ts
 │   │   ├── App.tsx
 │   │   ├── main.tsx
 │   │   ├── styles.css
@@ -738,6 +745,52 @@ curl -X POST "http://localhost:3001/api/browser/x-niche-shortlist-test" \
 - ranking logic остаётся first-pass и строится поверх уже готовых topic scores
 - monetization остаётся прозрачным proxy, а не прямой business estimate
 - automatic topic discovery, final top-10 niche generation и UI shortlist display ещё не реализованы
+
+## Как проверить shortlist UI во frontend
+
+1. Установить зависимости:
+
+```bash
+npm install
+```
+
+2. Установить Chromium:
+
+```bash
+npm run browsers:install
+```
+
+3. Запустить frontend и backend:
+
+```bash
+npm run dev
+```
+
+4. Открыть UI:
+
+```text
+http://localhost:5173
+```
+
+5. В интерфейсе:
+- найти блок `Собрать shortlist без curl`
+- нажать один из example presets
+- при первом запуске оставить `limit=1` и `topN=2`
+- нажать `Запустить niche shortlist`
+
+6. Что появится в UI:
+- summary card с `bestOverall`, `bestForGrowth`, `bestForMonetization`, `easiestToStart`, `bestBalanced`
+- ranked niche cards с `overallTopicScore`, `growthPotential`, `monetizationPotential`, `contentEase`, `dataConfidence`
+- decision labels
+- ranking reasons
+- pros / cons
+- strongest accounts
+
+Ограничения текущего frontend шага:
+- buckets пока редактируются через JSON textarea
+- UI ещё не умеет автоматически находить topics
+- текущий frontend только визуализирует existing backend shortlist route и не меняет scoring model
+- следующий UI шаг лучше делать уже с более удобным bucket editor вместо чистого JSON
 
 ## Как проверить X profile shell
 
