@@ -14,9 +14,9 @@ interface BucketCardEditorProps {
     field: "bucketId" | "label" | "description",
     value: string
   ) => void;
+  onBucketDuplicate: (bucketEditorId: string) => void;
   onBucketRemove: (bucketEditorId: string) => void;
-  onHandleChange: (bucketEditorId: string, handleId: string, value: string) => void;
-  onHandleAdd: (bucketEditorId: string) => void;
+  onHandlesAppend: (bucketEditorId: string, value: string) => void;
   onHandleRemove: (bucketEditorId: string, handleId: string) => void;
 }
 
@@ -26,9 +26,9 @@ export function BucketCardEditor({
   validation,
   canRemove,
   onBucketFieldChange,
+  onBucketDuplicate,
   onBucketRemove,
-  onHandleChange,
-  onHandleAdd,
+  onHandlesAppend,
   onHandleRemove
 }: BucketCardEditorProps) {
   return (
@@ -39,14 +39,24 @@ export function BucketCardEditor({
           <h3>{bucket.label.trim() || "Новый bucket"}</h3>
         </div>
 
-        <button
-          type="button"
-          className="editor-button editor-button--danger"
-          onClick={() => onBucketRemove(bucket.editorId)}
-          disabled={!canRemove}
-        >
-          Удалить bucket
-        </button>
+        <div className="bucket-card-editor__actions">
+          <button
+            type="button"
+            className="editor-button editor-button--ghost"
+            onClick={() => onBucketDuplicate(bucket.editorId)}
+          >
+            Дублировать
+          </button>
+
+          <button
+            type="button"
+            className="editor-button editor-button--danger"
+            onClick={() => onBucketRemove(bucket.editorId)}
+            disabled={!canRemove}
+          >
+            Удалить bucket
+          </button>
+        </div>
       </div>
 
       <div className="bucket-card-editor__fields">
@@ -91,8 +101,7 @@ export function BucketCardEditor({
         bucketEditorId={bucket.editorId}
         handles={bucket.handles}
         validationMessage={validation?.handles}
-        onHandleAdd={onHandleAdd}
-        onHandleChange={onHandleChange}
+        onHandlesAppend={onHandlesAppend}
         onHandleRemove={onHandleRemove}
       />
     </article>

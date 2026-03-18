@@ -8,14 +8,14 @@ interface BucketEditorProps {
   buckets: NicheShortlistBucketDraft[];
   validations: Record<string, NicheShortlistBucketDraftValidation>;
   onBucketAdd: () => void;
+  onBucketDuplicate: (bucketEditorId: string) => void;
   onBucketRemove: (bucketEditorId: string) => void;
   onBucketFieldChange: (
     bucketEditorId: string,
     field: "bucketId" | "label" | "description",
     value: string
   ) => void;
-  onHandleChange: (bucketEditorId: string, handleId: string, value: string) => void;
-  onHandleAdd: (bucketEditorId: string) => void;
+  onHandlesAppend: (bucketEditorId: string, value: string) => void;
   onHandleRemove: (bucketEditorId: string, handleId: string) => void;
 }
 
@@ -23,10 +23,10 @@ export function BucketEditor({
   buckets,
   validations,
   onBucketAdd,
+  onBucketDuplicate,
   onBucketRemove,
   onBucketFieldChange,
-  onHandleChange,
-  onHandleAdd,
+  onHandlesAppend,
   onHandleRemove
 }: BucketEditorProps) {
   return (
@@ -57,9 +57,9 @@ export function BucketEditor({
             validation={validations[bucket.editorId]}
             canRemove={buckets.length > 1}
             onBucketFieldChange={onBucketFieldChange}
+            onBucketDuplicate={onBucketDuplicate}
             onBucketRemove={onBucketRemove}
-            onHandleAdd={onHandleAdd}
-            onHandleChange={onHandleChange}
+            onHandlesAppend={onHandlesAppend}
             onHandleRemove={onHandleRemove}
           />
         ))}

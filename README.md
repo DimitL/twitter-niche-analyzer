@@ -23,6 +23,7 @@
 - first manual niche shortlist / ranking слой для decision-ready выбора направления блога на основе вручную scored topic buckets
 - first frontend niche shortlist integration слой для запуска shortlist flow напрямую из web UI без ручного curl
 - first structured bucket editor слой во frontend для работы с shortlist без ручного JSON
+- next bucket UX improvement слой во frontend: duplicate bucket, быстрый handle entry и inline payload preview
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -105,7 +106,8 @@
 │   │   │   ├── HandleListEditor.tsx
 │   │   │   ├── NicheCard.tsx
 │   │   │   ├── NicheShortlistCard.tsx
-│   │   │   └── NicheShortlistSummary.tsx
+│   │   │   ├── NicheShortlistSummary.tsx
+│   │   │   └── ShortlistPayloadPreview.tsx
 │   │   ├── data
 │   │   │   └── nicheShortlistExamples.ts
 │   │   ├── types
@@ -782,6 +784,9 @@ http://localhost:5173
 - найти блок `Собрать shortlist без curl`
 - либо нажать один из example presets, либо оставить `Пустой editor`
 - заполнить хотя бы один bucket: `Название bucket` + минимум один `X handle`
+- для быстрого ввода handles можно вставить несколько значений через пробел, запятую или новую строку
+- для повторного эксперимента можно нажать `Дублировать` у любого bucket-а
+- при необходимости открыть `Предпросмотр запроса в backend` и проверить итоговый payload перед submit
 - при первом запуске оставить `limit=1` и `topN=2`
 - нажать `Запустить shortlist ниш`
 
@@ -798,7 +803,7 @@ http://localhost:5173
 - target URLs из UI пока не редактируются, только handles
 - UI ещё не умеет автоматически находить topics
 - текущий frontend только визуализирует existing backend shortlist route и не меняет scoring model
-- следующий UI шаг лучше делать уже с более удобным inline summary/editing для strongest accounts и bucket evidence
+- следующий UI шаг лучше делать уже с более удобным evidence view по bucket-ам и быстрым re-run сравнением нескольких shortlist сценариев
 
 ## Как проверить X profile shell
 

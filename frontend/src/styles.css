@@ -254,7 +254,8 @@ button {
 .bucket-editor__header,
 .bucket-card-editor__header,
 .bucket-card-editor__section-header,
-.handle-row {
+.handle-input-row,
+.payload-preview__summary {
   display: flex;
   justify-content: space-between;
   gap: 16px;
@@ -271,7 +272,7 @@ button {
 
 .bucket-editor__header span,
 .bucket-card-editor__section-header span,
-.handle-row span,
+.handle-input-row span,
 .bucket-card-editor label span,
 .shortlist-form label span {
   font-size: 0.92rem;
@@ -301,6 +302,13 @@ button {
   margin-bottom: 16px;
 }
 
+.bucket-card-editor__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .bucket-card-editor__header h3 {
   margin: 0;
   font-size: 1.35rem;
@@ -322,20 +330,112 @@ button {
   gap: 12px;
 }
 
-.handle-list {
-  display: grid;
-  gap: 12px;
-}
-
-.handle-row {
+.handle-input-row {
   padding: 14px 16px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.52);
   border: 1px solid rgba(72, 53, 41, 0.08);
 }
 
-.handle-row label {
+.handle-input-row label {
   flex: 1;
+}
+
+.handle-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.handle-chip,
+.handle-empty-state,
+.payload-preview {
+  border-radius: 18px;
+  border: 1px solid rgba(72, 53, 41, 0.08);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.handle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.handle-chip span {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.92rem;
+}
+
+.handle-chip__remove {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.handle-chip__remove:hover {
+  color: var(--red);
+}
+
+.handle-empty-state,
+.payload-preview__body {
+  padding: 14px 16px;
+}
+
+.handle-empty-state p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.payload-preview {
+  overflow: hidden;
+}
+
+.payload-preview summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.payload-preview summary::-webkit-details-marker {
+  display: none;
+}
+
+.payload-preview__summary {
+  padding: 16px 18px;
+}
+
+.payload-preview__summary span {
+  font-size: 0.92rem;
+}
+
+.payload-preview__summary p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.payload-preview__summary strong {
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+
+.payload-preview__body {
+  border-top: 1px solid rgba(72, 53, 41, 0.08);
+}
+
+.payload-preview__code {
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  border-radius: 18px;
+  background: rgba(28, 22, 18, 0.94);
+  color: #f8efe8;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
 }
 
 .editor-button {
@@ -836,7 +936,8 @@ button {
   .bucket-editor__header,
   .bucket-card-editor__header,
   .bucket-card-editor__section-header,
-  .handle-row {
+  .handle-input-row,
+  .payload-preview__summary {
     flex-direction: column;
   }
 

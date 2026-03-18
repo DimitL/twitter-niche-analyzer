@@ -9,17 +9,20 @@ import {
 import { BucketEditor } from "./components/BucketEditor.js";
 import { NicheCard } from "./components/NicheCard.js";
 import { NicheShortlistCard } from "./components/NicheShortlistCard.js";
+import { ShortlistPayloadPreview } from "./components/ShortlistPayloadPreview.js";
 import { NicheShortlistSummary } from "./components/NicheShortlistSummary.js";
 import type {
   NicheShortlistBucketDraft,
+  NicheShortlistRequest,
   NicheShortlistResponse,
   NicheShortlistSortBy
 } from "./types/nicheShortlist.js";
 import {
+  appendHandlesToBucketDraft,
   buildBucketDraftsFromInputs,
   buildBucketInputsFromDrafts,
   createEmptyBucketDraft,
-  createEmptyHandleDraft,
+  duplicateBucketDraft,
   hasBucketDraftValidationErrors,
   validateBucketDrafts
 } from "./utils/nicheShortlistBucketEditor.js";
@@ -100,6 +103,35 @@ function parseOptionalInteger(value: string) {
   return parsedValue;
 }
 
+function buildShortlistRequestPayload(
+  nextForm: NicheShortlistFormState,
+  options?: { safeNumericParsing?: boolean }
+): NicheShortlistRequest {
+  function parseNumericValue(value: string) {
+    if (options?.safeNumericParsing) {
+      try {
+        return parseOptionalInteger(value);
+      } catch {
+        return undefined;
+      }
+    }
+
+    return parseOptionalInteger(value);
+  }
+
+  return {
+    buckets: buildBucketInputsFromDrafts(nextForm.buckets),
+    limit: parseNumericValue(nextForm.limit),
+    topN: parseNumericValue(nextForm.topN),
+    includeUncertain: nextForm.includeUncertain,
+    treatQuoteAsUsable: nextForm.treatQuoteAsUsable,
+    sortBy: nextForm.sortBy,
+    emphasizeGrowth: nextForm.emphasizeGrowth,
+    emphasizeMonetization: nextForm.emphasizeMonetization,
+    emphasizeEase: nextForm.emphasizeEase
+  };
+}
+
 export default function App() {
   const [request, setRequest] = useState<AnalysisRequest>(initialRequest);
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
@@ -117,9 +149,17 @@ export default function App() {
   const [shortlistErrorMessage, setShortlistErrorMessage] = useState("");
   const [showShortlistValidation, setShowShortlistValidation] = useState(false);
 
+  const currentShortlistValidations = useMemo(
+    () => validateBucketDrafts(shortlistForm.buckets),
+    [shortlistForm.buckets]
+  );
   const shortlistValidations = useMemo(
-    () => (showShortlistValidation ? validateBucketDrafts(shortlistForm.buckets) : {}),
-    [showShortlistValidation, shortlistForm.buckets]
+    () => (showShortlistValidation ? currentShortlistValidations : {}),
+    [currentShortlistValidations, showShortlistValidation]
+  );
+  const shortlistPayloadPreview = useMemo(
+    () => buildShortlistRequestPayload(shortlistForm, { safeNumericParsing: true }),
+    [shortlistForm]
   );
 
   useEffect(() => {
@@ -153,18 +193,7 @@ export default function App() {
     try {
       setShortlistStatus("loading");
       setShortlistErrorMessage("");
-
-      const response = await runNicheShortlist({
-        buckets: buildBucketInputsFromDrafts(nextForm.buckets),
-        limit: parseOptionalInteger(nextForm.limit),
-        topN: parseOptionalInteger(nextForm.topN),
-        includeUncertain: nextForm.includeUncertain,
-        treatQuoteAsUsable: nextForm.treatQuoteAsUsable,
-        sortBy: nextForm.sortBy,
-        emphasizeGrowth: nextForm.emphasizeGrowth,
-        emphasizeMonetization: nextForm.emphasizeMonetization,
-        emphasizeEase: nextForm.emphasizeEase
-      });
+      const response = await runNicheShortlist(buildShortlistRequestPayload(nextForm));
 
       setShortlistResult(response);
       setShortlistStatus("ready");
@@ -199,9 +228,7 @@ export default function App() {
     event.preventDefault();
     setShowShortlistValidation(true);
 
-    const validations = validateBucketDrafts(shortlistForm.buckets);
-
-    if (hasBucketDraftValidationErrors(validations)) {
+    if (hasBucketDraftValidationErrors(currentShortlistValidations)) {
       setShortlistStatus("error");
       setShortlistErrorMessage("Исправьте поля bucket editor и попробуйте снова.");
       return;
@@ -246,6 +273,21 @@ export default function App() {
     }));
   }
 
+  function handleBucketDuplicate(bucketEditorId: string) {
+    patchShortlistForm((current) => {
+      const sourceBucket = current.buckets.find((bucket) => bucket.editorId === bucketEditorId);
+
+      if (!sourceBucket) {
+        return current;
+      }
+
+      return {
+        ...current,
+        buckets: [...current.buckets, duplicateBucketDraft(sourceBucket, current.buckets)]
+      };
+    });
+  }
+
   function handleBucketRemove(bucketEditorId: string) {
     patchShortlistForm((current) => {
       const nextBuckets = current.buckets.filter((bucket) => bucket.editorId !== bucketEditorId);
@@ -257,31 +299,12 @@ export default function App() {
     });
   }
 
-  function handleHandleChange(bucketEditorId: string, handleId: string, value: string) {
+  function handleHandlesAppend(bucketEditorId: string, value: string) {
     patchShortlistForm((current) => ({
       ...current,
       buckets: current.buckets.map((bucket) =>
         bucket.editorId === bucketEditorId
-          ? {
-              ...bucket,
-              handles: bucket.handles.map((handle) =>
-                handle.handleId === handleId ? { ...handle, value } : handle
-              )
-            }
-          : bucket
-      )
-    }));
-  }
-
-  function handleHandleAdd(bucketEditorId: string) {
-    patchShortlistForm((current) => ({
-      ...current,
-      buckets: current.buckets.map((bucket) =>
-        bucket.editorId === bucketEditorId
-          ? {
-              ...bucket,
-              handles: [...bucket.handles, createEmptyHandleDraft()]
-            }
+          ? appendHandlesToBucketDraft(bucket, value)
           : bucket
       )
     }));
@@ -299,7 +322,7 @@ export default function App() {
 
         return {
           ...bucket,
-          handles: nextHandles.length > 0 ? nextHandles : [createEmptyHandleDraft()]
+          handles: nextHandles
         };
       })
     }));
@@ -386,10 +409,10 @@ export default function App() {
                 buckets={shortlistForm.buckets}
                 validations={shortlistValidations}
                 onBucketAdd={handleBucketAdd}
+                onBucketDuplicate={handleBucketDuplicate}
                 onBucketRemove={handleBucketRemove}
                 onBucketFieldChange={handleBucketFieldChange}
-                onHandleAdd={handleHandleAdd}
-                onHandleChange={handleHandleChange}
+                onHandlesAppend={handleHandlesAppend}
                 onHandleRemove={handleHandleRemove}
               />
             </div>
@@ -513,6 +536,13 @@ export default function App() {
                 />
                 <span>Усилить простоту запуска</span>
               </label>
+            </div>
+
+            <div className="shortlist-form__full">
+              <ShortlistPayloadPreview
+                payload={shortlistPayloadPreview}
+                validationBlocked={hasBucketDraftValidationErrors(currentShortlistValidations)}
+              />
             </div>
 
             <button type="submit" disabled={shortlistStatus === "loading"}>
