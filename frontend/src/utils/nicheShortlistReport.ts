@@ -3,6 +3,8 @@ import type {
   RankedNicheShortlistBucket
 } from "../types/nicheShortlist.js";
 import { buildNicheEvidencePack } from "./nicheEvidencePack.js";
+import type { CrossNichePositioningRecommendations } from "./nicheCrossPositioning.js";
+import { buildCrossNichePositioningRecommendations } from "./nicheCrossPositioning.js";
 import type { CrossNicheWhitespaceComparison } from "./nicheCrossWhitespace.js";
 import { buildCrossNicheWhitespaceComparison } from "./nicheCrossWhitespace.js";
 
@@ -16,6 +18,7 @@ export interface NicheShortlistReportModel {
   shortlistSummary: NicheShortlistResponse["shortlistSummary"];
   notes: string[];
   crossNicheWhitespace: CrossNicheWhitespaceComparison | null;
+  crossNichePositioning: CrossNichePositioningRecommendations | null;
   niches: NicheShortlistReportNiche[];
 }
 
@@ -88,6 +91,7 @@ export function buildNicheShortlistReportModel(options: {
   generatedAt: string | null;
   sourceKind: "live" | "pinned";
 }): NicheShortlistReportModel {
+  const crossNicheWhitespace = buildCrossNicheWhitespaceComparison(options.shortlist);
   const niches = options.shortlist.rankedBuckets.map((bucket) => ({
     bucketId: bucket.bucketId,
     rank: bucket.rank,
@@ -114,7 +118,11 @@ export function buildNicheShortlistReportModel(options: {
     status: options.shortlist.status,
     shortlistSummary: options.shortlist.shortlistSummary,
     notes: options.shortlist.notes,
-    crossNicheWhitespace: buildCrossNicheWhitespaceComparison(options.shortlist),
+    crossNicheWhitespace,
+    crossNichePositioning: buildCrossNichePositioningRecommendations(
+      options.shortlist,
+      crossNicheWhitespace
+    ),
     niches
   };
 }
@@ -183,7 +191,50 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
+  if (report.crossNichePositioning) {
+    lines.push(
+      "",
+      "## Рекомендации по входу в нишу",
+      "",
+      report.crossNichePositioning.positioningSummary
+    );
+
+    if (report.crossNichePositioning.summary.bestNicheForEducation) {
+      lines.push(
+        `- Лучший вариант для обучения: ${report.crossNichePositioning.summary.bestNicheForEducation.bucketLabel}`
+      );
+    }
+
+    if (report.crossNichePositioning.summary.bestNicheForContrarian) {
+      lines.push(
+        `- Лучший вариант для контрарного угла: ${report.crossNichePositioning.summary.bestNicheForContrarian.bucketLabel}`
+      );
+    }
+
+    if (report.crossNichePositioning.summary.bestNicheForFounderOperator) {
+      lines.push(
+        `- Лучший вариант для founder/operator: ${report.crossNichePositioning.summary.bestNicheForFounderOperator.bucketLabel}`
+      );
+    }
+
+    if (report.crossNichePositioning.summary.bestNicheForBenchmarkResults) {
+      lines.push(
+        `- Лучший вариант для результатов и benchmarks: ${report.crossNichePositioning.summary.bestNicheForBenchmarkResults.bucketLabel}`
+      );
+    }
+
+    if (report.crossNichePositioning.summary.bestNicheForNewsReactive) {
+      lines.push(
+        `- Лучший вариант для новостной реакции: ${report.crossNichePositioning.summary.bestNicheForNewsReactive.bucketLabel}`
+      );
+    }
+  }
+
   report.niches.forEach((niche, index) => {
+    const positioning = report.crossNichePositioning?.perBucketRecommendations.find(
+      (item) => item.bucketId === niche.bucketId
+    );
+
     lines.push(
       "",
       `## ${index + 1}. ${niche.label}`,
@@ -196,6 +247,9 @@ export function buildNicheShortlistMarkdownReport(
       `- Потенциал монетизации: ${formatScore(niche.topicScores.monetizationPotential)}`,
       `- Простота контента: ${formatScore(niche.topicScores.contentEase)}`,
       `- Надёжность данных: ${formatScore(niche.topicScores.dataConfidence)}`,
+      positioning?.strongestRecommendedAngle
+        ? `- Лучший угол входа: ${positioning.strongestRecommendedAngle.label} (${positioning.strongestRecommendedAngle.score.toFixed(1)})`
+        : "- Лучший угол входа: н/д",
       "",
       "### Почему ниша в shortlist",
       "",
@@ -206,6 +260,31 @@ export function buildNicheShortlistMarkdownReport(
       `- Почему перспективно: ${niche.evidenceHighlights.promisingSummary}`,
       `- Что может исказить вывод: ${niche.evidenceHighlights.misleadingSummary}`,
       `- Рекомендуемый следующий шаг: ${niche.evidenceHighlights.recommendedNextAction}`,
+      "",
+      "### Как лучше заходить в нишу",
+      "",
+      positioning?.positioningWhyItFits ?? "Позиционирование пока недоступно."
+    );
+
+    if (positioning?.recommendedEntryAngles.length) {
+      lines.push(
+        `- Альтернативные углы входа: ${positioning.recommendedEntryAngles
+          .map((angle) => `${angle.label} (${angle.score.toFixed(1)})`)
+          .join(", ")}`
+      );
+    }
+
+    if (positioning?.positioningRisks.length) {
+      positioning.positioningRisks.slice(0, 2).forEach((risk) => {
+        lines.push(`- Риск: ${risk}`);
+      });
+    }
+
+    if (positioning?.positioningConfidenceNote) {
+      lines.push(`- Уровень уверенности: ${positioning.positioningConfidenceNote}`);
+    }
+
+    lines.push(
       "",
       "### Сводка по контентным архетипам",
       "",
