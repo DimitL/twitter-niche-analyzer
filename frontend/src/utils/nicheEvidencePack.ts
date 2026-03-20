@@ -1,4 +1,7 @@
-import type { RankedNicheShortlistBucket } from "../types/nicheShortlist.js";
+import type {
+  NicheShortlistContentPatternTag,
+  RankedNicheShortlistBucket
+} from "../types/nicheShortlist.js";
 
 interface EvidenceComponentSummary {
   key: string;
@@ -26,6 +29,11 @@ export interface NicheEvidencePackViewModel {
   nicheArchetypeSummary: string | null;
   nicheArchetypeConfidenceNote: string | null;
   archetypeCoverageCount: number;
+  underrepresentedPatterns: NicheShortlistContentPatternTag[];
+  whitespaceHints: string[];
+  nichePositioningIdeas: string[];
+  gapsConfidenceNote: string | null;
+  patternCoverageBalanceSummary: string | null;
   strongestSignals: EvidenceComponentSummary[];
   weakestSignals: EvidenceMetricSummary[];
   coverageNotes: string[];
@@ -58,8 +66,94 @@ const componentLabelMap: Record<string, string> = {
   dataConfidence: "Надежность данных"
 };
 
+const allContentPatternTags: NicheShortlistContentPatternTag[] = [
+  "strongHook",
+  "contrarianTake",
+  "productUpdate",
+  "benchmarkOrResult",
+  "educationalBreakdown",
+  "founderInsight",
+  "timelyNewsTieIn",
+  "audienceQuestion",
+  "narrativeStorytelling"
+];
+
+const contentPatternLabelMap: Record<NicheShortlistContentPatternTag, string> = {
+  strongHook: "сильный hook",
+  contrarianTake: "контрарный угол",
+  productUpdate: "продуктовый апдейт",
+  benchmarkOrResult: "результат или benchmark",
+  educationalBreakdown: "обучающий breakdown",
+  founderInsight: "founder insight",
+  timelyNewsTieIn: "привязка к актуальной новости",
+  audienceQuestion: "вопрос к аудитории",
+  narrativeStorytelling: "нарративная подача"
+};
+
+const whitespaceHintMap: Record<NicheShortlistContentPatternTag, string> = {
+  strongHook:
+    "В нише мало явно цепляющих входов в пост. Это окно для более сильных первых строк и sharper framing.",
+  contrarianTake:
+    "Контрарный угол встречается редко. На этом фоне можно выделиться аккуратными disagreement-постами без ухода в дешёвую провокацию.",
+  productUpdate:
+    "Продуктовые апдейты представлены слабо. Это даёт шанс занять более практичную позицию через shipping-based контент.",
+  benchmarkOrResult:
+    "Результатов и benchmark-сигналов пока немного. Ниша может выиграть от более доказательной подачи с цифрами и исходами.",
+  educationalBreakdown:
+    "Обучающие breakdown-посты выглядят недопокрытыми. Это шанс занять роль понятного объяснителя в нише.",
+  founderInsight:
+    "Founder/operator perspective проявляется слабо. Личный operational angle может добавить нише более редкий голос.",
+  timelyNewsTieIn:
+    "Связка с актуальными новостями пока не доминирует. Можно занять более быстрый реактивный угол без полной смены темы.",
+  audienceQuestion:
+    "Постов с прямым вовлечением аудитории немного. Это пространство для диалоговых форматов и question-led hooks.",
+  narrativeStorytelling:
+    "Storytelling почти не поддержан. Через короткие истории и behind-the-scenes можно добавить более человечный слой."
+};
+
+const positioningIdeaMap: Record<NicheShortlistContentPatternTag, string> = {
+  strongHook:
+    "Протестируйте позиционирование через более смелые opening hooks, но оставьте текущую тему и глубину ниши.",
+  contrarianTake:
+    "Попробуйте занять позицию спокойного contrarian-автора: спорить не ради спора, а ради более ясной рамки для аудитории.",
+  productUpdate:
+    "Сместите акцент в сторону регулярных product / shipping updates, чтобы ниша выглядела практичнее и ближе к действию.",
+  benchmarkOrResult:
+    "Сделайте ставку на формат «что сработало / что не сработало» с цифрами и outcomes, чтобы усилить доверие к контенту.",
+  educationalBreakdown:
+    "Позиционируйтесь как объясняющий слой ниши: короткие разборы, frameworks и step-by-step посты могут закрыть пробел.",
+  founderInsight:
+    "Добавьте более личный operator/founder angle, чтобы ниша получила редкую практическую перспективу изнутри.",
+  timelyNewsTieIn:
+    "Можно занять роль быстрого интерпретатора новостей: брать свежий повод и связывать его с уже работающим ядром ниши.",
+  audienceQuestion:
+    "Усильте question-led формат, чтобы собирать реакции аудитории и быстрее проверять, какие углы цепляют лучше всего.",
+  narrativeStorytelling:
+    "Попробуйте более narrative подачу: истории, ошибки, before/after и short journeys могут стать заметным отличителем."
+};
+
 function roundNumber(value: number, fractionDigits = 1) {
   return Number(value.toFixed(fractionDigits));
+}
+
+function joinHumanList(items: string[]) {
+  if (items.length === 0) {
+    return "";
+  }
+
+  if (items.length === 1) {
+    return items[0];
+  }
+
+  if (items.length === 2) {
+    return `${items[0]} и ${items[1]}`;
+  }
+
+  return `${items.slice(0, -1).join(", ")} и ${items[items.length - 1]}`;
+}
+
+function dedupeItems<T>(items: T[]) {
+  return Array.from(new Set(items));
 }
 
 function formatLabel(key: string, fallbackLabel: string) {
@@ -267,6 +361,157 @@ function buildRecommendedNextAction(bucket: RankedNicheShortlistBucket) {
   return "Используйте strongest accounts как ручной reference pack и решите, стоит ли брать нишу в следующий shortlist-раунд с более глубоким account review.";
 }
 
+function buildPatternScoreMap(bucket: RankedNicheShortlistBucket) {
+  const patternScores = new Map<NicheShortlistContentPatternTag, number>();
+
+  allContentPatternTags.forEach((tag) => patternScores.set(tag, 0));
+
+  bucket.topSupportingAccounts.forEach((account) => {
+    account.dominantPatterns.forEach((pattern, index) => {
+      patternScores.set(
+        pattern,
+        (patternScores.get(pattern) ?? 0) + Math.max(2 - index * 0.35, 1.2)
+      );
+    });
+
+    account.secondaryPatterns.forEach((pattern, index) => {
+      patternScores.set(
+        pattern,
+        (patternScores.get(pattern) ?? 0) + Math.max(1 - index * 0.25, 0.4)
+      );
+    });
+
+    account.bestPerformingTweetReferences.forEach((reference) => {
+      reference.contentPatternTags.forEach((pattern, index) => {
+        patternScores.set(
+          pattern,
+          (patternScores.get(pattern) ?? 0) + Math.max(0.7 - index * 0.1, 0.3)
+        );
+      });
+    });
+  });
+
+  return patternScores;
+}
+
+function buildGapCandidateOrder(bucket: RankedNicheShortlistBucket) {
+  const dominantPatterns = bucket.dominantNichePatterns;
+  const candidateTags: NicheShortlistContentPatternTag[] = [];
+  const addCandidates = (patterns: NicheShortlistContentPatternTag[]) => {
+    candidateTags.push(...patterns);
+  };
+
+  if (
+    dominantPatterns.includes("productUpdate") ||
+    dominantPatterns.includes("benchmarkOrResult")
+  ) {
+    addCandidates([
+      "narrativeStorytelling",
+      "audienceQuestion",
+      "founderInsight"
+    ]);
+  }
+
+  if (dominantPatterns.includes("educationalBreakdown")) {
+    addCandidates([
+      "timelyNewsTieIn",
+      "contrarianTake",
+      "narrativeStorytelling"
+    ]);
+  }
+
+  if (
+    dominantPatterns.includes("strongHook") ||
+    dominantPatterns.includes("contrarianTake")
+  ) {
+    addCandidates([
+      "benchmarkOrResult",
+      "educationalBreakdown",
+      "productUpdate"
+    ]);
+  }
+
+  if (dominantPatterns.includes("founderInsight")) {
+    addCandidates([
+      "benchmarkOrResult",
+      "educationalBreakdown",
+      "audienceQuestion"
+    ]);
+  }
+
+  if (dominantPatterns.includes("timelyNewsTieIn")) {
+    addCandidates([
+      "educationalBreakdown",
+      "benchmarkOrResult",
+      "narrativeStorytelling"
+    ]);
+  }
+
+  return dedupeItems([...candidateTags, ...allContentPatternTags]);
+}
+
+function buildContentGapInsights(bucket: RankedNicheShortlistBucket) {
+  const patternScores = buildPatternScoreMap(bucket);
+  const sortedScores = [...patternScores.entries()].sort((left, right) => right[1] - left[1]);
+  const topScore = sortedScores[0]?.[1] ?? 0;
+  const dominantSet = new Set(bucket.dominantNichePatterns);
+  const secondarySet = new Set(bucket.secondaryNichePatterns);
+  const lowCoverageThreshold = topScore > 0 ? Math.max(topScore * 0.28, 1.1) : 1;
+  const underrepresentedPatterns = buildGapCandidateOrder(bucket)
+    .filter((pattern) => !dominantSet.has(pattern) && !secondarySet.has(pattern))
+    .filter((pattern) => (patternScores.get(pattern) ?? 0) <= lowCoverageThreshold)
+    .slice(0, 3);
+  const whitespaceHints = underrepresentedPatterns
+    .map((pattern) => whitespaceHintMap[pattern])
+    .slice(0, 3);
+  const nichePositioningIdeas = underrepresentedPatterns
+    .map((pattern) => positioningIdeaMap[pattern])
+    .slice(0, 3);
+  const dominantLabels = bucket.dominantNichePatterns.map(
+    (pattern) => contentPatternLabelMap[pattern]
+  );
+  const underrepresentedLabels = underrepresentedPatterns.map(
+    (pattern) => contentPatternLabelMap[pattern]
+  );
+  let patternCoverageBalanceSummary: string | null = null;
+
+  if (dominantLabels.length > 0 && underrepresentedLabels.length > 0) {
+    patternCoverageBalanceSummary = `Сейчас ниша сильнее всего держится на ${joinHumanList(
+      dominantLabels
+    )}, а углы вроде ${joinHumanList(
+      underrepresentedLabels
+    )} пока заметно слабее представлены.`;
+  } else if (dominantLabels.length > 0) {
+    patternCoverageBalanceSummary = `Паттерн-карта ниши уже выглядит довольно плотной: ведущие сигналы строятся вокруг ${joinHumanList(
+      dominantLabels
+    )}.`;
+  }
+
+  let gapsConfidenceNote: string | null = null;
+  const metricRichAccounts = bucket.topSupportingAccounts.filter(
+    (account) => account.bestPerformingTweetReferencesCount > 0
+  ).length;
+
+  if (bucket.archetypeCoverageCount < 2 || metricRichAccounts < 2) {
+    gapsConfidenceNote =
+      "Whitespace hints пока предварительные: ниша опирается на небольшой набор supporting accounts и few best-performing snippets.";
+  } else if (underrepresentedPatterns.length === 0) {
+    gapsConfidenceNote =
+      "Явных whitespace-сигналов пока немного: текущая ручная выборка уже покрывает несколько разных content-углов.";
+  } else if (bucket.archetypeCoverageCount < Math.min(4, bucket.topSupportingAccounts.length)) {
+    gapsConfidenceNote =
+      "Whitespace hints собраны только по части supporting accounts, поэтому после расширения roster картина может немного сдвинуться.";
+  }
+
+  return {
+    underrepresentedPatterns,
+    whitespaceHints,
+    nichePositioningIdeas,
+    gapsConfidenceNote,
+    patternCoverageBalanceSummary
+  };
+}
+
 export function buildNicheEvidencePack(
   bucket: RankedNicheShortlistBucket
 ): NicheEvidencePackViewModel {
@@ -278,6 +523,7 @@ export function buildNicheEvidencePack(
   const weakestSignals = buildWeakestSignals(bucket);
   const coverageNotes = buildCoverageNotes(bucket);
   const cautionFlags = buildCautionFlags(bucket, weakestSignals);
+  const contentGapInsights = buildContentGapInsights(bucket);
   const breakdownNotes = [
     ...bucket.scoreBreakdown.overallTopicScore.notes,
     ...(bucket.rankingBreakdown?.formula
@@ -297,6 +543,12 @@ export function buildNicheEvidencePack(
     nicheArchetypeSummary: bucket.nicheArchetypeSummary,
     nicheArchetypeConfidenceNote: bucket.nicheArchetypeConfidenceNote,
     archetypeCoverageCount: bucket.archetypeCoverageCount,
+    underrepresentedPatterns: contentGapInsights.underrepresentedPatterns,
+    whitespaceHints: contentGapInsights.whitespaceHints,
+    nichePositioningIdeas: contentGapInsights.nichePositioningIdeas,
+    gapsConfidenceNote: contentGapInsights.gapsConfidenceNote,
+    patternCoverageBalanceSummary:
+      contentGapInsights.patternCoverageBalanceSummary,
     strongestSignals: rankingComponents,
     weakestSignals,
     coverageNotes,

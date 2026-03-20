@@ -33,6 +33,7 @@
 - first best-hooks / content-pattern слой для best-performing tweet references с pattern tags и short strength reasons
 - first supporting-account content archetype слой для account-level summary по сильным твитам: dominant patterns, archetype label и short explanation
 - first niche-level content archetype rollup слой для сводки повторяющихся content patterns и archetypes по supporting accounts внутри shortlisted niche
+- first niche-level content gaps / whitespace hints слой для underrepresented content patterns и positioning hints внутри shortlisted niche evidence pack
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -807,7 +808,7 @@ http://localhost:5173
 - при первом запуске оставить `limit=1` и `topN=2`
 - нажать `Запустить shortlist ниш`
 - после успешного run убедиться, что активный сценарий получил pinned result с `Последний run`, `Best overall` и `Shortlist size`
-- открыть `Evidence pack` внутри одной из shortlisted ниш и проверить supporting accounts roster, score drivers, caution flags, затем посмотреть niche-level archetype rollup, а после этого переключить режим `Свежие` / `Лучшие по реакции` и сверить pattern tags, account archetypes и короткие explanations
+- открыть `Evidence pack` внутри одной из shortlisted ниш и проверить supporting accounts roster, score drivers, caution flags, затем посмотреть niche-level archetype rollup и новый whitespace-блок с underrepresented patterns и positioning hints, а после этого переключить режим `Свежие` / `Лучшие по реакции` и сверить pattern tags, account archetypes и короткие explanations
 - нажать `Добавить к сравнению` у 1-2 дополнительных сценариев и проверить блок `Сравнение сохранённых сценариев`
 - в `Scenario Diff` сравнить flags, bucket labels, handle counts и top summary без ручного переключения editor-а
 
@@ -824,9 +825,10 @@ http://localhost:5173
 - у best-performing snippets появляются content-pattern tags и short strength reasons для быстрого понимания сильных hooks
 - у supporting accounts появляется account-level content archetype summary по сильным твитам: dominant patterns, archetype label и confidence note при слабом evidence
 - у shortlisted niche появляется niche-level content archetype rollup: dominant patterns, common archetypes, short summary и confidence note
+- у shortlisted niche появляется whitespace/gaps section: underrepresented patterns, short whitespace hints, positioning ideas и confidence note
 - pinned result snapshot у каждого локального сценария
 - отдельный comparison panel для 2-3 сценариев с lightweight diff по настройкам и последнему shortlist result
-- внутри shortlisted niche cards можно открыть `Evidence pack` и увидеть up to 10 supporting accounts, niche-level archetype rollup, relevance notes, score chips, account-level content archetype summary, 1-2 recent или best-performing tweet references, content-pattern tags, coverage notes и recommended next action
+- внутри shortlisted niche cards можно открыть `Evidence pack` и увидеть up to 10 supporting accounts, niche-level archetype rollup, whitespace hints, relevance notes, score chips, account-level content archetype summary, 1-2 recent или best-performing tweet references, content-pattern tags, coverage notes и recommended next action
 
 Ограничения текущего frontend шага:
 - buckets пока задаются только вручную через structured editor
@@ -843,6 +845,7 @@ http://localhost:5173
 - content-pattern tags пока rule-based и объяснимые, но ещё не являются полноценной NLP-классификацией
 - content archetype summary тоже пока rule-based и строится всего по 1-2 best-performing snippets, поэтому его стоит читать как быстрый manual-review shortcut, а не как строгую taxonomy
 - niche-level archetype rollup тоже остаётся rule-based и зависит от того, насколько много supporting accounts уже получили usable archetype summary
+- whitespace hints тоже rule-based и зависят от текущего roster supporting accounts, поэтому их лучше читать как идеи для ручной проверки, а не как готовые окончательные gaps
 - следующий UI шаг лучше делать уже с более явным cross-scenario evidence/history view, чтобы сравнивать не только summary, но и закреплённые shortlist cards по нескольким прогонам
 
 ## Как проверить X profile shell

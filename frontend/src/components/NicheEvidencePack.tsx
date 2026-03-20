@@ -246,6 +246,69 @@ export function NicheEvidencePack({ bucket }: NicheEvidencePackProps) {
                     {evidencePack.nicheArchetypeConfidenceNote}
                   </p>
                 ) : null}
+
+                {evidencePack.patternCoverageBalanceSummary ||
+                evidencePack.underrepresentedPatterns.length > 0 ||
+                evidencePack.whitespaceHints.length > 0 ? (
+                  <div className="niche-content-gaps">
+                    <div className="niche-content-gaps__header">
+                      <span className="niche-content-gaps__eyebrow">
+                        Недопокрытые content-углы
+                      </span>
+                    </div>
+
+                    {evidencePack.patternCoverageBalanceSummary ? (
+                      <p className="niche-content-gaps__summary">
+                        {evidencePack.patternCoverageBalanceSummary}
+                      </p>
+                    ) : null}
+
+                    {evidencePack.underrepresentedPatterns.length > 0 ? (
+                      <div className="niche-content-gaps__patterns">
+                        {evidencePack.underrepresentedPatterns.map((tag) => (
+                          <span
+                            key={`${bucket.bucketId}-gap-${tag}`}
+                            className="pattern-chip pattern-chip--muted"
+                          >
+                            {getContentPatternLabel(tag)}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {evidencePack.whitespaceHints.length > 0 ? (
+                      <>
+                        <span className="niche-content-gaps__subheading">
+                          Где может быть whitespace
+                        </span>
+                        <ul className="plain-list niche-content-gaps__list">
+                          {evidencePack.whitespaceHints.map((hint) => (
+                            <li key={`${bucket.bucketId}-hint-${hint}`}>{hint}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+
+                    {evidencePack.nichePositioningIdeas.length > 0 ? (
+                      <>
+                        <span className="niche-content-gaps__subheading">
+                          Как можно позиционироваться
+                        </span>
+                        <ul className="plain-list niche-content-gaps__list">
+                          {evidencePack.nichePositioningIdeas.map((idea) => (
+                            <li key={`${bucket.bucketId}-idea-${idea}`}>{idea}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+
+                    {evidencePack.gapsConfidenceNote ? (
+                      <p className="niche-content-gaps__note">
+                        {evidencePack.gapsConfidenceNote}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 

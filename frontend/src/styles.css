@@ -1004,6 +1004,50 @@ button {
   font-size: 0.92rem;
 }
 
+.niche-content-gaps {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(29, 143, 95, 0.07);
+  border: 1px solid rgba(29, 143, 95, 0.12);
+}
+
+.niche-content-gaps__eyebrow,
+.niche-content-gaps__subheading {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.niche-content-gaps__summary,
+.niche-content-gaps__note {
+  margin: 0;
+}
+
+.niche-content-gaps__summary {
+  color: #18333f;
+  font-weight: 600;
+}
+
+.niche-content-gaps__patterns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.niche-content-gaps__list {
+  margin-top: 0;
+}
+
+.niche-content-gaps__note {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .snippet-mode-button {
   border: 1px solid rgba(72, 53, 41, 0.12);
   border-radius: 999px;
@@ -1180,6 +1224,11 @@ button {
   color: #8c451c;
   font-size: 0.8rem;
   font-weight: 700;
+}
+
+.pattern-chip--muted {
+  background: rgba(29, 143, 95, 0.12);
+  color: #1d6f4a;
 }
 
 .supporting-tweet-card__notes {
