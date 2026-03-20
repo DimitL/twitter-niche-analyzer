@@ -68,6 +68,11 @@ interface SuccessfulTopicBucketAccountSummary {
   bestPerformingTweetReferences:
     ComparedXAccountResult["bestPerformingTweetReferences"];
   bestPerformingTweetReferencesNote: string | null;
+  contentArchetypeLabel: ComparedXAccountResult["contentArchetypeLabel"];
+  dominantPatterns: ComparedXAccountResult["dominantPatterns"];
+  secondaryPatterns: ComparedXAccountResult["secondaryPatterns"];
+  archetypeSummary: ComparedXAccountResult["archetypeSummary"];
+  archetypeConfidenceNote: ComparedXAccountResult["archetypeConfidenceNote"];
 }
 
 interface FailedTopicBucketAccountSummary {
@@ -306,7 +311,12 @@ function buildSuccessfulAccountSummary(
     bestPerformingTweetReferencesCount:
       account.bestPerformingTweetReferencesCount,
     bestPerformingTweetReferences: account.bestPerformingTweetReferences,
-    bestPerformingTweetReferencesNote: account.bestPerformingTweetReferencesNote
+    bestPerformingTweetReferencesNote: account.bestPerformingTweetReferencesNote,
+    contentArchetypeLabel: account.contentArchetypeLabel,
+    dominantPatterns: account.dominantPatterns,
+    secondaryPatterns: account.secondaryPatterns,
+    archetypeSummary: account.archetypeSummary,
+    archetypeConfidenceNote: account.archetypeConfidenceNote
   };
 }
 

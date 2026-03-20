@@ -133,6 +133,31 @@ interface XNicheSupportingAccountSummary {
     tagConfidenceNotes: string[];
   }>;
   bestPerformingTweetReferencesNote: string | null;
+  contentArchetypeLabel: string | null;
+  dominantPatterns: Array<
+    | "strongHook"
+    | "contrarianTake"
+    | "productUpdate"
+    | "benchmarkOrResult"
+    | "educationalBreakdown"
+    | "founderInsight"
+    | "timelyNewsTieIn"
+    | "audienceQuestion"
+    | "narrativeStorytelling"
+  >;
+  secondaryPatterns: Array<
+    | "strongHook"
+    | "contrarianTake"
+    | "productUpdate"
+    | "benchmarkOrResult"
+    | "educationalBreakdown"
+    | "founderInsight"
+    | "timelyNewsTieIn"
+    | "audienceQuestion"
+    | "narrativeStorytelling"
+  >;
+  archetypeSummary: string | null;
+  archetypeConfidenceNote: string | null;
 }
 
 interface XNicheRankingComponent {
@@ -577,7 +602,12 @@ function buildTopSupportingAccounts(
         account.bestPerformingTweetReferencesCount,
       bestPerformingTweetReferences: account.bestPerformingTweetReferences,
       bestPerformingTweetReferencesNote:
-        account.bestPerformingTweetReferencesNote
+        account.bestPerformingTweetReferencesNote,
+      contentArchetypeLabel: account.contentArchetypeLabel,
+      dominantPatterns: account.dominantPatterns,
+      secondaryPatterns: account.secondaryPatterns,
+      archetypeSummary: account.archetypeSummary,
+      archetypeConfidenceNote: account.archetypeConfidenceNote
     }));
 }
 

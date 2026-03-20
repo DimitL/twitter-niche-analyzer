@@ -229,6 +229,58 @@ export function NicheEvidencePack({ bucket }: NicheEvidencePackProps) {
                       </div>
 
                       <p className="supporting-account-card__role">{account.relevanceNote}</p>
+                      {account.contentArchetypeLabel ||
+                      account.archetypeSummary ||
+                      account.archetypeConfidenceNote ? (
+                        <div className="supporting-account-card__archetype">
+                          <div className="supporting-account-card__archetype-header">
+                            <span className="supporting-account-card__archetype-eyebrow">
+                              Контентный архетип по сильным твитам
+                            </span>
+
+                            {account.contentArchetypeLabel ? (
+                              <span className="decision-chip decision-chip--neutral">
+                                {account.contentArchetypeLabel}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          {account.dominantPatterns.length > 0 ? (
+                            <div className="supporting-account-card__archetype-patterns">
+                              {account.dominantPatterns.map((tag) => (
+                                <span
+                                  key={`${bucket.bucketId}-${account.handle ?? "unknown"}-dominant-${tag}`}
+                                  className="pattern-chip"
+                                >
+                                  {getContentPatternLabel(tag)}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+
+                          {account.secondaryPatterns.length > 0 ? (
+                            <p className="supporting-account-card__archetype-secondary">
+                              Вторичные паттерны:{" "}
+                              {account.secondaryPatterns
+                                .map((tag) => getContentPatternLabel(tag))
+                                .join(", ")}
+                            </p>
+                          ) : null}
+
+                          {account.archetypeSummary ? (
+                            <p className="supporting-account-card__archetype-summary">
+                              {account.archetypeSummary}
+                            </p>
+                          ) : null}
+
+                          {account.archetypeConfidenceNote ? (
+                            <p className="supporting-account-card__archetype-note">
+                              {account.archetypeConfidenceNote}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
+
                       <p>{account.reason}</p>
 
                       <div className="supporting-account-card__scores">

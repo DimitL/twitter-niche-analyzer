@@ -1002,6 +1002,53 @@ button {
   font-weight: 600;
 }
 
+.supporting-account-card__archetype {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(24, 51, 63, 0.05);
+  border: 1px solid rgba(24, 51, 63, 0.08);
+}
+
+.supporting-account-card__archetype-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.supporting-account-card__archetype-eyebrow {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.supporting-account-card__archetype-patterns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.supporting-account-card .supporting-account-card__archetype-secondary,
+.supporting-account-card .supporting-account-card__archetype-summary,
+.supporting-account-card .supporting-account-card__archetype-note {
+  margin: 0;
+}
+
+.supporting-account-card .supporting-account-card__archetype-summary {
+  color: #18333f;
+  font-weight: 600;
+}
+
+.supporting-account-card .supporting-account-card__archetype-note,
+.supporting-account-card .supporting-account-card__archetype-secondary {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .supporting-account-card p:last-of-type {
   margin: 0;
   color: var(--muted);

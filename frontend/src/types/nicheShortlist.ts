@@ -120,6 +120,11 @@ export interface NicheShortlistSupportingAccount {
   bestPerformingTweetReferencesCount: number;
   bestPerformingTweetReferences: NicheShortlistSupportingTweetReference[];
   bestPerformingTweetReferencesNote: string | null;
+  contentArchetypeLabel: string | null;
+  dominantPatterns: NicheShortlistSupportingTweetReference["contentPatternTags"];
+  secondaryPatterns: NicheShortlistSupportingTweetReference["contentPatternTags"];
+  archetypeSummary: string | null;
+  archetypeConfidenceNote: string | null;
 }
 
 export interface NicheShortlistSupportingTweetReference {

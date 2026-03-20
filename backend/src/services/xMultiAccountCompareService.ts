@@ -43,6 +43,17 @@ interface XMultiAccountCompareTimings {
   totalMs: number;
 }
 
+type ComparedXAccountContentPatternTag =
+  | "strongHook"
+  | "contrarianTake"
+  | "productUpdate"
+  | "benchmarkOrResult"
+  | "educationalBreakdown"
+  | "founderInsight"
+  | "timelyNewsTieIn"
+  | "audienceQuestion"
+  | "narrativeStorytelling";
+
 interface ComparedXAccountTweetReference {
   tweetUrl: string | null;
   publishedAt: string | null;
@@ -51,17 +62,7 @@ interface ComparedXAccountTweetReference {
   likeCount: ScoredUsableXAccountTweet["likeCount"];
   repostCount: ScoredUsableXAccountTweet["repostCount"];
   replyCount: ScoredUsableXAccountTweet["replyCount"];
-  contentPatternTags: Array<
-    | "strongHook"
-    | "contrarianTake"
-    | "productUpdate"
-    | "benchmarkOrResult"
-    | "educationalBreakdown"
-    | "founderInsight"
-    | "timelyNewsTieIn"
-    | "audienceQuestion"
-    | "narrativeStorytelling"
-  >;
+  contentPatternTags: ComparedXAccountContentPatternTag[];
   likelyStrengthReason: string | null;
   tagConfidenceNotes: string[];
 }
@@ -81,6 +82,11 @@ export interface ComparedXAccountResult {
   bestPerformingTweetReferencesCount: number;
   bestPerformingTweetReferences: ComparedXAccountTweetReference[];
   bestPerformingTweetReferencesNote: string | null;
+  contentArchetypeLabel: string | null;
+  dominantPatterns: ComparedXAccountContentPatternTag[];
+  secondaryPatterns: ComparedXAccountContentPatternTag[];
+  archetypeSummary: string | null;
+  archetypeConfidenceNote: string | null;
   error: XMultiAccountCompareErrorDetails | null;
   notes: string[];
   totalMs: number;
@@ -303,37 +309,115 @@ function containsAny(text: string, patterns: string[]) {
   return patterns.some((pattern) => text.includes(pattern));
 }
 
+function getContentPatternLabel(tag: ComparedXAccountContentPatternTag) {
+  switch (tag) {
+    case "strongHook":
+      return "сильный hook";
+    case "contrarianTake":
+      return "контрарный угол";
+    case "productUpdate":
+      return "продуктовый апдейт";
+    case "benchmarkOrResult":
+      return "результат или benchmark";
+    case "educationalBreakdown":
+      return "обучающий breakdown";
+    case "founderInsight":
+      return "founder insight";
+    case "timelyNewsTieIn":
+      return "привязка к актуальной новости";
+    case "audienceQuestion":
+      return "вопрос к аудитории";
+    case "narrativeStorytelling":
+      return "нарративная подача";
+    default:
+      return tag;
+  }
+}
+
+function joinHumanList(items: string[]) {
+  if (items.length === 0) {
+    return "";
+  }
+
+  if (items.length === 1) {
+    return items[0];
+  }
+
+  if (items.length === 2) {
+    return `${items[0]} и ${items[1]}`;
+  }
+
+  return `${items.slice(0, -1).join(", ")} и ${items[items.length - 1]}`;
+}
+
+function buildContentArchetypeLabel(
+  dominantPatterns: ComparedXAccountContentPatternTag[],
+  secondaryPatterns: ComparedXAccountContentPatternTag[]
+) {
+  const hasPattern = (tag: ComparedXAccountContentPatternTag) =>
+    dominantPatterns.includes(tag) || secondaryPatterns.includes(tag);
+
+  if (
+    hasPattern("educationalBreakdown") &&
+    hasPattern("benchmarkOrResult")
+  ) {
+    return "Практичный аналитик";
+  }
+
+  if (hasPattern("strongHook") && hasPattern("contrarianTake")) {
+    return "Контрарный attention-driver";
+  }
+
+  if (hasPattern("productUpdate") && hasPattern("benchmarkOrResult")) {
+    return "Продуктовый доказательщик";
+  }
+
+  if (hasPattern("founderInsight") && hasPattern("narrativeStorytelling")) {
+    return "Founder-рассказчик";
+  }
+
+  if (hasPattern("timelyNewsTieIn") && hasPattern("productUpdate")) {
+    return "Новостной продуктовый комментатор";
+  }
+
+  if (hasPattern("audienceQuestion") && hasPattern("strongHook")) {
+    return "Диалоговый hook-builder";
+  }
+
+  switch (dominantPatterns[0]) {
+    case "strongHook":
+      return "Hook-driven автор";
+    case "contrarianTake":
+      return "Контрарный комментатор";
+    case "productUpdate":
+      return "Продуктовый апдейтер";
+    case "benchmarkOrResult":
+      return "Результат-аналитик";
+    case "educationalBreakdown":
+      return "Обучающий разборщик";
+    case "founderInsight":
+      return "Founder-оператор";
+    case "timelyNewsTieIn":
+      return "Новостной интерпретатор";
+    case "audienceQuestion":
+      return "Диалоговый вовлекатель";
+    case "narrativeStorytelling":
+      return "Нарративный рассказчик";
+    default:
+      return null;
+  }
+}
+
 function inferTweetContentPatterns(tweet: ScoredUsableXAccountTweet) {
   const tweetText = tweet.tweetText?.replace(/\s+/g, " ").trim() ?? "";
   const normalizedText = tweetText.toLowerCase();
   const engagementProxy = getTweetEngagementProxy(tweet);
-  const patternScores = new Map<
-    | "strongHook"
-    | "contrarianTake"
-    | "productUpdate"
-    | "benchmarkOrResult"
-    | "educationalBreakdown"
-    | "founderInsight"
-    | "timelyNewsTieIn"
-    | "audienceQuestion"
-    | "narrativeStorytelling",
-    number
-  >();
+  const patternScores = new Map<ComparedXAccountContentPatternTag, number>();
   const confidenceNotes: string[] = [];
 
   if (!normalizedText) {
     return {
-      contentPatternTags: [] as Array<
-        | "strongHook"
-        | "contrarianTake"
-        | "productUpdate"
-        | "benchmarkOrResult"
-        | "educationalBreakdown"
-        | "founderInsight"
-        | "timelyNewsTieIn"
-        | "audienceQuestion"
-        | "narrativeStorytelling"
-      >,
+      contentPatternTags: [] as ComparedXAccountContentPatternTag[],
       likelyStrengthReason:
         engagementProxy !== null
           ? "Твит выглядит сильным по реакции аудитории, но без текстового snippet трудно объяснить его content pattern."
@@ -346,16 +430,7 @@ function inferTweetContentPatterns(tweet: ScoredUsableXAccountTweet) {
   }
 
   const addScore = (
-    tag:
-      | "strongHook"
-      | "contrarianTake"
-      | "productUpdate"
-      | "benchmarkOrResult"
-      | "educationalBreakdown"
-      | "founderInsight"
-      | "timelyNewsTieIn"
-      | "audienceQuestion"
-      | "narrativeStorytelling",
+    tag: ComparedXAccountContentPatternTag,
     score: number
   ) => {
     patternScores.set(tag, (patternScores.get(tag) ?? 0) + score);
@@ -529,23 +604,11 @@ function inferTweetContentPatterns(tweet: ScoredUsableXAccountTweet) {
     );
   }
 
-  const labelMap: Record<(typeof contentPatternTags)[number], string> = {
-    strongHook: "сильный hook",
-    contrarianTake: "контрарный угол",
-    productUpdate: "продуктовый апдейт",
-    benchmarkOrResult: "результат или benchmark",
-    educationalBreakdown: "обучающий breakdown",
-    founderInsight: "founder insight",
-    timelyNewsTieIn: "привязка к актуальной новости",
-    audienceQuestion: "вопрос к аудитории",
-    narrativeStorytelling: "нарративная подача"
-  };
-
   const likelyStrengthReason =
     contentPatternTags.length > 0
       ? `Похоже, твит зацепил аудиторию через ${contentPatternTags
           .slice(0, 2)
-          .map((tag) => labelMap[tag])
+          .map((tag) => getContentPatternLabel(tag))
           .join(" и ")}.`
       : null;
 
@@ -553,6 +616,116 @@ function inferTweetContentPatterns(tweet: ScoredUsableXAccountTweet) {
     contentPatternTags,
     likelyStrengthReason,
     tagConfidenceNotes: confidenceNotes
+  };
+}
+
+function buildEmptyContentArchetypeSummary() {
+  return {
+    contentArchetypeLabel: null,
+    dominantPatterns: [] as ComparedXAccountContentPatternTag[],
+    secondaryPatterns: [] as ComparedXAccountContentPatternTag[],
+    archetypeSummary: null,
+    archetypeConfidenceNote: null
+  };
+}
+
+function inferAccountContentArchetype(
+  references: ComparedXAccountTweetReference[]
+) {
+  if (references.length === 0) {
+    return {
+      ...buildEmptyContentArchetypeSummary(),
+      archetypeConfidenceNote:
+        "Архетип пока не определён: у аккаунта не хватило usable best-performing референсов."
+    };
+  }
+
+  const patternWeights = new Map<ComparedXAccountContentPatternTag, number>();
+  const confidenceNotes = new Set<string>();
+  const strongestReason = references.find((reference) => reference.likelyStrengthReason)
+    ?.likelyStrengthReason;
+  let taggedReferenceCount = 0;
+
+  references.forEach((reference, referenceIndex) => {
+    const referenceWeight = referenceIndex === 0 ? 2 : 1;
+
+    if (reference.contentPatternTags.length > 0) {
+      taggedReferenceCount += 1;
+    }
+
+    reference.contentPatternTags.forEach((tag, tagIndex) => {
+      const tagWeight = Math.max(referenceWeight - tagIndex * 0.4, 0.5);
+      patternWeights.set(tag, (patternWeights.get(tag) ?? 0) + tagWeight);
+    });
+
+    reference.tagConfidenceNotes.forEach((note) => confidenceNotes.add(note));
+  });
+
+  if (patternWeights.size === 0) {
+    return {
+      ...buildEmptyContentArchetypeSummary(),
+      archetypeSummary: strongestReason
+        ? `Пока видно только общий strength signal: ${strongestReason}`
+        : null,
+      archetypeConfidenceNote:
+        "Архетип пока не определён уверенно: у лучших твит-референсов не нашлось явных pattern tags."
+    };
+  }
+
+  const sortedPatterns = [...patternWeights.entries()].sort(
+    (left, right) => right[1] - left[1]
+  );
+  const topScore = sortedPatterns[0][1];
+  const dominantPatterns = sortedPatterns
+    .filter(
+      ([, score], index) =>
+        index === 0 || (index === 1 && score >= topScore * 0.75)
+    )
+    .slice(0, 2)
+    .map(([tag]) => tag);
+  const dominantPatternSet = new Set(dominantPatterns);
+  const secondaryPatterns = sortedPatterns
+    .filter(([tag]) => !dominantPatternSet.has(tag))
+    .slice(0, 2)
+    .map(([tag]) => tag);
+  const contentArchetypeLabel = buildContentArchetypeLabel(
+    dominantPatterns,
+    secondaryPatterns
+  );
+  const dominantLabels = dominantPatterns.map((tag) => getContentPatternLabel(tag));
+  const secondaryLabels = secondaryPatterns.map((tag) => getContentPatternLabel(tag));
+  let archetypeSummary = `Похоже, у аккаунта лучше всего повторяются ${joinHumanList(
+    dominantLabels
+  )}.`;
+
+  if (secondaryLabels.length > 0) {
+    archetypeSummary += ` Вторым слоем дополнительно проявляются ${joinHumanList(
+      secondaryLabels
+    )}.`;
+  }
+
+  if (strongestReason) {
+    archetypeSummary += ` Один из сильнейших твитов подсказывает: ${strongestReason}`;
+  }
+
+  let archetypeConfidenceNote: string | null = null;
+
+  if (taggedReferenceCount <= 1) {
+    archetypeConfidenceNote =
+      "Архетип собран только по одному размеченному сильному твиту, поэтому confidence пока ограничен.";
+  } else if (dominantPatterns.length === 1 && sortedPatterns.length === 1) {
+    archetypeConfidenceNote =
+      "Пока повторяется только один явный паттерн, поэтому архетип может быть уже, чем кажется.";
+  } else if (confidenceNotes.size > 0) {
+    archetypeConfidenceNote = [...confidenceNotes][0];
+  }
+
+  return {
+    contentArchetypeLabel,
+    dominantPatterns,
+    secondaryPatterns,
+    archetypeSummary,
+    archetypeConfidenceNote
   };
 }
 
@@ -845,6 +1018,9 @@ async function compareSingleAccount(
     const bestPerformingTweetReferences = buildBestPerformingTweetReferenceData(
       result.usableTweets
     );
+    const contentArchetype = inferAccountContentArchetype(
+      bestPerformingTweetReferences.references
+    );
 
     return {
       request,
@@ -863,6 +1039,11 @@ async function compareSingleAccount(
       bestPerformingTweetReferencesCount: bestPerformingTweetReferences.count,
       bestPerformingTweetReferences: bestPerformingTweetReferences.references,
       bestPerformingTweetReferencesNote: bestPerformingTweetReferences.note,
+      contentArchetypeLabel: contentArchetype.contentArchetypeLabel,
+      dominantPatterns: contentArchetype.dominantPatterns,
+      secondaryPatterns: contentArchetype.secondaryPatterns,
+      archetypeSummary: contentArchetype.archetypeSummary,
+      archetypeConfidenceNote: contentArchetype.archetypeConfidenceNote,
       error: result.error,
       notes: result.notes,
       totalMs: result.timings.totalMs
@@ -885,6 +1066,11 @@ async function compareSingleAccount(
       bestPerformingTweetReferences: [],
       bestPerformingTweetReferencesNote:
         "Подходящие best-performing references не удалось собрать из-за ошибки account scoring.",
+      contentArchetypeLabel: null,
+      dominantPatterns: [],
+      secondaryPatterns: [],
+      archetypeSummary: null,
+      archetypeConfidenceNote: null,
       error: serializeError(error),
       notes: [
         `Comparison для ${request.label} завершился исключением до возврата scoring result.`
