@@ -9,6 +9,7 @@ import {
 import { BucketEditor } from "./components/BucketEditor.js";
 import { NicheCard } from "./components/NicheCard.js";
 import { NicheShortlistCard } from "./components/NicheShortlistCard.js";
+import { ShortlistReportPanel } from "./components/ShortlistReportPanel.js";
 import { ShortlistPayloadPreview } from "./components/ShortlistPayloadPreview.js";
 import { ShortlistScenarioComparison } from "./components/ShortlistScenarioComparison.js";
 import { ShortlistScenarioSwitcher } from "./components/ShortlistScenarioSwitcher.js";
@@ -143,6 +144,9 @@ export default function App() {
     () => scenarioBootstrap.formState
   );
   const [shortlistResult, setShortlistResult] = useState<NicheShortlistResponse | null>(null);
+  const [shortlistResultScenarioId, setShortlistResultScenarioId] = useState<string | null>(null);
+  const [shortlistResultGeneratedAt, setShortlistResultGeneratedAt] = useState<string | null>(null);
+  const [shortlistResultSourceKind, setShortlistResultSourceKind] = useState<"live" | "pinned" | null>(null);
   const [shortlistStatus, setShortlistStatus] = useState<"idle" | "loading" | "ready" | "error">(
     "idle"
   );
@@ -171,6 +175,36 @@ export default function App() {
     () => !areFormStateAndScenarioEqual(shortlistForm, activeScenario),
     [activeScenario, shortlistForm]
   );
+  const shortlistReportSource = useMemo(() => {
+    if (shortlistResult && shortlistResultScenarioId === activeScenarioId) {
+      return {
+        shortlist: shortlistResult,
+        generatedAt: shortlistResultGeneratedAt,
+        sourceKind: shortlistResultSourceKind ?? "live"
+      } as const;
+    }
+
+    if (activeScenario?.lastShortlistResponse) {
+      return {
+        shortlist: activeScenario.lastShortlistResponse,
+        generatedAt: activeScenario.lastRunAt ?? null,
+        sourceKind: "pinned"
+      } as const;
+    }
+
+    return {
+      shortlist: null,
+      generatedAt: null,
+      sourceKind: null
+    } as const;
+  }, [
+    activeScenario,
+    activeScenarioId,
+    shortlistResult,
+    shortlistResultGeneratedAt,
+    shortlistResultScenarioId,
+    shortlistResultSourceKind
+  ]);
 
   useEffect(() => {
     void loadHealth();
@@ -229,6 +263,7 @@ export default function App() {
 
   async function loadShortlist(nextForm: NicheShortlistFormState) {
     const targetScenarioId = activeScenarioIdRef.current;
+    const generatedAt = new Date().toISOString();
 
     try {
       setShortlistStatus("loading");
@@ -237,6 +272,9 @@ export default function App() {
       const response = await runNicheShortlist(requestPayload);
 
       setShortlistResult(response);
+      setShortlistResultScenarioId(targetScenarioId);
+      setShortlistResultGeneratedAt(generatedAt);
+      setShortlistResultSourceKind("live");
       setShortlistStatus("ready");
       setShortlistScenarios((current) => {
         const activeScenario = current.find((scenario) => scenario.scenarioId === targetScenarioId);
@@ -829,6 +867,13 @@ export default function App() {
             </p>
           </section>
         ) : null}
+
+        <ShortlistReportPanel
+          shortlist={shortlistReportSource.shortlist}
+          scenarioName={activeScenario?.name ?? null}
+          generatedAt={shortlistReportSource.generatedAt}
+          sourceKind={shortlistReportSource.sourceKind}
+        />
 
         <section className="panel control-panel">
           <div>

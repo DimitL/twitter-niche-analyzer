@@ -757,6 +757,74 @@ button {
   gap: 18px;
 }
 
+.report-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.report-panel__header,
+.report-panel__actions,
+.report-view__hero,
+.report-niche-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.report-panel__meta {
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+}
+
+.report-panel__actions {
+  flex-wrap: wrap;
+}
+
+.report-view {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  border-radius: 24px;
+  background: rgba(255, 252, 247, 0.78);
+  border: 1px solid rgba(78, 52, 34, 0.12);
+}
+
+.report-view__summary-grid,
+.report-view__niches,
+.report-niche-card__grid {
+  display: grid;
+  gap: 14px;
+}
+
+.report-view__summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-width: min(100%, 560px);
+}
+
+.report-view__niches {
+  gap: 16px;
+}
+
+.report-niche-card {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(72, 53, 41, 0.1);
+}
+
+.report-niche-card__header h4 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.report-niche-card__grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .shortlist-card {
   padding: 24px;
   border-radius: 28px;
@@ -1480,6 +1548,7 @@ button {
   .toggle-grid,
   .summary-grid,
   .summary-grid--labels,
+  .report-view__summary-grid,
   .shortlist-score-grid,
   .signal-grid,
   .strong-account-grid,
@@ -1489,10 +1558,13 @@ button {
   .scenario-compare-grid,
   .scenario-compare-card__meta,
   .scenario-compare-card__summary,
-  .scenario-diff-values {
+  .scenario-diff-values,
+  .report-niche-card__grid {
     grid-template-columns: 1fr;
   }
 
+  .report-panel__header,
+  .report-view__hero,
   .niche-card__header,
   .shortlist-card__header,
   .shortlist-card__footer,
@@ -1507,7 +1579,8 @@ button {
   .scenario-switcher__header,
   .scenario-card__header,
   .scenario-card__footer,
-  .scenario-compare-card__header {
+  .scenario-compare-card__header,
+  .report-niche-card__header {
     flex-direction: column;
   }
 

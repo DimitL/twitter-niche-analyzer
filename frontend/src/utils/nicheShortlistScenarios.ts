@@ -152,6 +152,25 @@ function parseRankedBucketSummary(value: unknown): NicheShortlistScenarioRankedB
   };
 }
 
+function parseShortlistResponse(value: unknown): NicheShortlistResponse | null {
+  if (
+    !isRecord(value) ||
+    typeof value.message !== "string" ||
+    typeof value.status !== "string" ||
+    !["ok", "partial", "error"].includes(value.status) ||
+    typeof value.shortlistSucceeded !== "boolean" ||
+    !Array.isArray(value.requestedBuckets) ||
+    !Array.isArray(value.rankedBuckets) ||
+    !isRecord(value.shortlistSummary) ||
+    !isRecord(value.timings) ||
+    !Array.isArray(value.notes)
+  ) {
+    return null;
+  }
+
+  return value as unknown as NicheShortlistResponse;
+}
+
 function createScenarioId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -304,7 +323,8 @@ function parseScenario(value: unknown): NicheShortlistScenario | null {
       ? value.lastRankedBuckets
           .map(parseRankedBucketSummary)
           .filter((bucket): bucket is NicheShortlistScenarioRankedBucketSummary => Boolean(bucket))
-      : undefined
+      : undefined,
+    lastShortlistResponse: parseShortlistResponse(value.lastShortlistResponse) ?? undefined
   };
 }
 
@@ -409,7 +429,8 @@ export function pinScenarioResult(
     formSnapshot: createFormSnapshotFromState(formState),
     lastRequestSnapshot: buildScenarioRequestSnapshot(request),
     lastResultSummary: buildScenarioResultSummary(response),
-    lastRankedBuckets: buildScenarioRankedBuckets(response)
+    lastRankedBuckets: buildScenarioRankedBuckets(response),
+    lastShortlistResponse: response
   };
 }
 

@@ -70,6 +70,7 @@ export interface NicheShortlistScenario {
   lastRequestSnapshot?: NicheShortlistScenarioRequestSnapshot;
   lastResultSummary?: NicheShortlistScenarioResultSummary;
   lastRankedBuckets?: NicheShortlistScenarioRankedBucketSummary[];
+  lastShortlistResponse?: NicheShortlistResponse;
 }
 
 export interface NicheShortlistRequest {
