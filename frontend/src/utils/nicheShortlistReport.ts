@@ -5,6 +5,8 @@ import type {
 import { buildNicheEvidencePack } from "./nicheEvidencePack.js";
 import type { CrossNichePositioningRecommendations } from "./nicheCrossPositioning.js";
 import { buildCrossNichePositioningRecommendations } from "./nicheCrossPositioning.js";
+import type { CrossNichePositioningPlaybook } from "./nichePositioningPlaybook.js";
+import { buildNichePositioningPlaybook } from "./nichePositioningPlaybook.js";
 import type { CrossNicheWhitespaceComparison } from "./nicheCrossWhitespace.js";
 import { buildCrossNicheWhitespaceComparison } from "./nicheCrossWhitespace.js";
 
@@ -19,6 +21,7 @@ export interface NicheShortlistReportModel {
   notes: string[];
   crossNicheWhitespace: CrossNicheWhitespaceComparison | null;
   crossNichePositioning: CrossNichePositioningRecommendations | null;
+  crossNichePlaybook: CrossNichePositioningPlaybook | null;
   niches: NicheShortlistReportNiche[];
 }
 
@@ -92,6 +95,10 @@ export function buildNicheShortlistReportModel(options: {
   sourceKind: "live" | "pinned";
 }): NicheShortlistReportModel {
   const crossNicheWhitespace = buildCrossNicheWhitespaceComparison(options.shortlist);
+  const crossNichePositioning = buildCrossNichePositioningRecommendations(
+    options.shortlist,
+    crossNicheWhitespace
+  );
   const niches = options.shortlist.rankedBuckets.map((bucket) => ({
     bucketId: bucket.bucketId,
     rank: bucket.rank,
@@ -119,9 +126,10 @@ export function buildNicheShortlistReportModel(options: {
     shortlistSummary: options.shortlist.shortlistSummary,
     notes: options.shortlist.notes,
     crossNicheWhitespace,
-    crossNichePositioning: buildCrossNichePositioningRecommendations(
+    crossNichePositioning,
+    crossNichePlaybook: buildNichePositioningPlaybook(
       options.shortlist,
-      crossNicheWhitespace
+      crossNichePositioning
     ),
     niches
   };
@@ -230,8 +238,44 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
+  if (report.crossNichePlaybook) {
+    lines.push(
+      "",
+      "## Практический playbook старта",
+      "",
+      report.crossNichePlaybook.playbookSummary
+    );
+
+    if (report.crossNichePlaybook.summary.easiestNicheToStartPostingIn) {
+      lines.push(
+        `- Где проще всего начать: ${report.crossNichePlaybook.summary.easiestNicheToStartPostingIn.bucketLabel}`
+      );
+    }
+
+    if (report.crossNichePlaybook.summary.nicheWithClearestPositioningAngle) {
+      lines.push(
+        `- Где угол входа читается яснее всего: ${report.crossNichePlaybook.summary.nicheWithClearestPositioningAngle.bucketLabel}`
+      );
+    }
+
+    if (report.crossNichePlaybook.summary.nicheWithStrongestContentRepeatability) {
+      lines.push(
+        `- Где сильнее повторяемость контента: ${report.crossNichePlaybook.summary.nicheWithStrongestContentRepeatability.bucketLabel}`
+      );
+    }
+
+    if (report.crossNichePlaybook.globalConfidenceNote) {
+      lines.push(
+        `- Ограничение уверенности: ${report.crossNichePlaybook.globalConfidenceNote}`
+      );
+    }
+  }
+
   report.niches.forEach((niche, index) => {
     const positioning = report.crossNichePositioning?.perBucketRecommendations.find(
+      (item) => item.bucketId === niche.bucketId
+    );
+    const playbook = report.crossNichePlaybook?.perBucketPlaybooks.find(
       (item) => item.bucketId === niche.bucketId
     );
 
@@ -282,6 +326,44 @@ export function buildNicheShortlistMarkdownReport(
 
     if (positioning?.positioningConfidenceNote) {
       lines.push(`- Уровень уверенности: ${positioning.positioningConfidenceNote}`);
+    }
+
+    if (playbook) {
+      lines.push(
+        "",
+        "### Практический playbook старта",
+        "",
+        `- Playbook: ${playbook.playbookTitle}`,
+        `- Лучший угол входа: ${playbook.bestEntryAngle?.label ?? "н/д"}`
+      );
+
+      if (playbook.starterContentDirections.length > 0) {
+        lines.push("", "#### Стартовые направления", "");
+        playbook.starterContentDirections.forEach((direction) => {
+          lines.push(`- ${direction}`);
+        });
+      }
+
+      if (playbook.firstPostIdeas.length > 0) {
+        lines.push("", "#### Первые посты", "");
+        playbook.firstPostIdeas.forEach((idea) => {
+          lines.push(`- ${idea}`);
+        });
+      }
+
+      if (playbook.weakAngleWarnings.length > 0) {
+        lines.push("", "#### Какие углы не стоит переигрывать", "");
+        playbook.weakAngleWarnings.forEach((warning) => {
+          lines.push(`- ${warning}`);
+        });
+      }
+
+      if (playbook.playbookConfidenceNote) {
+        lines.push(
+          "",
+          `- Ограничение уверенности playbook: ${playbook.playbookConfidenceNote}`
+        );
+      }
     }
 
     lines.push(

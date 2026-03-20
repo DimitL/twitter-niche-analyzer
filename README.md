@@ -37,6 +37,7 @@
 - first niche-level content gaps / whitespace hints слой для underrepresented content patterns и positioning hints внутри shortlisted niche evidence pack
 - first cross-niche whitespace comparison слой для сравнения shortlisted niches по более открытым и более перегретым content angles
 - first cross-niche positioning recommendation слой для рекомендации наиболее логичного контентного угла входа в каждую shortlisted niche
+- first positioning playbook слой для перевода positioning-рекомендаций в стартовые content directions и идеи первых постов по каждой shortlisted niche
 - first export/report слой для clean report view, Markdown copy и JSON export текущего shortlist или pinned scenario result
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
@@ -117,6 +118,7 @@
 │   │   ├── components
 │   │   │   ├── BucketCardEditor.tsx
 │   │   │   ├── BucketEditor.tsx
+│   │   │   ├── CrossNichePositioningPlaybook.tsx
 │   │   │   ├── CrossNichePositioningRecommendations.tsx
 │   │   │   ├── CrossNicheWhitespaceComparison.tsx
 │   │   │   ├── HandleListEditor.tsx
@@ -137,6 +139,7 @@
 │   │   │   ├── nicheShortlistBucketEditor.ts
 │   │   │   ├── nicheEvidencePack.ts
 │   │   │   ├── nicheCrossPositioning.ts
+│   │   │   ├── nichePositioningPlaybook.ts
 │   │   │   ├── nicheCrossWhitespace.ts
 │   │   │   ├── nicheShortlistReport.ts
 │   │   │   └── nicheShortlistScenarios.ts
@@ -823,6 +826,7 @@ http://localhost:5173
 - открыть `Evidence pack` внутри одной из shortlisted ниш и проверить supporting accounts roster, score drivers, caution flags, затем посмотреть niche-level archetype rollup и новый whitespace-блок с underrepresented patterns и positioning hints, а после этого переключить режим `Свежие` / `Лучшие по реакции` и сверить pattern tags, account archetypes и короткие explanations
 - после summary card открыть новый блок `Где в shortlist углы выглядят свободнее` и сравнить повторяющиеся whitespace-углы, нишеспецифичные свободные углы и более перегретые content angles между shortlisted niches
 - затем открыть новый блок `Как лучше заходить в каждую нишу` и сверить рекомендуемые углы входа, главный угол, объяснение того, почему он подходит, и ключевые риски
+- затем открыть новый блок `Стартовый playbook по shortlisted нишам` и проверить лучший угол входа, стартовые направления, идеи первых постов и weak-angle warnings по каждой нише
 - открыть блок `Сохранить shortlist вне live UI`, нажать `Открыть отчёт`, затем проверить `Скопировать Markdown` и `Скачать JSON`
 - нажать `Добавить к сравнению` у 1-2 дополнительных сценариев и проверить блок `Сравнение сохранённых сценариев`
 - в `Scenario Diff` сравнить flags, bucket labels, handle counts и top summary без ручного переключения editor-а
@@ -843,6 +847,7 @@ http://localhost:5173
 - у shortlisted niche появляется whitespace/gaps section: underrepresented patterns, short whitespace hints, positioning ideas и confidence note
 - появляется cross-niche whitespace comparison section: общие whitespace themes, niche-specific свободные углы, comparatively open angles и crowded angles по shortlisted niches
 - появляется cross-niche positioning section: чипы рекомендуемых углов входа, главный угол на нишу, объяснение того, почему угол подходит, риски и confidence note
+- появляется positioning playbook section: лучший угол входа, 5-10 starter directions, 3-5 first-post ideas, weak-angle warnings и confidence note по каждой shortlisted niche
 - появляется export/report panel с clean report view, Markdown copy и JSON export по текущему shortlist или pinned scenario result
 - pinned result snapshot у каждого локального сценария
 - отдельный comparison panel для 2-3 сценариев с lightweight diff по настройкам и последнему shortlist result
@@ -859,6 +864,7 @@ http://localhost:5173
 - evidence pack и top supporting accounts roster пока строятся поверх уже существующего shortlist payload и не добавляют отдельный deep-validation pipeline
 - cross-niche whitespace comparison пока тоже полностью rule-based и строится поверх текущего shortlist payload, без отдельного NLP или embedding слоя
 - cross-niche positioning recommendations тоже полностью rule-based и строятся поверх текущего shortlist + whitespace outputs, поэтому это именно decision support, а не окончательный стратегический вывод
+- positioning playbook тоже пока полностью rule-based и строится поверх positioning, whitespace и archetype outputs без отдельного LLM generation pipeline, поэтому его лучше читать как practical starting map, а не как окончательный контент-план
 - UI ещё не умеет автоматически находить topics
 - текущий frontend только визуализирует existing backend shortlist route и не меняет scoring model
 - если bucket дал меньше 10 usable supporting accounts, UI честно покажет только доступный roster без искусственного заполнения

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { NicheShortlistResponse } from "../types/nicheShortlist.js";
+import { CrossNichePositioningPlaybook } from "./CrossNichePositioningPlaybook.js";
 import { CrossNichePositioningRecommendations } from "./CrossNichePositioningRecommendations.js";
 import { CrossNicheWhitespaceComparison } from "./CrossNicheWhitespaceComparison.js";
 import {
@@ -214,6 +215,13 @@ export function ShortlistReportPanel({
                 {report.crossNichePositioning ? (
                   <CrossNichePositioningRecommendations
                     recommendations={report.crossNichePositioning}
+                    variant="embedded"
+                  />
+                ) : null}
+
+                {report.crossNichePlaybook ? (
+                  <CrossNichePositioningPlaybook
+                    playbook={report.crossNichePlaybook}
                     variant="embedded"
                   />
                 ) : null}

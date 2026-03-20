@@ -7,6 +7,7 @@ import {
   type NicheShortlistPresetPack
 } from "./data/nicheShortlistPresetLibrary.js";
 import { BucketEditor } from "./components/BucketEditor.js";
+import { CrossNichePositioningPlaybook } from "./components/CrossNichePositioningPlaybook.js";
 import { CrossNichePositioningRecommendations } from "./components/CrossNichePositioningRecommendations.js";
 import { CrossNicheWhitespaceComparison } from "./components/CrossNicheWhitespaceComparison.js";
 import { NicheCard } from "./components/NicheCard.js";
@@ -47,6 +48,7 @@ import {
   updateScenarioFromFormState
 } from "./utils/nicheShortlistScenarios.js";
 import { buildCrossNichePositioningRecommendations } from "./utils/nicheCrossPositioning.js";
+import { buildNichePositioningPlaybook } from "./utils/nichePositioningPlaybook.js";
 import { buildCrossNicheWhitespaceComparison } from "./utils/nicheCrossWhitespace.js";
 
 const initialRequest: AnalysisRequest = {
@@ -239,6 +241,16 @@ export default function App() {
           )
         : null,
     [shortlistCrossWhitespace, shortlistResult]
+  );
+  const shortlistPositioningPlaybook = useMemo(
+    () =>
+      shortlistResult
+        ? buildNichePositioningPlaybook(
+            shortlistResult,
+            shortlistCrossPositioning
+          )
+        : null,
+    [shortlistCrossPositioning, shortlistResult]
   );
 
   useEffect(() => {
@@ -928,6 +940,12 @@ export default function App() {
             {shortlistCrossPositioning ? (
               <CrossNichePositioningRecommendations
                 recommendations={shortlistCrossPositioning}
+              />
+            ) : null}
+
+            {shortlistPositioningPlaybook ? (
+              <CrossNichePositioningPlaybook
+                playbook={shortlistPositioningPlaybook}
               />
             ) : null}
 
