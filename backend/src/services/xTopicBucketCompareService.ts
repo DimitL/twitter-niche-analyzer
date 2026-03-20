@@ -64,6 +64,10 @@ interface SuccessfulTopicBucketAccountSummary {
   recentTweetReferencesCount: number;
   recentTweetReferences: ComparedXAccountResult["recentTweetReferences"];
   recentTweetReferencesNote: string | null;
+  bestPerformingTweetReferencesCount: number;
+  bestPerformingTweetReferences:
+    ComparedXAccountResult["bestPerformingTweetReferences"];
+  bestPerformingTweetReferencesNote: string | null;
 }
 
 interface FailedTopicBucketAccountSummary {
@@ -298,7 +302,11 @@ function buildSuccessfulAccountSummary(
     usablePostCount: account.filtersApplied.usablePostCount,
     recentTweetReferencesCount: account.recentTweetReferencesCount,
     recentTweetReferences: account.recentTweetReferences,
-    recentTweetReferencesNote: account.recentTweetReferencesNote
+    recentTweetReferencesNote: account.recentTweetReferencesNote,
+    bestPerformingTweetReferencesCount:
+      account.bestPerformingTweetReferencesCount,
+    bestPerformingTweetReferences: account.bestPerformingTweetReferences,
+    bestPerformingTweetReferencesNote: account.bestPerformingTweetReferencesNote
   };
 }
 

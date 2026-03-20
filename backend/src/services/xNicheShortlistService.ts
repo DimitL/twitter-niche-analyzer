@@ -84,6 +84,29 @@ interface XNicheSupportingAccountSummary {
     };
   }>;
   recentTweetReferencesNote: string | null;
+  bestPerformingTweetReferencesCount: number;
+  bestPerformingTweetReferences: Array<{
+    tweetUrl: string | null;
+    publishedAt: string | null;
+    tweetTextSnippet: string | null;
+    language: string | null;
+    likeCount: {
+      rawText: string | null;
+      normalizedNumber: number | null;
+      available: boolean;
+    };
+    repostCount: {
+      rawText: string | null;
+      normalizedNumber: number | null;
+      available: boolean;
+    };
+    replyCount: {
+      rawText: string | null;
+      normalizedNumber: number | null;
+      available: boolean;
+    };
+  }>;
+  bestPerformingTweetReferencesNote: string | null;
 }
 
 interface XNicheRankingComponent {
@@ -523,7 +546,12 @@ function buildTopSupportingAccounts(
       reason: buildSupportingAccountReason(account),
       recentTweetReferencesCount: account.recentTweetReferencesCount,
       recentTweetReferences: account.recentTweetReferences,
-      recentTweetReferencesNote: account.recentTweetReferencesNote
+      recentTweetReferencesNote: account.recentTweetReferencesNote,
+      bestPerformingTweetReferencesCount:
+        account.bestPerformingTweetReferencesCount,
+      bestPerformingTweetReferences: account.bestPerformingTweetReferences,
+      bestPerformingTweetReferencesNote:
+        account.bestPerformingTweetReferencesNote
     }));
 }
 

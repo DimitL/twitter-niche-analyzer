@@ -29,6 +29,7 @@
 - first shortlisted niche evidence-pack слой для объяснимого evidence trail по каждой shortlisted niche прямо во frontend
 - first top-10 supporting accounts roster слой для expanded evidence-pack view с up to 10 supporting accounts на shortlisted niche
 - first supporting-account evidence snippet слой для показа 1-2 recent tweet references у supporting accounts внутри evidence-pack
+- first supporting-account tweet reference mode слой для переключения snippets между `recent` и `best-performing`
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -803,7 +804,7 @@ http://localhost:5173
 - при первом запуске оставить `limit=1` и `topN=2`
 - нажать `Запустить shortlist ниш`
 - после успешного run убедиться, что активный сценарий получил pinned result с `Последний run`, `Best overall` и `Shortlist size`
-- открыть `Evidence pack` внутри одной из shortlisted ниш и проверить supporting accounts roster, score drivers, caution flags, а у аккаунтов раскрыть `Недавние твиты`
+- открыть `Evidence pack` внутри одной из shortlisted ниш и проверить supporting accounts roster, score drivers, caution flags, а затем переключить режим `Свежие` / `Лучшие по реакции`
 - нажать `Добавить к сравнению` у 1-2 дополнительных сценариев и проверить блок `Сравнение сохранённых сценариев`
 - в `Scenario Diff` сравнить flags, bucket labels, handle counts и top summary без ручного переключения editor-а
 
@@ -816,9 +817,10 @@ http://localhost:5173
 - strongest accounts
 - top supporting accounts roster до 10 аккаунтов на shortlisted niche, если хватает account-level data
 - до 2 recent tweet references у каждого supporting account, если usable posts доступны
+- отдельный режим `Лучшие по реакции` для поддержки manual review не только по свежести, но и по силе сигнала
 - pinned result snapshot у каждого локального сценария
 - отдельный comparison panel для 2-3 сценариев с lightweight diff по настройкам и последнему shortlist result
-- внутри shortlisted niche cards можно открыть `Evidence pack` и увидеть up to 10 supporting accounts, relevance notes, score chips, 1-2 recent tweet references, coverage notes и recommended next action
+- внутри shortlisted niche cards можно открыть `Evidence pack` и увидеть up to 10 supporting accounts, relevance notes, score chips, 1-2 recent или best-performing tweet references, coverage notes и recommended next action
 
 Ограничения текущего frontend шага:
 - buckets пока задаются только вручную через structured editor
@@ -831,6 +833,7 @@ http://localhost:5173
 - текущий frontend только визуализирует existing backend shortlist route и не меняет scoring model
 - если bucket дал меньше 10 usable supporting accounts, UI честно покажет только доступный roster без искусственного заполнения
 - если у supporting account нет подходящих usable posts, UI честно покажет, что recent tweet references пока недоступны
+- если metric-rich posts мало, режим `Лучшие по реакции` может частично дополняться recent references и прямо сообщает об этом
 - следующий UI шаг лучше делать уже с более явным cross-scenario evidence/history view, чтобы сравнивать не только summary, но и закреплённые shortlist cards по нескольким прогонам
 
 ## Как проверить X profile shell

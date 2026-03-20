@@ -947,6 +947,34 @@ button {
   margin-top: 12px;
 }
 
+.snippet-mode-switch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.snippet-mode-button {
+  border: 1px solid rgba(72, 53, 41, 0.12);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(72, 53, 41, 0.05);
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.snippet-mode-button:hover {
+  transform: translateY(-1px);
+}
+
+.snippet-mode-button--active {
+  background: rgba(24, 51, 63, 0.12);
+  color: #18333f;
+  border-color: rgba(24, 51, 63, 0.18);
+}
+
 .supporting-account-card {
   display: grid;
   gap: 12px;

@@ -65,6 +65,9 @@ export interface ComparedXAccountResult {
   recentTweetReferencesCount: number;
   recentTweetReferences: ComparedXAccountTweetReference[];
   recentTweetReferencesNote: string | null;
+  bestPerformingTweetReferencesCount: number;
+  bestPerformingTweetReferences: ComparedXAccountTweetReference[];
+  bestPerformingTweetReferencesNote: string | null;
   error: XMultiAccountCompareErrorDetails | null;
   notes: string[];
   totalMs: number;
@@ -263,6 +266,40 @@ function getRecentTweetPublishedTimestamp(tweet: ScoredUsableXAccountTweet) {
   return parsedTimestamp;
 }
 
+function getMetricNumber(
+  metric: ScoredUsableXAccountTweet["likeCount"]
+) {
+  return metric.normalizedNumber ?? 0;
+}
+
+function getTweetEngagementProxy(tweet: ScoredUsableXAccountTweet) {
+  const metricValues = [
+    tweet.likeCount.normalizedNumber,
+    tweet.repostCount.normalizedNumber,
+    tweet.replyCount.normalizedNumber
+  ].filter((value): value is number => value !== null);
+
+  if (metricValues.length === 0) {
+    return null;
+  }
+
+  return metricValues.reduce((sum, value) => sum + value, 0);
+}
+
+function createTweetReference(
+  tweet: ScoredUsableXAccountTweet
+): ComparedXAccountTweetReference {
+  return {
+    tweetUrl: tweet.tweetUrl,
+    publishedAt: tweet.publishedAt,
+    tweetTextSnippet: buildTweetTextSnippet(tweet.tweetText),
+    language: tweet.language,
+    likeCount: tweet.likeCount,
+    repostCount: tweet.repostCount,
+    replyCount: tweet.replyCount
+  };
+}
+
 function buildRecentTweetReferences(
   usableTweets: ScoredUsableXAccountTweet[]
 ): ComparedXAccountTweetReference[] {
@@ -278,23 +315,137 @@ function buildRecentTweetReferences(
       return left.sortIndex - right.sortIndex;
     })
     .slice(0, 2)
-    .map((tweet) => ({
-      tweetUrl: tweet.tweetUrl,
-      publishedAt: tweet.publishedAt,
-      tweetTextSnippet: buildTweetTextSnippet(tweet.tweetText),
-      language: tweet.language,
-      likeCount: tweet.likeCount,
-      repostCount: tweet.repostCount,
-      replyCount: tweet.replyCount
-    }));
+    .map(createTweetReference);
 }
 
 function buildRecentTweetReferencesNote(recentTweetReferencesCount: number) {
-  if (recentTweetReferencesCount > 0) {
+  if (recentTweetReferencesCount >= 2) {
     return null;
   }
 
+  if (recentTweetReferencesCount === 1) {
+    return "Для режима recent доступен только один подходящий usable tweet reference.";
+  }
+
   return "Подходящие recent tweet references пока недоступны: usable sample для этого аккаунта слишком мал или неполон.";
+}
+
+function sortTweetsByBestPerforming(
+  left: ScoredUsableXAccountTweet,
+  right: ScoredUsableXAccountTweet
+) {
+  const engagementDifference =
+    (getTweetEngagementProxy(right) ?? Number.NEGATIVE_INFINITY) -
+    (getTweetEngagementProxy(left) ?? Number.NEGATIVE_INFINITY);
+
+  if (engagementDifference !== 0) {
+    return engagementDifference;
+  }
+
+  const likeDifference = getMetricNumber(right.likeCount) - getMetricNumber(left.likeCount);
+
+  if (likeDifference !== 0) {
+    return likeDifference;
+  }
+
+  const repostDifference =
+    getMetricNumber(right.repostCount) - getMetricNumber(left.repostCount);
+
+  if (repostDifference !== 0) {
+    return repostDifference;
+  }
+
+  const replyDifference = getMetricNumber(right.replyCount) - getMetricNumber(left.replyCount);
+
+  if (replyDifference !== 0) {
+    return replyDifference;
+  }
+
+  const timestampDifference =
+    getRecentTweetPublishedTimestamp(right) - getRecentTweetPublishedTimestamp(left);
+
+  if (timestampDifference !== 0) {
+    return timestampDifference;
+  }
+
+  return left.sortIndex - right.sortIndex;
+}
+
+function buildBestPerformingTweetReferenceData(
+  usableTweets: ScoredUsableXAccountTweet[]
+) {
+  const metricRichTweets = usableTweets.filter(
+    (tweet) => getTweetEngagementProxy(tweet) !== null
+  );
+  const selectedTweets = [...metricRichTweets]
+    .sort(sortTweetsByBestPerforming)
+    .slice(0, 2);
+
+  if (selectedTweets.length >= 2) {
+    return {
+      count: selectedTweets.length,
+      references: selectedTweets.map(createTweetReference),
+      note: null
+    };
+  }
+
+  const selectedTweetUrls = new Set(
+    selectedTweets.map((tweet) => tweet.tweetUrl ?? `${tweet.tweetId ?? "unknown"}-${tweet.sortIndex}`)
+  );
+  const fallbackTweets = [...usableTweets]
+    .sort((left, right) => {
+      const timestampDifference =
+        getRecentTweetPublishedTimestamp(right) - getRecentTweetPublishedTimestamp(left);
+
+      if (timestampDifference !== 0) {
+        return timestampDifference;
+      }
+
+      return left.sortIndex - right.sortIndex;
+    })
+    .filter(
+      (tweet) =>
+        !selectedTweetUrls.has(
+          tweet.tweetUrl ?? `${tweet.tweetId ?? "unknown"}-${tweet.sortIndex}`
+        )
+    )
+    .slice(0, Math.max(2 - selectedTweets.length, 0));
+
+  const finalTweets = [...selectedTweets, ...fallbackTweets].slice(0, 2);
+
+  if (finalTweets.length === 0) {
+    return {
+      count: 0,
+      references: [] as ComparedXAccountTweetReference[],
+      note:
+        "Для режима best-performing пока не хватает usable tweet references с metric data."
+    };
+  }
+
+  if (selectedTweets.length === 0) {
+    return {
+      count: finalTweets.length,
+      references: finalTweets.map(createTweetReference),
+      note:
+        "Для режима best-performing метрик оказалось недостаточно, поэтому показаны ближайшие recent references."
+    };
+  }
+
+  if (finalTweets.length < 2) {
+    return {
+      count: finalTweets.length,
+      references: finalTweets.map(createTweetReference),
+      note:
+        "Для режима best-performing найден только один надёжный tweet reference."
+    };
+  }
+
+  return {
+    count: finalTweets.length,
+    references: finalTweets.map(createTweetReference),
+    note:
+      "Режим best-performing частично дополнен recent references, потому что metric-rich tweets доступны не для всех usable posts."
+  };
 }
 
 function getSortableMetricValue(
@@ -400,6 +551,9 @@ async function compareSingleAccount(
       logger
     );
     const recentTweetReferences = buildRecentTweetReferences(result.usableTweets);
+    const bestPerformingTweetReferences = buildBestPerformingTweetReferenceData(
+      result.usableTweets
+    );
 
     return {
       request,
@@ -415,6 +569,9 @@ async function compareSingleAccount(
       recentTweetReferencesNote: buildRecentTweetReferencesNote(
         recentTweetReferences.length
       ),
+      bestPerformingTweetReferencesCount: bestPerformingTweetReferences.count,
+      bestPerformingTweetReferences: bestPerformingTweetReferences.references,
+      bestPerformingTweetReferencesNote: bestPerformingTweetReferences.note,
       error: result.error,
       notes: result.notes,
       totalMs: result.timings.totalMs
@@ -433,6 +590,10 @@ async function compareSingleAccount(
       recentTweetReferences: [],
       recentTweetReferencesNote:
         "Подходящие recent tweet references не удалось собрать из-за ошибки account scoring.",
+      bestPerformingTweetReferencesCount: 0,
+      bestPerformingTweetReferences: [],
+      bestPerformingTweetReferencesNote:
+        "Подходящие best-performing references не удалось собрать из-за ошибки account scoring.",
       error: serializeError(error),
       notes: [
         `Comparison для ${request.label} завершился исключением до возврата scoring result.`

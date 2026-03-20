@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { buildNicheEvidencePack } from "../utils/nicheEvidencePack.js";
 import type {
+  NicheShortlistSupportingAccount,
   NicheShortlistSupportingTweetReference,
   RankedNicheShortlistBucket
 } from "../types/nicheShortlist.js";
@@ -7,6 +9,8 @@ import type {
 interface NicheEvidencePackProps {
   bucket: RankedNicheShortlistBucket;
 }
+
+type SupportingAccountSnippetMode = "recent" | "bestPerforming";
 
 function formatPublishedAt(value: string | null) {
   if (!value) {
@@ -41,8 +45,33 @@ function formatMetricChip(
   return `${label} ${value}`;
 }
 
+function getSnippetModeLabel(mode: SupportingAccountSnippetMode) {
+  return mode === "recent" ? "Свежие" : "Лучшие по реакции";
+}
+
+function getTweetReferencesByMode(
+  account: NicheShortlistSupportingAccount,
+  mode: SupportingAccountSnippetMode
+) {
+  if (mode === "bestPerforming") {
+    return {
+      count: account.bestPerformingTweetReferencesCount,
+      references: account.bestPerformingTweetReferences,
+      note: account.bestPerformingTweetReferencesNote
+    };
+  }
+
+  return {
+    count: account.recentTweetReferencesCount,
+    references: account.recentTweetReferences,
+    note: account.recentTweetReferencesNote
+  };
+}
+
 export function NicheEvidencePack({ bucket }: NicheEvidencePackProps) {
   const evidencePack = buildNicheEvidencePack(bucket);
+  const [snippetMode, setSnippetMode] =
+    useState<SupportingAccountSnippetMode>("recent");
 
   return (
     <details className="evidence-pack">
@@ -127,120 +156,146 @@ export function NicheEvidencePack({ bucket }: NicheEvidencePackProps) {
             <span>Топ поддерживающих аккаунтов</span>
             <p className="section-copy">{evidencePack.supportingAccountsAvailabilityNote}</p>
 
+            <div className="snippet-mode-switch" aria-label="Режим твитов">
+              {([
+                "recent",
+                "bestPerforming"
+              ] as SupportingAccountSnippetMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={`snippet-mode-button ${snippetMode === mode ? "snippet-mode-button--active" : ""}`}
+                  aria-pressed={snippetMode === mode}
+                  onClick={() => setSnippetMode(mode)}
+                >
+                  {getSnippetModeLabel(mode)}
+                </button>
+              ))}
+            </div>
+
             {evidencePack.topSupportingAccounts.length > 0 ? (
               <div className="evidence-pack__supporting-list">
-                {evidencePack.topSupportingAccounts.map((account, index) => (
-                  <div
-                    key={`${bucket.bucketId}-${account.handle ?? "unknown"}-${index}`}
-                    className="supporting-account-card"
-                  >
-                    <div className="supporting-account-card__header">
-                      <div>
-                        <strong>
-                          {account.displayName ?? account.handle ?? "Без имени"}
-                        </strong>
-                        <span className="supporting-account-card__handle">
-                          {account.handle ? `@${account.handle}` : "handle недоступен"}
+                {evidencePack.topSupportingAccounts.map((account, index) => {
+                  const selectedReferences = getTweetReferencesByMode(
+                    account,
+                    snippetMode
+                  );
+
+                  return (
+                    <div
+                      key={`${bucket.bucketId}-${account.handle ?? "unknown"}-${index}`}
+                      className="supporting-account-card"
+                    >
+                      <div className="supporting-account-card__header">
+                        <div>
+                          <strong>
+                            {account.displayName ?? account.handle ?? "Без имени"}
+                          </strong>
+                          <span className="supporting-account-card__handle">
+                            {account.handle ? `@${account.handle}` : "handle недоступен"}
+                          </span>
+                        </div>
+
+                        <span className="decision-chip decision-chip--neutral">
+                          #{index + 1}
                         </span>
                       </div>
 
-                      <span className="decision-chip decision-chip--neutral">
-                        #{index + 1}
-                      </span>
-                    </div>
+                      <p className="supporting-account-card__role">{account.relevanceNote}</p>
+                      <p>{account.reason}</p>
 
-                    <p className="supporting-account-card__role">{account.relevanceNote}</p>
-                    <p>{account.reason}</p>
+                      <div className="supporting-account-card__scores">
+                        <span className="score-chip">
+                          Overall {account.overallAccountScore.toFixed(1)}
+                        </span>
+                        <span className="score-chip">
+                          Engagement {account.engagementEfficiencyScore.toFixed(1)}
+                        </span>
+                        <span className="score-chip">
+                          Reach {account.reachScore.toFixed(1)}
+                        </span>
+                        <span className="score-chip">
+                          Consistency {account.consistencyScore.toFixed(1)}
+                        </span>
+                      </div>
 
-                    <div className="supporting-account-card__scores">
-                      <span className="score-chip">
-                        Overall {account.overallAccountScore.toFixed(1)}
-                      </span>
-                      <span className="score-chip">
-                        Engagement {account.engagementEfficiencyScore.toFixed(1)}
-                      </span>
-                      <span className="score-chip">
-                        Reach {account.reachScore.toFixed(1)}
-                      </span>
-                      <span className="score-chip">
-                        Consistency {account.consistencyScore.toFixed(1)}
-                      </span>
-                    </div>
+                      {selectedReferences.references.length > 0 ? (
+                        <details className="supporting-account-card__tweets">
+                          <summary className="supporting-account-card__tweets-summary">
+                            {getSnippetModeLabel(snippetMode)} твиты ({selectedReferences.count})
+                          </summary>
 
-                    {account.recentTweetReferences.length > 0 ? (
-                      <details className="supporting-account-card__tweets">
-                        <summary className="supporting-account-card__tweets-summary">
-                          Недавние твиты ({account.recentTweetReferencesCount})
-                        </summary>
+                          <div className="supporting-account-card__tweet-list">
+                            {selectedReferences.references.map(
+                              (tweetReference, tweetIndex) => {
+                                const metricChips = [
+                                  formatMetricChip("Лайки", tweetReference.likeCount),
+                                  formatMetricChip("Репосты", tweetReference.repostCount),
+                                  formatMetricChip("Ответы", tweetReference.replyCount)
+                                ].filter((value): value is string => Boolean(value));
 
-                        <div className="supporting-account-card__tweet-list">
-                          {account.recentTweetReferences.map((tweetReference, tweetIndex) => {
-                            const metricChips = [
-                              formatMetricChip("Лайки", tweetReference.likeCount),
-                              formatMetricChip("Репосты", tweetReference.repostCount),
-                              formatMetricChip("Ответы", tweetReference.replyCount)
-                            ].filter((value): value is string => Boolean(value));
-
-                            return (
-                              <div
-                                key={`${bucket.bucketId}-${account.handle ?? "unknown"}-tweet-${tweetIndex}`}
-                                className="supporting-tweet-card"
-                              >
-                                <div className="supporting-tweet-card__meta">
-                                  <span>{formatPublishedAt(tweetReference.publishedAt)}</span>
-                                  {tweetReference.language ? (
-                                    <span>Язык: {tweetReference.language}</span>
-                                  ) : null}
-                                </div>
-
-                                <p>
-                                  {tweetReference.tweetTextSnippet ??
-                                    "Короткий текстовый snippet для этого твита пока недоступен."}
-                                </p>
-
-                                {metricChips.length > 0 ? (
-                                  <div className="supporting-tweet-card__metrics">
-                                    {metricChips.map((metricChip) => (
-                                      <span key={metricChip} className="score-chip">
-                                        {metricChip}
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : null}
-
-                                {tweetReference.tweetUrl ? (
-                                  <a
-                                    className="supporting-account-card__link"
-                                    href={tweetReference.tweetUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
+                                return (
+                                  <div
+                                    key={`${bucket.bucketId}-${account.handle ?? "unknown"}-${snippetMode}-tweet-${tweetIndex}`}
+                                    className="supporting-tweet-card"
                                   >
-                                    Открыть твит
-                                  </a>
-                                ) : null}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </details>
-                    ) : account.recentTweetReferencesNote ? (
-                      <p className="supporting-account-card__note">
-                        {account.recentTweetReferencesNote}
-                      </p>
-                    ) : null}
+                                    <div className="supporting-tweet-card__meta">
+                                      <span>{formatPublishedAt(tweetReference.publishedAt)}</span>
+                                      {tweetReference.language ? (
+                                        <span>Язык: {tweetReference.language}</span>
+                                      ) : null}
+                                    </div>
 
-                    {account.profileUrl ? (
-                      <a
-                        className="supporting-account-card__link"
-                        href={account.profileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Открыть профиль
-                      </a>
-                    ) : null}
-                  </div>
-                ))}
+                                    <p>
+                                      {tweetReference.tweetTextSnippet ??
+                                        "Короткий текстовый snippet для этого твита пока недоступен."}
+                                    </p>
+
+                                    {metricChips.length > 0 ? (
+                                      <div className="supporting-tweet-card__metrics">
+                                        {metricChips.map((metricChip) => (
+                                          <span key={metricChip} className="score-chip">
+                                            {metricChip}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    ) : null}
+
+                                    {tweetReference.tweetUrl ? (
+                                      <a
+                                        className="supporting-account-card__link"
+                                        href={tweetReference.tweetUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                      >
+                                        Открыть твит
+                                      </a>
+                                    ) : null}
+                                  </div>
+                                );
+                              }
+                            )}
+                          </div>
+                        </details>
+                      ) : selectedReferences.note ? (
+                        <p className="supporting-account-card__note">
+                          {selectedReferences.note}
+                        </p>
+                      ) : null}
+
+                      {account.profileUrl ? (
+                        <a
+                          className="supporting-account-card__link"
+                          href={account.profileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Открыть профиль
+                        </a>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="section-copy">

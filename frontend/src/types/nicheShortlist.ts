@@ -117,6 +117,9 @@ export interface NicheShortlistSupportingAccount {
   recentTweetReferencesCount: number;
   recentTweetReferences: NicheShortlistSupportingTweetReference[];
   recentTweetReferencesNote: string | null;
+  bestPerformingTweetReferencesCount: number;
+  bestPerformingTweetReferences: NicheShortlistSupportingTweetReference[];
+  bestPerformingTweetReferencesNote: string | null;
 }
 
 export interface NicheShortlistSupportingTweetReference {
