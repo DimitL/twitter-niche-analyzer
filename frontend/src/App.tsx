@@ -9,6 +9,7 @@ import {
 import { BucketEditor } from "./components/BucketEditor.js";
 import { CrossNichePositioningPlaybook } from "./components/CrossNichePositioningPlaybook.js";
 import { CrossNichePositioningRecommendations } from "./components/CrossNichePositioningRecommendations.js";
+import { CrossNicheRepeatableContentSeries } from "./components/CrossNicheRepeatableContentSeries.js";
 import { CrossNicheWhitespaceComparison } from "./components/CrossNicheWhitespaceComparison.js";
 import { NicheCard } from "./components/NicheCard.js";
 import { NicheShortlistCard } from "./components/NicheShortlistCard.js";
@@ -49,6 +50,7 @@ import {
 } from "./utils/nicheShortlistScenarios.js";
 import { buildCrossNichePositioningRecommendations } from "./utils/nicheCrossPositioning.js";
 import { buildNichePositioningPlaybook } from "./utils/nichePositioningPlaybook.js";
+import { buildNicheRepeatableContentSeries } from "./utils/nicheRepeatableContentSeries.js";
 import { buildCrossNicheWhitespaceComparison } from "./utils/nicheCrossWhitespace.js";
 
 const initialRequest: AnalysisRequest = {
@@ -251,6 +253,16 @@ export default function App() {
           )
         : null,
     [shortlistCrossPositioning, shortlistResult]
+  );
+  const shortlistRepeatableSeries = useMemo(
+    () =>
+      shortlistResult
+        ? buildNicheRepeatableContentSeries(
+            shortlistResult,
+            shortlistPositioningPlaybook
+          )
+        : null,
+    [shortlistPositioningPlaybook, shortlistResult]
   );
 
   useEffect(() => {
@@ -946,6 +958,12 @@ export default function App() {
             {shortlistPositioningPlaybook ? (
               <CrossNichePositioningPlaybook
                 playbook={shortlistPositioningPlaybook}
+              />
+            ) : null}
+
+            {shortlistRepeatableSeries ? (
+              <CrossNicheRepeatableContentSeries
+                series={shortlistRepeatableSeries}
               />
             ) : null}
 

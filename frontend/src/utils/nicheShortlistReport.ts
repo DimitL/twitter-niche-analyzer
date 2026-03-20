@@ -7,6 +7,8 @@ import type { CrossNichePositioningRecommendations } from "./nicheCrossPositioni
 import { buildCrossNichePositioningRecommendations } from "./nicheCrossPositioning.js";
 import type { CrossNichePositioningPlaybook } from "./nichePositioningPlaybook.js";
 import { buildNichePositioningPlaybook } from "./nichePositioningPlaybook.js";
+import type { CrossNicheRepeatableContentSeries } from "./nicheRepeatableContentSeries.js";
+import { buildNicheRepeatableContentSeries } from "./nicheRepeatableContentSeries.js";
 import type { CrossNicheWhitespaceComparison } from "./nicheCrossWhitespace.js";
 import { buildCrossNicheWhitespaceComparison } from "./nicheCrossWhitespace.js";
 
@@ -22,6 +24,7 @@ export interface NicheShortlistReportModel {
   crossNicheWhitespace: CrossNicheWhitespaceComparison | null;
   crossNichePositioning: CrossNichePositioningRecommendations | null;
   crossNichePlaybook: CrossNichePositioningPlaybook | null;
+  crossNicheRepeatableSeries: CrossNicheRepeatableContentSeries | null;
   niches: NicheShortlistReportNiche[];
 }
 
@@ -99,6 +102,10 @@ export function buildNicheShortlistReportModel(options: {
     options.shortlist,
     crossNicheWhitespace
   );
+  const crossNichePlaybook = buildNichePositioningPlaybook(
+    options.shortlist,
+    crossNichePositioning
+  );
   const niches = options.shortlist.rankedBuckets.map((bucket) => ({
     bucketId: bucket.bucketId,
     rank: bucket.rank,
@@ -127,9 +134,10 @@ export function buildNicheShortlistReportModel(options: {
     notes: options.shortlist.notes,
     crossNicheWhitespace,
     crossNichePositioning,
-    crossNichePlaybook: buildNichePositioningPlaybook(
+    crossNichePlaybook,
+    crossNicheRepeatableSeries: buildNicheRepeatableContentSeries(
       options.shortlist,
-      crossNichePositioning
+      crossNichePlaybook
     ),
     niches
   };
@@ -271,11 +279,47 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
+  if (report.crossNicheRepeatableSeries) {
+    lines.push(
+      "",
+      "## Повторяемые контент-серии",
+      "",
+      report.crossNicheRepeatableSeries.seriesSummary
+    );
+
+    if (report.crossNicheRepeatableSeries.summary.nicheWithStrongestRepeatableSeriesPotential) {
+      lines.push(
+        `- Самый сильный repeatable potential: ${report.crossNicheRepeatableSeries.summary.nicheWithStrongestRepeatableSeriesPotential.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheRepeatableSeries.summary.nicheWithEasiestConsistentPostingCadence) {
+      lines.push(
+        `- Где легче держать cadence: ${report.crossNicheRepeatableSeries.summary.nicheWithEasiestConsistentPostingCadence.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheRepeatableSeries.summary.nicheWithMostDifferentiatedSeriesIdeas) {
+      lines.push(
+        `- Где серии выглядят разнообразнее: ${report.crossNicheRepeatableSeries.summary.nicheWithMostDifferentiatedSeriesIdeas.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheRepeatableSeries.globalConfidenceNote) {
+      lines.push(
+        `- Ограничение уверенности: ${report.crossNicheRepeatableSeries.globalConfidenceNote}`
+      );
+    }
+  }
+
   report.niches.forEach((niche, index) => {
     const positioning = report.crossNichePositioning?.perBucketRecommendations.find(
       (item) => item.bucketId === niche.bucketId
     );
     const playbook = report.crossNichePlaybook?.perBucketPlaybooks.find(
+      (item) => item.bucketId === niche.bucketId
+    );
+    const repeatableSeries = report.crossNicheRepeatableSeries?.perBucketSeries.find(
       (item) => item.bucketId === niche.bucketId
     );
 
@@ -362,6 +406,37 @@ export function buildNicheShortlistMarkdownReport(
         lines.push(
           "",
           `- Ограничение уверенности playbook: ${playbook.playbookConfidenceNote}`
+        );
+      }
+    }
+
+    if (repeatableSeries) {
+      lines.push("", "### Повторяемые контент-серии", "");
+
+      repeatableSeries.repeatableContentSeries.forEach((series) => {
+        lines.push(`- ${series.seriesTitle}: ${series.seriesPurpose}`);
+        lines.push(`  Повторяющийся угол: ${series.repeatedAngle}`);
+        lines.push(
+          `  Примеры: ${
+            series.examplePostAngles.length > 0
+              ? series.examplePostAngles.join(" | ")
+              : "н/д"
+          }`
+        );
+
+        if (series.cadenceHint) {
+          lines.push(`  Ритм: ${series.cadenceHint}`);
+        }
+
+        if (series.genericityWarning) {
+          lines.push(`  Не размывать так: ${series.genericityWarning}`);
+        }
+      });
+
+      if (repeatableSeries.seriesConfidenceNote) {
+        lines.push(
+          "",
+          `- Ограничение уверенности по сериям: ${repeatableSeries.seriesConfidenceNote}`
         );
       }
     }

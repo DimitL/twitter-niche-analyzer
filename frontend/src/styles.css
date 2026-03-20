@@ -1079,6 +1079,83 @@ button {
   color: var(--muted);
 }
 
+.repeatable-series {
+  display: grid;
+  gap: 16px;
+}
+
+.repeatable-series--embedded {
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(72, 53, 41, 0.08);
+}
+
+.repeatable-series__header,
+.repeatable-series__summary,
+.repeatable-series__bucket-header,
+.repeatable-series__series-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.repeatable-series__leaders,
+.repeatable-series__grid,
+.repeatable-series__series-list {
+  display: grid;
+  gap: 12px;
+}
+
+.repeatable-series__leaders {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.repeatable-series__grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.repeatable-series__series-list {
+  grid-template-columns: 1fr;
+}
+
+.repeatable-series__bucket-card,
+.repeatable-series__series-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 252, 247, 0.84);
+  border: 1px solid rgba(78, 52, 34, 0.08);
+}
+
+.repeatable-series__bucket-card h3 {
+  margin: 0;
+}
+
+.repeatable-series__series-card {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.repeatable-series__series-angle,
+.repeatable-series__bucket-note,
+.repeatable-series__series-note {
+  margin: 0;
+  color: var(--muted);
+}
+
+.repeatable-series__series-section {
+  display: grid;
+  gap: 10px;
+}
+
+.repeatable-series__series-section span {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
 .report-niche-card {
   display: grid;
   gap: 16px;
@@ -1827,6 +1904,8 @@ button {
   .cross-niche-positioning__grid,
   .positioning-playbook__leaders,
   .positioning-playbook__grid,
+  .repeatable-series__leaders,
+  .repeatable-series__grid,
   .shortlist-score-grid,
   .signal-grid,
   .strong-account-grid,
@@ -1856,6 +1935,10 @@ button {
   .positioning-playbook__header,
   .positioning-playbook__summary,
   .positioning-playbook__bucket-header,
+  .repeatable-series__header,
+  .repeatable-series__summary,
+  .repeatable-series__bucket-header,
+  .repeatable-series__series-meta,
   .preset-library__header,
   .preset-card__header,
   .preset-card__actions,

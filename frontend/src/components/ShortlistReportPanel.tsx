@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { NicheShortlistResponse } from "../types/nicheShortlist.js";
 import { CrossNichePositioningPlaybook } from "./CrossNichePositioningPlaybook.js";
 import { CrossNichePositioningRecommendations } from "./CrossNichePositioningRecommendations.js";
+import { CrossNicheRepeatableContentSeries } from "./CrossNicheRepeatableContentSeries.js";
 import { CrossNicheWhitespaceComparison } from "./CrossNicheWhitespaceComparison.js";
 import {
   buildNicheShortlistJsonExport,
@@ -222,6 +223,13 @@ export function ShortlistReportPanel({
                 {report.crossNichePlaybook ? (
                   <CrossNichePositioningPlaybook
                     playbook={report.crossNichePlaybook}
+                    variant="embedded"
+                  />
+                ) : null}
+
+                {report.crossNicheRepeatableSeries ? (
+                  <CrossNicheRepeatableContentSeries
+                    series={report.crossNicheRepeatableSeries}
                     variant="embedded"
                   />
                 ) : null}
