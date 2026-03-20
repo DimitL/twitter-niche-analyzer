@@ -882,6 +882,77 @@ button {
   gap: 16px;
 }
 
+.cross-niche-whitespace {
+  display: grid;
+  gap: 16px;
+}
+
+.cross-niche-whitespace--embedded {
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(72, 53, 41, 0.08);
+}
+
+.cross-niche-whitespace__header,
+.cross-niche-whitespace__summary,
+.cross-niche-whitespace__bucket-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.cross-niche-whitespace__block,
+.cross-niche-whitespace__bucket-card {
+  display: grid;
+  gap: 12px;
+}
+
+.cross-niche-whitespace__eyebrow,
+.cross-niche-whitespace__bucket-section span {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.cross-niche-whitespace__angles,
+.cross-niche-whitespace__grid {
+  display: grid;
+  gap: 12px;
+}
+
+.cross-niche-whitespace__angles {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cross-niche-whitespace__grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cross-niche-whitespace__angle-card,
+.cross-niche-whitespace__bucket-card {
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 252, 247, 0.84);
+  border: 1px solid rgba(78, 52, 34, 0.08);
+}
+
+.cross-niche-whitespace__angle-card p,
+.cross-niche-whitespace__bucket-card p,
+.cross-niche-whitespace__bucket-card li {
+  font-size: 0.94rem;
+}
+
+.cross-niche-whitespace__bucket-card h3 {
+  margin: 0;
+}
+
+.cross-niche-whitespace__bucket-section {
+  display: grid;
+  gap: 10px;
+}
+
 .report-niche-card {
   display: grid;
   gap: 16px;
@@ -1624,6 +1695,8 @@ button {
   .summary-grid,
   .summary-grid--labels,
   .report-view__summary-grid,
+  .cross-niche-whitespace__angles,
+  .cross-niche-whitespace__grid,
   .shortlist-score-grid,
   .signal-grid,
   .strong-account-grid,
@@ -1644,6 +1717,9 @@ button {
   .shortlist-card__header,
   .shortlist-card__footer,
   .shortlist-summary__header,
+  .cross-niche-whitespace__header,
+  .cross-niche-whitespace__summary,
+  .cross-niche-whitespace__bucket-header,
   .preset-library__header,
   .preset-card__header,
   .preset-card__actions,

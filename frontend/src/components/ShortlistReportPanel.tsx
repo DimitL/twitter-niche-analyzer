@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { NicheShortlistResponse } from "../types/nicheShortlist.js";
+import { CrossNicheWhitespaceComparison } from "./CrossNicheWhitespaceComparison.js";
 import {
   buildNicheShortlistJsonExport,
   buildNicheShortlistMarkdownReport,
@@ -202,6 +203,13 @@ export function ShortlistReportPanel({
               </div>
 
               <div className="report-view__niches">
+                {report.crossNicheWhitespace ? (
+                  <CrossNicheWhitespaceComparison
+                    comparison={report.crossNicheWhitespace}
+                    variant="embedded"
+                  />
+                ) : null}
+
                 {report.niches.map((niche) => (
                   <article
                     key={`${niche.bucketId}-report`}

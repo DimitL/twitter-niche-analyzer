@@ -35,6 +35,7 @@
 - first supporting-account content archetype слой для account-level summary по сильным твитам: dominant patterns, archetype label и short explanation
 - first niche-level content archetype rollup слой для сводки повторяющихся content patterns и archetypes по supporting accounts внутри shortlisted niche
 - first niche-level content gaps / whitespace hints слой для underrepresented content patterns и positioning hints внутри shortlisted niche evidence pack
+- first cross-niche whitespace comparison слой для сравнения shortlisted niches по более открытым и более перегретым content angles
 - first export/report слой для clean report view, Markdown copy и JSON export текущего shortlist или pinned scenario result
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
@@ -115,6 +116,7 @@
 │   │   ├── components
 │   │   │   ├── BucketCardEditor.tsx
 │   │   │   ├── BucketEditor.tsx
+│   │   │   ├── CrossNicheWhitespaceComparison.tsx
 │   │   │   ├── HandleListEditor.tsx
 │   │   │   ├── NicheCard.tsx
 │   │   │   ├── NicheEvidencePack.tsx
@@ -132,6 +134,7 @@
 │   │   ├── utils
 │   │   │   ├── nicheShortlistBucketEditor.ts
 │   │   │   ├── nicheEvidencePack.ts
+│   │   │   ├── nicheCrossWhitespace.ts
 │   │   │   ├── nicheShortlistReport.ts
 │   │   │   └── nicheShortlistScenarios.ts
 │   │   ├── App.tsx
@@ -815,6 +818,7 @@ http://localhost:5173
 - нажать `Запустить shortlist ниш`
 - после успешного run убедиться, что активный сценарий получил pinned result с `Последний run`, `Best overall` и `Shortlist size`
 - открыть `Evidence pack` внутри одной из shortlisted ниш и проверить supporting accounts roster, score drivers, caution flags, затем посмотреть niche-level archetype rollup и новый whitespace-блок с underrepresented patterns и positioning hints, а после этого переключить режим `Свежие` / `Лучшие по реакции` и сверить pattern tags, account archetypes и короткие explanations
+- после summary card открыть новый блок `Где в shortlist углы выглядят свободнее` и сравнить повторяющиеся whitespace-углы, нишеспецифичные свободные углы и более перегретые content angles между shortlisted niches
 - открыть блок `Сохранить shortlist вне live UI`, нажать `Открыть отчёт`, затем проверить `Скопировать Markdown` и `Скачать JSON`
 - нажать `Добавить к сравнению` у 1-2 дополнительных сценариев и проверить блок `Сравнение сохранённых сценариев`
 - в `Scenario Diff` сравнить flags, bucket labels, handle counts и top summary без ручного переключения editor-а
@@ -833,6 +837,7 @@ http://localhost:5173
 - у supporting accounts появляется account-level content archetype summary по сильным твитам: dominant patterns, archetype label и confidence note при слабом evidence
 - у shortlisted niche появляется niche-level content archetype rollup: dominant patterns, common archetypes, short summary и confidence note
 - у shortlisted niche появляется whitespace/gaps section: underrepresented patterns, short whitespace hints, positioning ideas и confidence note
+- появляется cross-niche whitespace comparison section: общие whitespace themes, niche-specific свободные углы, comparatively open angles и crowded angles по shortlisted niches
 - появляется export/report panel с clean report view, Markdown copy и JSON export по текущему shortlist или pinned scenario result
 - pinned result snapshot у каждого локального сценария
 - отдельный comparison panel для 2-3 сценариев с lightweight diff по настройкам и последнему shortlist result
@@ -847,6 +852,7 @@ http://localhost:5173
 - pinned results и diff тоже сохраняются только локально в `localStorage`, без общей истории запусков на backend
 - comparison panel хранит только lightweight snapshot последнего успешного run, а не полный архив всех shortlist результатов
 - evidence pack и top supporting accounts roster пока строятся поверх уже существующего shortlist payload и не добавляют отдельный deep-validation pipeline
+- cross-niche whitespace comparison пока тоже полностью rule-based и строится поверх текущего shortlist payload, без отдельного NLP или embedding слоя
 - UI ещё не умеет автоматически находить topics
 - текущий frontend только визуализирует existing backend shortlist route и не меняет scoring model
 - если bucket дал меньше 10 usable supporting accounts, UI честно покажет только доступный roster без искусственного заполнения

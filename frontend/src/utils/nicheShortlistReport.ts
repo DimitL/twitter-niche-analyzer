@@ -3,6 +3,8 @@ import type {
   RankedNicheShortlistBucket
 } from "../types/nicheShortlist.js";
 import { buildNicheEvidencePack } from "./nicheEvidencePack.js";
+import type { CrossNicheWhitespaceComparison } from "./nicheCrossWhitespace.js";
+import { buildCrossNicheWhitespaceComparison } from "./nicheCrossWhitespace.js";
 
 export interface NicheShortlistReportModel {
   title: string;
@@ -13,6 +15,7 @@ export interface NicheShortlistReportModel {
   status: NicheShortlistResponse["status"];
   shortlistSummary: NicheShortlistResponse["shortlistSummary"];
   notes: string[];
+  crossNicheWhitespace: CrossNicheWhitespaceComparison | null;
   niches: NicheShortlistReportNiche[];
 }
 
@@ -111,6 +114,7 @@ export function buildNicheShortlistReportModel(options: {
     status: options.shortlist.status,
     shortlistSummary: options.shortlist.shortlistSummary,
     notes: options.shortlist.notes,
+    crossNicheWhitespace: buildCrossNicheWhitespaceComparison(options.shortlist),
     niches
   };
 }
@@ -137,6 +141,47 @@ export function buildNicheShortlistMarkdownReport(
     `- Самый простой старт: ${report.shortlistSummary.easiestToStart?.label ?? "н/д"}`,
     `- Самый сбалансированный вариант: ${report.shortlistSummary.bestBalanced?.label ?? "н/д"}`
   ];
+
+  if (report.crossNicheWhitespace) {
+    lines.push(
+      "",
+      "## Межнишевое сравнение whitespace-углов",
+      "",
+      report.crossNicheWhitespace.crossNicheWhitespaceSummary
+    );
+
+    if (report.crossNicheWhitespace.recurringWhitespaceAngles.length > 0) {
+      lines.push("", "### Повторяющиеся whitespace-углы", "");
+      report.crossNicheWhitespace.recurringWhitespaceAngles.forEach((angle) => {
+        lines.push(
+          `- ${angle.label}: повторяется в ${angle.count} нишах (${angle.bucketLabels.join(", ")})`
+        );
+      });
+    }
+
+    report.crossNicheWhitespace.comparativelyOpenAnglesByBucket.forEach((bucket) => {
+      if (bucket.comparativelyOpenAngles.length === 0) {
+        return;
+      }
+
+      lines.push("", `### Где ниша ${bucket.label} выглядит свободнее`, "");
+
+      bucket.comparativelyOpenAngles.forEach((angle) => {
+        lines.push(`- ${angle.label}`);
+      });
+
+      bucket.positioningIdeas.slice(0, 2).forEach((idea) => {
+        lines.push(`- Идея позиционирования: ${idea}`);
+      });
+    });
+
+    if (report.crossNicheWhitespace.crossNicheConfidenceNote) {
+      lines.push(
+        "",
+        `- Ограничение уверенности: ${report.crossNicheWhitespace.crossNicheConfidenceNote}`
+      );
+    }
+  }
 
   report.niches.forEach((niche, index) => {
     lines.push(

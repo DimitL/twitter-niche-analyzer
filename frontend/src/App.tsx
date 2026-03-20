@@ -7,6 +7,7 @@ import {
   type NicheShortlistPresetPack
 } from "./data/nicheShortlistPresetLibrary.js";
 import { BucketEditor } from "./components/BucketEditor.js";
+import { CrossNicheWhitespaceComparison } from "./components/CrossNicheWhitespaceComparison.js";
 import { NicheCard } from "./components/NicheCard.js";
 import { NicheShortlistCard } from "./components/NicheShortlistCard.js";
 import { PresetLibrary } from "./components/PresetLibrary.js";
@@ -44,6 +45,7 @@ import {
   restoreFormStateFromSnapshot,
   updateScenarioFromFormState
 } from "./utils/nicheShortlistScenarios.js";
+import { buildCrossNicheWhitespaceComparison } from "./utils/nicheCrossWhitespace.js";
 
 const initialRequest: AnalysisRequest = {
   marketHint: "англоязычный tech X",
@@ -222,6 +224,10 @@ export default function App() {
     shortlistResultScenarioId,
     shortlistResultSourceKind
   ]);
+  const shortlistCrossWhitespace = useMemo(
+    () => (shortlistResult ? buildCrossNicheWhitespaceComparison(shortlistResult) : null),
+    [shortlistResult]
+  );
 
   useEffect(() => {
     void loadHealth();
@@ -902,6 +908,10 @@ export default function App() {
         {shortlistResult ? (
           <>
             <NicheShortlistSummary shortlist={shortlistResult} />
+
+            {shortlistCrossWhitespace ? (
+              <CrossNicheWhitespaceComparison comparison={shortlistCrossWhitespace} />
+            ) : null}
 
             <section className="shortlist-results">
               {shortlistResult.rankedBuckets.map((bucket) => (
