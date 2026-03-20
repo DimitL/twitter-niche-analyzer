@@ -39,6 +39,7 @@
 - first cross-niche positioning recommendation слой для рекомендации наиболее логичного контентного угла входа в каждую shortlisted niche
 - first positioning playbook слой для перевода positioning-рекомендаций в стартовые content directions и идеи первых постов по каждой shortlisted niche
 - first repeatable content series слой для перевода positioning playbook в 3-5 повторяемых контент-серий по каждой shortlisted niche
+- first content calendar starter слой для перевода repeatable content series в практический 2-week posting plan по каждой shortlisted niche
 - first export/report слой для clean report view, Markdown copy и JSON export текущего shortlist или pinned scenario result
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
@@ -122,6 +123,7 @@
 │   │   │   ├── CrossNichePositioningPlaybook.tsx
 │   │   │   ├── CrossNichePositioningRecommendations.tsx
 │   │   │   ├── CrossNicheRepeatableContentSeries.tsx
+│   │   │   ├── CrossNicheContentCalendarStarter.tsx
 │   │   │   ├── CrossNicheWhitespaceComparison.tsx
 │   │   │   ├── HandleListEditor.tsx
 │   │   │   ├── NicheCard.tsx
@@ -143,6 +145,7 @@
 │   │   │   ├── nicheCrossPositioning.ts
 │   │   │   ├── nichePositioningPlaybook.ts
 │   │   │   ├── nicheRepeatableContentSeries.ts
+│   │   │   ├── nicheContentCalendarStarter.ts
 │   │   │   ├── nicheCrossWhitespace.ts
 │   │   │   ├── nicheShortlistReport.ts
 │   │   │   └── nicheShortlistScenarios.ts
@@ -831,6 +834,7 @@ http://localhost:5173
 - затем открыть новый блок `Как лучше заходить в каждую нишу` и сверить рекомендуемые углы входа, главный угол, объяснение того, почему он подходит, и ключевые риски
 - затем открыть новый блок `Стартовый playbook по shortlisted нишам` и проверить лучший угол входа, стартовые направления, идеи первых постов и weak-angle warnings по каждой нише
 - затем открыть блок `Как держать повторяемый posting rhythm` и проверить 3-5 repeatable series, примеры углов, cadence hints и предупреждения против слишком generic серий
+- затем открыть блок `Как выглядит стартовый календарь на 2 недели` и проверить слоты `День 1`, `День 3`, `День 5` и дальше, серии, purpose каждого слота и caution notes
 - открыть блок `Сохранить shortlist вне live UI`, нажать `Открыть отчёт`, затем проверить `Скопировать Markdown` и `Скачать JSON`
 - нажать `Добавить к сравнению` у 1-2 дополнительных сценариев и проверить блок `Сравнение сохранённых сценариев`
 - в `Scenario Diff` сравнить flags, bucket labels, handle counts и top summary без ручного переключения editor-а
@@ -853,6 +857,7 @@ http://localhost:5173
 - появляется cross-niche positioning section: чипы рекомендуемых углов входа, главный угол на нишу, объяснение того, почему угол подходит, риски и confidence note
 - появляется positioning playbook section: лучший угол входа, 5-10 starter directions, 3-5 first-post ideas, weak-angle warnings и confidence note по каждой shortlisted niche
 - появляется repeatable content series section: по 3-5 повторяемых серий на нишу, purpose, repeated angle, example post angles, cadence hint и genericity warning
+- появляется content calendar starter section: 2-week launch plan, 6-10 пост-слотов, серия на каждый слот, purpose, caution note и confidence note
 - появляется export/report panel с clean report view, Markdown copy и JSON export по текущему shortlist или pinned scenario result
 - pinned result snapshot у каждого локального сценария
 - отдельный comparison panel для 2-3 сценариев с lightweight diff по настройкам и последнему shortlist result
@@ -871,6 +876,7 @@ http://localhost:5173
 - cross-niche positioning recommendations тоже полностью rule-based и строятся поверх текущего shortlist + whitespace outputs, поэтому это именно decision support, а не окончательный стратегический вывод
 - positioning playbook тоже пока полностью rule-based и строится поверх positioning, whitespace и archetype outputs без отдельного LLM generation pipeline, поэтому его лучше читать как practical starting map, а не как окончательный контент-план
 - repeatable content series тоже пока полностью rule-based и строятся поверх playbook/evidence outputs, поэтому их лучше читать как стартовую content operating system, а не как окончательно доказанную редакционную сетку
+- content calendar starter тоже пока полностью rule-based и строится поверх repeatable series + playbook, поэтому это стартовый operating draft на 2 недели, а не умный scheduling engine
 - UI ещё не умеет автоматически находить topics
 - текущий frontend только визуализирует existing backend shortlist route и не меняет scoring model
 - если bucket дал меньше 10 usable supporting accounts, UI честно покажет только доступный roster без искусственного заполнения

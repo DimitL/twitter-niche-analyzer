@@ -1156,6 +1156,72 @@ button {
   color: var(--muted);
 }
 
+.content-calendar-starter {
+  display: grid;
+  gap: 16px;
+}
+
+.content-calendar-starter--embedded {
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(72, 53, 41, 0.08);
+}
+
+.content-calendar-starter__header,
+.content-calendar-starter__summary,
+.content-calendar-starter__bucket-header,
+.content-calendar-starter__plan-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.content-calendar-starter__leaders,
+.content-calendar-starter__grid,
+.content-calendar-starter__plan-list {
+  display: grid;
+  gap: 12px;
+}
+
+.content-calendar-starter__leaders {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.content-calendar-starter__grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.content-calendar-starter__plan-list {
+  grid-template-columns: 1fr;
+}
+
+.content-calendar-starter__bucket-card,
+.content-calendar-starter__plan-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 252, 247, 0.84);
+  border: 1px solid rgba(78, 52, 34, 0.08);
+}
+
+.content-calendar-starter__bucket-card h3 {
+  margin: 0;
+}
+
+.content-calendar-starter__plan-card {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.content-calendar-starter__plan-purpose,
+.content-calendar-starter__bucket-note,
+.content-calendar-starter__plan-note {
+  margin: 0;
+  color: var(--muted);
+}
+
 .report-niche-card {
   display: grid;
   gap: 16px;
@@ -1906,6 +1972,8 @@ button {
   .positioning-playbook__grid,
   .repeatable-series__leaders,
   .repeatable-series__grid,
+  .content-calendar-starter__leaders,
+  .content-calendar-starter__grid,
   .shortlist-score-grid,
   .signal-grid,
   .strong-account-grid,
@@ -1939,6 +2007,10 @@ button {
   .repeatable-series__summary,
   .repeatable-series__bucket-header,
   .repeatable-series__series-meta,
+  .content-calendar-starter__header,
+  .content-calendar-starter__summary,
+  .content-calendar-starter__bucket-header,
+  .content-calendar-starter__plan-meta,
   .preset-library__header,
   .preset-card__header,
   .preset-card__actions,

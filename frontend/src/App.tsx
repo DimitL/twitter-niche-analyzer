@@ -7,6 +7,7 @@ import {
   type NicheShortlistPresetPack
 } from "./data/nicheShortlistPresetLibrary.js";
 import { BucketEditor } from "./components/BucketEditor.js";
+import { CrossNicheContentCalendarStarter } from "./components/CrossNicheContentCalendarStarter.js";
 import { CrossNichePositioningPlaybook } from "./components/CrossNichePositioningPlaybook.js";
 import { CrossNichePositioningRecommendations } from "./components/CrossNichePositioningRecommendations.js";
 import { CrossNicheRepeatableContentSeries } from "./components/CrossNicheRepeatableContentSeries.js";
@@ -49,6 +50,7 @@ import {
   updateScenarioFromFormState
 } from "./utils/nicheShortlistScenarios.js";
 import { buildCrossNichePositioningRecommendations } from "./utils/nicheCrossPositioning.js";
+import { buildNicheContentCalendarStarter } from "./utils/nicheContentCalendarStarter.js";
 import { buildNichePositioningPlaybook } from "./utils/nichePositioningPlaybook.js";
 import { buildNicheRepeatableContentSeries } from "./utils/nicheRepeatableContentSeries.js";
 import { buildCrossNicheWhitespaceComparison } from "./utils/nicheCrossWhitespace.js";
@@ -263,6 +265,17 @@ export default function App() {
           )
         : null,
     [shortlistPositioningPlaybook, shortlistResult]
+  );
+  const shortlistContentCalendar = useMemo(
+    () =>
+      shortlistResult
+        ? buildNicheContentCalendarStarter(
+            shortlistResult,
+            shortlistPositioningPlaybook,
+            shortlistRepeatableSeries
+          )
+        : null,
+    [shortlistPositioningPlaybook, shortlistRepeatableSeries, shortlistResult]
   );
 
   useEffect(() => {
@@ -964,6 +977,12 @@ export default function App() {
             {shortlistRepeatableSeries ? (
               <CrossNicheRepeatableContentSeries
                 series={shortlistRepeatableSeries}
+              />
+            ) : null}
+
+            {shortlistContentCalendar ? (
+              <CrossNicheContentCalendarStarter
+                calendar={shortlistContentCalendar}
               />
             ) : null}
 

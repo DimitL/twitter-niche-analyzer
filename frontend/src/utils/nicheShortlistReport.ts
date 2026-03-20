@@ -7,6 +7,8 @@ import type { CrossNichePositioningRecommendations } from "./nicheCrossPositioni
 import { buildCrossNichePositioningRecommendations } from "./nicheCrossPositioning.js";
 import type { CrossNichePositioningPlaybook } from "./nichePositioningPlaybook.js";
 import { buildNichePositioningPlaybook } from "./nichePositioningPlaybook.js";
+import type { CrossNicheContentCalendarStarter } from "./nicheContentCalendarStarter.js";
+import { buildNicheContentCalendarStarter } from "./nicheContentCalendarStarter.js";
 import type { CrossNicheRepeatableContentSeries } from "./nicheRepeatableContentSeries.js";
 import { buildNicheRepeatableContentSeries } from "./nicheRepeatableContentSeries.js";
 import type { CrossNicheWhitespaceComparison } from "./nicheCrossWhitespace.js";
@@ -25,6 +27,7 @@ export interface NicheShortlistReportModel {
   crossNichePositioning: CrossNichePositioningRecommendations | null;
   crossNichePlaybook: CrossNichePositioningPlaybook | null;
   crossNicheRepeatableSeries: CrossNicheRepeatableContentSeries | null;
+  crossNicheContentCalendar: CrossNicheContentCalendarStarter | null;
   niches: NicheShortlistReportNiche[];
 }
 
@@ -106,6 +109,10 @@ export function buildNicheShortlistReportModel(options: {
     options.shortlist,
     crossNichePositioning
   );
+  const crossNicheRepeatableSeries = buildNicheRepeatableContentSeries(
+    options.shortlist,
+    crossNichePlaybook
+  );
   const niches = options.shortlist.rankedBuckets.map((bucket) => ({
     bucketId: bucket.bucketId,
     rank: bucket.rank,
@@ -135,9 +142,11 @@ export function buildNicheShortlistReportModel(options: {
     crossNicheWhitespace,
     crossNichePositioning,
     crossNichePlaybook,
-    crossNicheRepeatableSeries: buildNicheRepeatableContentSeries(
+    crossNicheRepeatableSeries,
+    crossNicheContentCalendar: buildNicheContentCalendarStarter(
       options.shortlist,
-      crossNichePlaybook
+      crossNichePlaybook,
+      crossNicheRepeatableSeries
     ),
     niches
   };
@@ -312,6 +321,39 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
+  if (report.crossNicheContentCalendar) {
+    lines.push(
+      "",
+      "## 2-недельный content calendar",
+      "",
+      report.crossNicheContentCalendar.calendarSummary
+    );
+
+    if (report.crossNicheContentCalendar.summary.nicheWithEasiestTwoWeekLaunchPlan) {
+      lines.push(
+        `- Где проще всего запустить 2 недели: ${report.crossNicheContentCalendar.summary.nicheWithEasiestTwoWeekLaunchPlan.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheContentCalendar.summary.nicheWithStrongestContentCadenceFit) {
+      lines.push(
+        `- Где cadence выглядит сильнее: ${report.crossNicheContentCalendar.summary.nicheWithStrongestContentCadenceFit.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheContentCalendar.summary.nicheWithBestVarietyRepeatabilityBalance) {
+      lines.push(
+        `- Где лучший баланс variety и repeatability: ${report.crossNicheContentCalendar.summary.nicheWithBestVarietyRepeatabilityBalance.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheContentCalendar.globalConfidenceNote) {
+      lines.push(
+        `- Ограничение уверенности: ${report.crossNicheContentCalendar.globalConfidenceNote}`
+      );
+    }
+  }
+
   report.niches.forEach((niche, index) => {
     const positioning = report.crossNichePositioning?.perBucketRecommendations.find(
       (item) => item.bucketId === niche.bucketId
@@ -320,6 +362,9 @@ export function buildNicheShortlistMarkdownReport(
       (item) => item.bucketId === niche.bucketId
     );
     const repeatableSeries = report.crossNicheRepeatableSeries?.perBucketSeries.find(
+      (item) => item.bucketId === niche.bucketId
+    );
+    const contentCalendar = report.crossNicheContentCalendar?.perBucketCalendars.find(
       (item) => item.bucketId === niche.bucketId
     );
 
@@ -437,6 +482,34 @@ export function buildNicheShortlistMarkdownReport(
         lines.push(
           "",
           `- Ограничение уверенности по сериям: ${repeatableSeries.seriesConfidenceNote}`
+        );
+      }
+    }
+
+    if (contentCalendar) {
+      lines.push(
+        "",
+        "### 2-недельный content calendar",
+        "",
+        `- Календарь: ${contentCalendar.calendarTitle}`,
+        `- Базовый угол: ${contentCalendar.bestEntryAngleLabel ?? "н/д"}`
+      );
+
+      contentCalendar.planEntries.forEach((entry) => {
+        lines.push(
+          `- ${entry.slotLabel} · ${entry.seriesTitle}: ${entry.postAngle}`
+        );
+        lines.push(`  Зачем этот слот: ${entry.postPurpose}`);
+
+        if (entry.cautionNote) {
+          lines.push(`  Не переусердствовать так: ${entry.cautionNote}`);
+        }
+      });
+
+      if (contentCalendar.calendarConfidenceNote) {
+        lines.push(
+          "",
+          `- Ограничение уверенности по календарю: ${contentCalendar.calendarConfidenceNote}`
         );
       }
     }
