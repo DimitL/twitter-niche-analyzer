@@ -20,6 +20,12 @@ export interface NicheEvidencePackViewModel {
   topSupportingAccounts: RankedNicheShortlistBucket["topSupportingAccounts"];
   supportingAccountsCount: number;
   supportingAccountsAvailabilityNote: string;
+  dominantNichePatterns: RankedNicheShortlistBucket["dominantNichePatterns"];
+  secondaryNichePatterns: RankedNicheShortlistBucket["secondaryNichePatterns"];
+  commonArchetypes: RankedNicheShortlistBucket["commonArchetypes"];
+  nicheArchetypeSummary: string | null;
+  nicheArchetypeConfidenceNote: string | null;
+  archetypeCoverageCount: number;
   strongestSignals: EvidenceComponentSummary[];
   weakestSignals: EvidenceMetricSummary[];
   coverageNotes: string[];
@@ -285,6 +291,12 @@ export function buildNicheEvidencePack(
     topSupportingAccounts: bucket.topSupportingAccounts.slice(0, 10),
     supportingAccountsCount: bucket.supportingAccountsCount,
     supportingAccountsAvailabilityNote: buildSupportingAccountsAvailabilityNote(bucket),
+    dominantNichePatterns: bucket.dominantNichePatterns,
+    secondaryNichePatterns: bucket.secondaryNichePatterns,
+    commonArchetypes: bucket.commonArchetypes,
+    nicheArchetypeSummary: bucket.nicheArchetypeSummary,
+    nicheArchetypeConfidenceNote: bucket.nicheArchetypeConfidenceNote,
+    archetypeCoverageCount: bucket.archetypeCoverageCount,
     strongestSignals: rankingComponents,
     weakestSignals,
     coverageNotes,

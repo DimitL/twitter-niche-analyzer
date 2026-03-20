@@ -183,6 +183,72 @@ export function NicheEvidencePack({ bucket }: NicheEvidencePackProps) {
             <span>Топ поддерживающих аккаунтов</span>
             <p className="section-copy">{evidencePack.supportingAccountsAvailabilityNote}</p>
 
+            {evidencePack.nicheArchetypeSummary ||
+            evidencePack.dominantNichePatterns.length > 0 ||
+            evidencePack.commonArchetypes.length > 0 ? (
+              <div className="niche-archetype-rollup">
+                <div className="niche-archetype-rollup__header">
+                  <div>
+                    <span className="niche-archetype-rollup__eyebrow">
+                      Общий контентный паттерн ниши
+                    </span>
+                    {evidencePack.nicheArchetypeSummary ? (
+                      <p className="niche-archetype-rollup__summary">
+                        {evidencePack.nicheArchetypeSummary}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {evidencePack.archetypeCoverageCount > 0 ? (
+                    <span className="decision-chip decision-chip--neutral">
+                      {evidencePack.archetypeCoverageCount} аккаунта в rollup
+                    </span>
+                  ) : null}
+                </div>
+
+                {evidencePack.dominantNichePatterns.length > 0 ? (
+                  <div className="niche-archetype-rollup__patterns">
+                    {evidencePack.dominantNichePatterns.map((tag) => (
+                      <span
+                        key={`${bucket.bucketId}-niche-dominant-${tag}`}
+                        className="pattern-chip"
+                      >
+                        {getContentPatternLabel(tag)}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
+                {evidencePack.secondaryNichePatterns.length > 0 ? (
+                  <p className="niche-archetype-rollup__secondary">
+                    Вторичные паттерны:{" "}
+                    {evidencePack.secondaryNichePatterns
+                      .map((tag) => getContentPatternLabel(tag))
+                      .join(", ")}
+                  </p>
+                ) : null}
+
+                {evidencePack.commonArchetypes.length > 0 ? (
+                  <div className="niche-archetype-rollup__archetypes">
+                    {evidencePack.commonArchetypes.map((archetype) => (
+                      <span
+                        key={`${bucket.bucketId}-common-archetype-${archetype.label}`}
+                        className="decision-chip decision-chip--neutral"
+                      >
+                        {archetype.label} · {archetype.accountCount}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
+                {evidencePack.nicheArchetypeConfidenceNote ? (
+                  <p className="niche-archetype-rollup__note">
+                    {evidencePack.nicheArchetypeConfidenceNote}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
             <div className="snippet-mode-switch" aria-label="Режим твитов">
               {([
                 "recent",

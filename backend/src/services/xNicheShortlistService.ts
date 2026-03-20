@@ -41,6 +41,17 @@ interface XNicheShortlistTimings {
   totalMs: number;
 }
 
+type XNicheContentPatternTag =
+  | "strongHook"
+  | "contrarianTake"
+  | "productUpdate"
+  | "benchmarkOrResult"
+  | "educationalBreakdown"
+  | "founderInsight"
+  | "timelyNewsTieIn"
+  | "audienceQuestion"
+  | "narrativeStorytelling";
+
 interface XNicheStrongestAccountSummary {
   handle: string | null;
   displayName: string | null;
@@ -82,17 +93,7 @@ interface XNicheSupportingAccountSummary {
       normalizedNumber: number | null;
       available: boolean;
     };
-    contentPatternTags: Array<
-      | "strongHook"
-      | "contrarianTake"
-      | "productUpdate"
-      | "benchmarkOrResult"
-      | "educationalBreakdown"
-      | "founderInsight"
-      | "timelyNewsTieIn"
-      | "audienceQuestion"
-      | "narrativeStorytelling"
-    >;
+    contentPatternTags: XNicheContentPatternTag[];
     likelyStrengthReason: string | null;
     tagConfidenceNotes: string[];
   }>;
@@ -118,46 +119,21 @@ interface XNicheSupportingAccountSummary {
       normalizedNumber: number | null;
       available: boolean;
     };
-    contentPatternTags: Array<
-      | "strongHook"
-      | "contrarianTake"
-      | "productUpdate"
-      | "benchmarkOrResult"
-      | "educationalBreakdown"
-      | "founderInsight"
-      | "timelyNewsTieIn"
-      | "audienceQuestion"
-      | "narrativeStorytelling"
-    >;
+    contentPatternTags: XNicheContentPatternTag[];
     likelyStrengthReason: string | null;
     tagConfidenceNotes: string[];
   }>;
   bestPerformingTweetReferencesNote: string | null;
   contentArchetypeLabel: string | null;
-  dominantPatterns: Array<
-    | "strongHook"
-    | "contrarianTake"
-    | "productUpdate"
-    | "benchmarkOrResult"
-    | "educationalBreakdown"
-    | "founderInsight"
-    | "timelyNewsTieIn"
-    | "audienceQuestion"
-    | "narrativeStorytelling"
-  >;
-  secondaryPatterns: Array<
-    | "strongHook"
-    | "contrarianTake"
-    | "productUpdate"
-    | "benchmarkOrResult"
-    | "educationalBreakdown"
-    | "founderInsight"
-    | "timelyNewsTieIn"
-    | "audienceQuestion"
-    | "narrativeStorytelling"
-  >;
+  dominantPatterns: XNicheContentPatternTag[];
+  secondaryPatterns: XNicheContentPatternTag[];
   archetypeSummary: string | null;
   archetypeConfidenceNote: string | null;
+}
+
+interface XNicheCommonArchetypeSummary {
+  label: string;
+  accountCount: number;
 }
 
 interface XNicheRankingComponent {
@@ -217,6 +193,12 @@ export interface RankedXNicheBucket {
   strongestAccounts: XNicheStrongestAccountSummary[];
   supportingAccountsCount: number;
   topSupportingAccounts: XNicheSupportingAccountSummary[];
+  dominantNichePatterns: XNicheContentPatternTag[];
+  secondaryNichePatterns: XNicheContentPatternTag[];
+  commonArchetypes: XNicheCommonArchetypeSummary[];
+  nicheArchetypeSummary: string | null;
+  nicheArchetypeConfidenceNote: string | null;
+  archetypeCoverageCount: number;
   decisionLabels: XNicheDecisionLabels;
   bucketAggregates: ScoredXTopicBucketResult["bucketAggregates"];
   topicSignals: ScoredXTopicBucketResult["topicSignals"];
@@ -286,6 +268,47 @@ function dedupeItemsByKey<T>(items: T[], getKey: (item: T) => string) {
   }
 
   return dedupedItems;
+}
+
+function getContentPatternLabel(tag: XNicheContentPatternTag) {
+  switch (tag) {
+    case "strongHook":
+      return "сильный hook";
+    case "contrarianTake":
+      return "контрарный угол";
+    case "productUpdate":
+      return "продуктовый апдейт";
+    case "benchmarkOrResult":
+      return "результат или benchmark";
+    case "educationalBreakdown":
+      return "обучающий breakdown";
+    case "founderInsight":
+      return "founder insight";
+    case "timelyNewsTieIn":
+      return "привязка к актуальной новости";
+    case "audienceQuestion":
+      return "вопрос к аудитории";
+    case "narrativeStorytelling":
+      return "нарративная подача";
+    default:
+      return tag;
+  }
+}
+
+function joinHumanList(items: string[]) {
+  if (items.length === 0) {
+    return "";
+  }
+
+  if (items.length === 1) {
+    return items[0];
+  }
+
+  if (items.length === 2) {
+    return `${items[0]} и ${items[1]}`;
+  }
+
+  return `${items.slice(0, -1).join(", ")} и ${items[items.length - 1]}`;
 }
 
 function getTopicMetricLabel(metric: XNicheShortlistSortBy) {
@@ -611,6 +634,129 @@ function buildTopSupportingAccounts(
     }));
 }
 
+function buildNicheArchetypeRollup(
+  supportingAccounts: XNicheSupportingAccountSummary[]
+) {
+  const accountsWithArchetypes = supportingAccounts.filter(
+    (account) =>
+      account.contentArchetypeLabel ||
+      account.dominantPatterns.length > 0 ||
+      account.secondaryPatterns.length > 0
+  );
+
+  if (accountsWithArchetypes.length === 0) {
+    return {
+      dominantNichePatterns: [] as XNicheContentPatternTag[],
+      secondaryNichePatterns: [] as XNicheContentPatternTag[],
+      commonArchetypes: [] as XNicheCommonArchetypeSummary[],
+      nicheArchetypeSummary: null,
+      nicheArchetypeConfidenceNote:
+        "Пока не хватает supporting accounts с достаточно сильными archetype-сигналами, чтобы собрать нишевую content-сводку.",
+      archetypeCoverageCount: 0
+    };
+  }
+
+  const patternScores = new Map<XNicheContentPatternTag, number>();
+  const archetypeCounts = new Map<string, number>();
+  const accountConfidenceNotes = new Set<string>();
+
+  accountsWithArchetypes.forEach((account) => {
+    account.dominantPatterns.forEach((pattern, index) => {
+      patternScores.set(
+        pattern,
+        (patternScores.get(pattern) ?? 0) + Math.max(2 - index * 0.4, 1.2)
+      );
+    });
+
+    account.secondaryPatterns.forEach((pattern, index) => {
+      patternScores.set(
+        pattern,
+        (patternScores.get(pattern) ?? 0) + Math.max(1 - index * 0.25, 0.5)
+      );
+    });
+
+    if (account.contentArchetypeLabel) {
+      archetypeCounts.set(
+        account.contentArchetypeLabel,
+        (archetypeCounts.get(account.contentArchetypeLabel) ?? 0) + 1
+      );
+    }
+
+    if (account.archetypeConfidenceNote) {
+      accountConfidenceNotes.add(account.archetypeConfidenceNote);
+    }
+  });
+
+  const sortedPatterns = [...patternScores.entries()].sort(
+    (left, right) => right[1] - left[1]
+  );
+  const dominantNichePatterns = sortedPatterns.slice(0, 3).map(([pattern]) => pattern);
+  const dominantPatternSet = new Set(dominantNichePatterns);
+  const secondaryNichePatterns = sortedPatterns
+    .filter(([pattern]) => !dominantPatternSet.has(pattern))
+    .slice(0, 3)
+    .map(([pattern]) => pattern);
+  const commonArchetypes = [...archetypeCounts.entries()]
+    .sort((left, right) => {
+      if (right[1] !== left[1]) {
+        return right[1] - left[1];
+      }
+
+      return left[0].localeCompare(right[0]);
+    })
+    .slice(0, 3)
+    .map(([label, accountCount]) => ({
+      label,
+      accountCount
+    }));
+  const dominantLabels = dominantNichePatterns.map((pattern) =>
+    getContentPatternLabel(pattern)
+  );
+  const secondaryLabels = secondaryNichePatterns.map((pattern) =>
+    getContentPatternLabel(pattern)
+  );
+  const archetypeLabels = commonArchetypes.map((item) => item.label);
+  let nicheArchetypeSummary =
+    dominantLabels.length > 0
+      ? `По supporting accounts в этой нише чаще всего повторяются ${joinHumanList(dominantLabels)}.`
+      : "По supporting accounts уже видно повторяющийся content signal, но он пока слабее явных pattern tags.";
+
+  if (secondaryLabels.length > 0) {
+    nicheArchetypeSummary += ` Во втором эшелоне дополнительно появляются ${joinHumanList(
+      secondaryLabels
+    )}.`;
+  }
+
+  if (archetypeLabels.length > 0) {
+    nicheArchetypeSummary += ` Чаще других всплывают архетипы ${joinHumanList(
+      archetypeLabels
+    )}.`;
+  }
+
+  let nicheArchetypeConfidenceNote: string | null = null;
+
+  if (accountsWithArchetypes.length === 1) {
+    nicheArchetypeConfidenceNote =
+      "Нишевой archetype rollup пока опирается только на один supporting account, поэтому это лишь предварительная подсказка.";
+  } else if (accountsWithArchetypes.length < Math.min(3, supportingAccounts.length)) {
+    nicheArchetypeConfidenceNote =
+      "Archetype rollup собран лишь по части supporting accounts, поэтому нишевый паттерн пока может смещаться по мере расширения roster.";
+  } else if (commonArchetypes.length === 0 && accountConfidenceNotes.size > 0) {
+    nicheArchetypeConfidenceNote = [...accountConfidenceNotes][0];
+  } else if (accountConfidenceNotes.size > 0 && accountsWithArchetypes.length < 4) {
+    nicheArchetypeConfidenceNote = [...accountConfidenceNotes][0];
+  }
+
+  return {
+    dominantNichePatterns,
+    secondaryNichePatterns,
+    commonArchetypes,
+    nicheArchetypeSummary,
+    nicheArchetypeConfidenceNote,
+    archetypeCoverageCount: accountsWithArchetypes.length
+  };
+}
+
 function getPrimaryStrengths(bucket: ScoredXTopicBucketResult) {
   const strengths: Array<[XNicheShortlistSortBy, number]> = [
     ["growthPotential", bucket.topicScores.growthPotential],
@@ -761,6 +907,7 @@ function buildFailedRankedBucket(
   bucket: ScoredXTopicBucketResult
 ): RankedXNicheBucket {
   const topSupportingAccounts = buildTopSupportingAccounts(bucket);
+  const nicheArchetypeRollup = buildNicheArchetypeRollup(topSupportingAccounts);
 
   return {
     bucketId: bucket.bucket.bucketId,
@@ -781,6 +928,13 @@ function buildFailedRankedBucket(
     strongestAccounts: buildStrongestAccounts(bucket),
     supportingAccountsCount: bucket.successfulAccounts.length,
     topSupportingAccounts,
+    dominantNichePatterns: nicheArchetypeRollup.dominantNichePatterns,
+    secondaryNichePatterns: nicheArchetypeRollup.secondaryNichePatterns,
+    commonArchetypes: nicheArchetypeRollup.commonArchetypes,
+    nicheArchetypeSummary: nicheArchetypeRollup.nicheArchetypeSummary,
+    nicheArchetypeConfidenceNote:
+      nicheArchetypeRollup.nicheArchetypeConfidenceNote,
+    archetypeCoverageCount: nicheArchetypeRollup.archetypeCoverageCount,
     decisionLabels: {
       bestOverall: false,
       bestForGrowth: false,
@@ -902,6 +1056,7 @@ export async function runXNicheShortlistDiagnostics(
         };
         const shortlistIncluded = shortlistIds.has(entry.bucket.bucket.bucketId);
         const topSupportingAccounts = buildTopSupportingAccounts(entry.bucket);
+        const nicheArchetypeRollup = buildNicheArchetypeRollup(topSupportingAccounts);
 
         return {
           bucketId: entry.bucket.bucket.bucketId,
@@ -921,6 +1076,13 @@ export async function runXNicheShortlistDiagnostics(
           strongestAccounts: buildStrongestAccounts(entry.bucket),
           supportingAccountsCount: entry.bucket.successfulAccounts.length,
           topSupportingAccounts,
+          dominantNichePatterns: nicheArchetypeRollup.dominantNichePatterns,
+          secondaryNichePatterns: nicheArchetypeRollup.secondaryNichePatterns,
+          commonArchetypes: nicheArchetypeRollup.commonArchetypes,
+          nicheArchetypeSummary: nicheArchetypeRollup.nicheArchetypeSummary,
+          nicheArchetypeConfidenceNote:
+            nicheArchetypeRollup.nicheArchetypeConfidenceNote,
+          archetypeCoverageCount: nicheArchetypeRollup.archetypeCoverageCount,
           decisionLabels,
           bucketAggregates: entry.bucket.bucketAggregates,
           topicSignals: entry.bucket.topicSignals,

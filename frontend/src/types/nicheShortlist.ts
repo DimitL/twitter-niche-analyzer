@@ -104,6 +104,22 @@ export interface NicheShortlistStrongestAccount {
   reason: string;
 }
 
+export type NicheShortlistContentPatternTag =
+  | "strongHook"
+  | "contrarianTake"
+  | "productUpdate"
+  | "benchmarkOrResult"
+  | "educationalBreakdown"
+  | "founderInsight"
+  | "timelyNewsTieIn"
+  | "audienceQuestion"
+  | "narrativeStorytelling";
+
+export interface NicheShortlistCommonArchetype {
+  label: string;
+  accountCount: number;
+}
+
 export interface NicheShortlistSupportingAccount {
   handle: string | null;
   displayName: string | null;
@@ -121,8 +137,8 @@ export interface NicheShortlistSupportingAccount {
   bestPerformingTweetReferences: NicheShortlistSupportingTweetReference[];
   bestPerformingTweetReferencesNote: string | null;
   contentArchetypeLabel: string | null;
-  dominantPatterns: NicheShortlistSupportingTweetReference["contentPatternTags"];
-  secondaryPatterns: NicheShortlistSupportingTweetReference["contentPatternTags"];
+  dominantPatterns: NicheShortlistContentPatternTag[];
+  secondaryPatterns: NicheShortlistContentPatternTag[];
   archetypeSummary: string | null;
   archetypeConfidenceNote: string | null;
 }
@@ -147,17 +163,7 @@ export interface NicheShortlistSupportingTweetReference {
     normalizedNumber: number | null;
     available: boolean;
   };
-  contentPatternTags: Array<
-    | "strongHook"
-    | "contrarianTake"
-    | "productUpdate"
-    | "benchmarkOrResult"
-    | "educationalBreakdown"
-    | "founderInsight"
-    | "timelyNewsTieIn"
-    | "audienceQuestion"
-    | "narrativeStorytelling"
-  >;
+  contentPatternTags: NicheShortlistContentPatternTag[];
   likelyStrengthReason: string | null;
   tagConfidenceNotes: string[];
 }
@@ -249,6 +255,12 @@ export interface RankedNicheShortlistBucket {
   strongestAccounts: NicheShortlistStrongestAccount[];
   supportingAccountsCount: number;
   topSupportingAccounts: NicheShortlistSupportingAccount[];
+  dominantNichePatterns: NicheShortlistContentPatternTag[];
+  secondaryNichePatterns: NicheShortlistContentPatternTag[];
+  commonArchetypes: NicheShortlistCommonArchetype[];
+  nicheArchetypeSummary: string | null;
+  nicheArchetypeConfidenceNote: string | null;
+  archetypeCoverageCount: number;
   decisionLabels: NicheShortlistDecisionLabels;
   bucketAggregates: NicheShortlistBucketAggregates;
   topicSignals: NicheShortlistTopicSignals;
