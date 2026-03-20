@@ -70,6 +70,38 @@ export function createEmptyBucketDraft(): NicheShortlistBucketDraft {
   };
 }
 
+function createBucketDraftFromInput(
+  bucket: NicheShortlistBucketInput,
+  usedBucketIds?: Set<string>,
+  index = 0
+): NicheShortlistBucketDraft {
+  const candidateBucketId =
+    bucket.bucketId.trim() || buildFallbackBucketId(bucket.label, index);
+  const nextBucketId = usedBucketIds
+    ? buildUniqueBucketId(candidateBucketId, usedBucketIds)
+    : bucket.bucketId;
+
+  return {
+    editorId: createEditorId("bucket"),
+    bucketId: nextBucketId,
+    label: bucket.label,
+    description: bucket.description ?? "",
+    handles:
+      bucket.handles && bucket.handles.length > 0
+        ? bucket.handles.map((handle) => createEmptyHandleDraft(handle))
+        : []
+  };
+}
+
+export function isBucketDraftEmpty(bucket: NicheShortlistBucketDraft) {
+  return (
+    !bucket.bucketId.trim() &&
+    !bucket.label.trim() &&
+    !bucket.description.trim() &&
+    bucket.handles.every((handle) => !normalizeHandle(handle.value))
+  );
+}
+
 export function buildBucketDraftsFromInputs(
   buckets: NicheShortlistBucketInput[]
 ): NicheShortlistBucketDraft[] {
@@ -77,16 +109,31 @@ export function buildBucketDraftsFromInputs(
     return [createEmptyBucketDraft()];
   }
 
-  return buckets.map((bucket) => ({
-    editorId: createEditorId("bucket"),
-    bucketId: bucket.bucketId,
-    label: bucket.label,
-    description: bucket.description ?? "",
-    handles:
-      bucket.handles && bucket.handles.length > 0
-        ? bucket.handles.map((handle) => createEmptyHandleDraft(handle))
-        : []
-  }));
+  const usedBucketIds = new Set<string>();
+
+  return buckets.map((bucket, index) =>
+    createBucketDraftFromInput(bucket, usedBucketIds, index)
+  );
+}
+
+export function appendBucketDraftsFromInputs(
+  currentBuckets: NicheShortlistBucketDraft[],
+  nextBuckets: NicheShortlistBucketInput[]
+) {
+  if (nextBuckets.length === 0) {
+    return currentBuckets.length > 0 ? currentBuckets : [createEmptyBucketDraft()];
+  }
+
+  const replaceEmptyEditor = currentBuckets.every((bucket) => isBucketDraftEmpty(bucket));
+  const baseBuckets = replaceEmptyEditor ? [] : currentBuckets;
+  const usedBucketIds = new Set(
+    baseBuckets.map((bucket) => bucket.bucketId.trim()).filter(Boolean)
+  );
+  const appendedBuckets = nextBuckets.map((bucket, index) =>
+    createBucketDraftFromInput(bucket, usedBucketIds, index + baseBuckets.length)
+  );
+
+  return [...baseBuckets, ...appendedBuckets];
 }
 
 export function appendHandlesToBucketDraft(

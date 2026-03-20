@@ -3,12 +3,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { appConfig, type AnalysisRequest, type AnalysisResponse } from "@twitter-niche-analyzer/shared";
 import { getApiHealth, runMockAnalysis, runNicheShortlist } from "./api/client.js";
 import {
-  defaultNicheShortlistExampleId,
-  nicheShortlistExamples
-} from "./data/nicheShortlistExamples.js";
+  nicheShortlistPresetLibrary,
+  type NicheShortlistPresetPack
+} from "./data/nicheShortlistPresetLibrary.js";
 import { BucketEditor } from "./components/BucketEditor.js";
 import { NicheCard } from "./components/NicheCard.js";
 import { NicheShortlistCard } from "./components/NicheShortlistCard.js";
+import { PresetLibrary } from "./components/PresetLibrary.js";
 import { ShortlistReportPanel } from "./components/ShortlistReportPanel.js";
 import { ShortlistPayloadPreview } from "./components/ShortlistPayloadPreview.js";
 import { ShortlistScenarioComparison } from "./components/ShortlistScenarioComparison.js";
@@ -21,6 +22,7 @@ import type {
   NicheShortlistSortBy
 } from "./types/nicheShortlist.js";
 import {
+  appendBucketDraftsFromInputs,
   appendHandlesToBucketDraft,
   buildBucketDraftsFromInputs,
   buildBucketInputsFromDrafts,
@@ -61,22 +63,37 @@ const shortlistSortOptions: Array<{
 
 const maxScenarioCompareCount = 3;
 
-function buildShortlistFormState(exampleId = defaultNicheShortlistExampleId): NicheShortlistFormState {
-  const example =
-    nicheShortlistExamples.find((entry) => entry.id === exampleId) ??
-    nicheShortlistExamples[0];
-
+function buildShortlistFormStateFromPreset(
+  preset: NicheShortlistPresetPack
+): NicheShortlistFormState {
   return {
-    buckets: buildBucketDraftsFromInputs(example.buckets),
-    limit: example.limit,
-    topN: example.topN,
-    includeUncertain: example.includeUncertain,
-    treatQuoteAsUsable: example.treatQuoteAsUsable,
-    sortBy: example.sortBy,
-    emphasizeGrowth: example.emphasizeGrowth,
-    emphasizeMonetization: example.emphasizeMonetization,
-    emphasizeEase: example.emphasizeEase
+    buckets: buildBucketDraftsFromInputs(preset.buckets),
+    limit: preset.limit,
+    topN: preset.topN,
+    includeUncertain: preset.includeUncertain,
+    treatQuoteAsUsable: preset.treatQuoteAsUsable,
+    sortBy: preset.sortBy,
+    emphasizeGrowth: preset.emphasizeGrowth,
+    emphasizeMonetization: preset.emphasizeMonetization,
+    emphasizeEase: preset.emphasizeEase
   };
+}
+
+function resolvePresetById(presetId: string) {
+  return (
+    nicheShortlistPresetLibrary.find((preset) => preset.presetId === presetId) ?? null
+  );
+}
+
+function buildPresetScenarioName(
+  preset: NicheShortlistPresetPack,
+  scenariosCount: number
+) {
+  if (scenariosCount === 0) {
+    return preset.title;
+  }
+
+  return `${preset.title} (${scenariosCount + 1})`;
 }
 
 function parseOptionalInteger(value: string) {
@@ -131,7 +148,7 @@ export default function App() {
   const [healthStatus, setHealthStatus] = useState<"checking" | "online" | "offline">("checking");
   const [analysisStatus, setAnalysisStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
-  const [selectedShortlistExampleId, setSelectedShortlistExampleId] = useState<string | null>(null);
+  const [selectedPresetPackId, setSelectedPresetPackId] = useState<string | null>(null);
   const [shortlistScenarios, setShortlistScenarios] = useState(() => scenarioBootstrap.scenarios);
   const [activeScenarioId, setActiveScenarioId] = useState(() => scenarioBootstrap.activeScenarioId);
   const [comparedScenarioIds, setComparedScenarioIds] = useState<string[]>(() =>
@@ -315,7 +332,7 @@ export default function App() {
     options?: { keepPreset?: boolean }
   ) {
     if (!options?.keepPreset) {
-      setSelectedShortlistExampleId(null);
+      setSelectedPresetPackId(null);
     }
 
     setShortlistErrorMessage("");
@@ -346,15 +363,63 @@ export default function App() {
     setShowShortlistValidation(false);
   }
 
-  function applyShortlistExample(exampleId: string) {
-    setSelectedShortlistExampleId(exampleId);
-    setShortlistForm(buildShortlistFormState(exampleId));
+  function applyPresetReplace(presetId: string) {
+    const preset = resolvePresetById(presetId);
+
+    if (!preset) {
+      return;
+    }
+
+    setSelectedPresetPackId(presetId);
+    setShortlistForm(buildShortlistFormStateFromPreset(preset));
     resetShortlistTransientState();
   }
 
   function resetShortlistEditor() {
-    setSelectedShortlistExampleId(null);
+    setSelectedPresetPackId(null);
     setShortlistForm(buildDefaultShortlistFormState());
+    resetShortlistTransientState();
+  }
+
+  function handlePresetAppend(presetId: string) {
+    const preset = resolvePresetById(presetId);
+
+    if (!preset) {
+      return;
+    }
+
+    setSelectedPresetPackId(presetId);
+    patchShortlistForm(
+      (current) => ({
+        ...current,
+        buckets: appendBucketDraftsFromInputs(current.buckets, preset.buckets)
+      }),
+      { keepPreset: true }
+    );
+    resetShortlistTransientState();
+  }
+
+  function handlePresetSaveAsScenario(presetId: string) {
+    const preset = resolvePresetById(presetId);
+
+    if (!preset) {
+      return;
+    }
+
+    const nextForm = buildShortlistFormStateFromPreset(preset);
+    const nextScenario = createScenarioFromFormState(
+      nextForm,
+      buildPresetScenarioName(preset, shortlistScenarios.length)
+    );
+
+    setShortlistScenarios((current) => [nextScenario, ...current]);
+    activeScenarioIdRef.current = nextScenario.scenarioId;
+    setActiveScenarioId(nextScenario.scenarioId);
+    setComparedScenarioIds((current) =>
+      [nextScenario.scenarioId, ...current].slice(0, maxScenarioCompareCount)
+    );
+    setSelectedPresetPackId(presetId);
+    setShortlistForm(nextForm);
     resetShortlistTransientState();
   }
 
@@ -367,7 +432,7 @@ export default function App() {
 
     activeScenarioIdRef.current = scenario.scenarioId;
     setActiveScenarioId(scenario.scenarioId);
-    setSelectedShortlistExampleId(null);
+    setSelectedPresetPackId(null);
     setShortlistForm(restoreFormStateFromSnapshot(scenario.formSnapshot));
     resetShortlistTransientState();
   }
@@ -411,6 +476,7 @@ export default function App() {
     activeScenarioIdRef.current = nextScenario.scenarioId;
     setActiveScenarioId(nextScenario.scenarioId);
     setComparedScenarioIds((current) => [nextScenario.scenarioId, ...current].slice(0, maxScenarioCompareCount));
+    setSelectedPresetPackId(null);
   }
 
   function handleScenarioRename(scenarioId: string) {
@@ -446,7 +512,7 @@ export default function App() {
     activeScenarioIdRef.current = nextScenario.scenarioId;
     setActiveScenarioId(nextScenario.scenarioId);
     setComparedScenarioIds((current) => [nextScenario.scenarioId, ...current].slice(0, maxScenarioCompareCount));
-    setSelectedShortlistExampleId(null);
+    setSelectedPresetPackId(null);
     setShortlistForm(restoreFormStateFromSnapshot(nextScenario.formSnapshot));
     resetShortlistTransientState();
   }
@@ -487,7 +553,7 @@ export default function App() {
       setShortlistScenarios([defaultScenario]);
       activeScenarioIdRef.current = defaultScenario.scenarioId;
       setActiveScenarioId(defaultScenario.scenarioId);
-      setSelectedShortlistExampleId(null);
+      setSelectedPresetPackId(null);
       setShortlistForm(restoreFormStateFromSnapshot(defaultScenario.formSnapshot));
       resetShortlistTransientState();
       return;
@@ -499,7 +565,7 @@ export default function App() {
       const nextActiveScenario = nextScenarios[0];
       activeScenarioIdRef.current = nextActiveScenario.scenarioId;
       setActiveScenarioId(nextActiveScenario.scenarioId);
-      setSelectedShortlistExampleId(null);
+      setSelectedPresetPackId(null);
       setShortlistForm(restoreFormStateFromSnapshot(nextActiveScenario.formSnapshot));
       resetShortlistTransientState();
     }
@@ -615,11 +681,12 @@ export default function App() {
         <section className="panel shortlist-panel">
           <div className="shortlist-panel__intro">
             <div>
-              <p className="eyebrow">Manual Niche Shortlist</p>
+              <p className="eyebrow">Ручной shortlist ниш</p>
               <h2>Собрать shortlist без curl</h2>
               <p className="section-copy">
-                Используйте presets или соберите buckets вручную через понятный редактор.
-                JSON больше не нужен: достаточно добавить названия bucket-ов и X handles.
+                Используйте библиотеку preset-ов для быстрого старта или соберите buckets
+                вручную через понятный редактор. JSON больше не нужен: достаточно
+                добавить названия bucket-ов и X handles.
               </p>
             </div>
 
@@ -639,28 +706,14 @@ export default function App() {
               onScenarioDelete={handleScenarioDelete}
             />
 
-            <div className="preset-grid">
-              {nicheShortlistExamples.map((example) => (
-                <button
-                  key={example.id}
-                  type="button"
-                  className={`preset-button ${selectedShortlistExampleId === example.id ? "preset-button--active" : ""}`}
-                  onClick={() => applyShortlistExample(example.id)}
-                >
-                  <strong>{example.label}</strong>
-                  <span>{example.description}</span>
-                </button>
-              ))}
-
-              <button
-                type="button"
-                className={`preset-button ${selectedShortlistExampleId === null ? "preset-button--active" : ""}`}
-                onClick={resetShortlistEditor}
-              >
-                <strong>Пустой editor</strong>
-                <span>Начать вручную с одного пустого bucket-а и постепенно собрать shortlist.</span>
-              </button>
-            </div>
+            <PresetLibrary
+              presets={nicheShortlistPresetLibrary}
+              selectedPresetId={selectedPresetPackId}
+              onPresetReplace={applyPresetReplace}
+              onPresetAppend={handlePresetAppend}
+              onPresetSaveAsScenario={handlePresetSaveAsScenario}
+              onResetEditor={resetShortlistEditor}
+            />
 
             <div className="state-box">
               <span>Что важно знать</span>
@@ -861,9 +914,9 @@ export default function App() {
             <p className="eyebrow">Пустое состояние</p>
             <h2>Shortlist появится здесь</h2>
             <p className="section-copy">
-              Выберите один из preset-ов или соберите buckets через editor, затем
-              запустите shortlist. Результат покажет ranking reasons, decision labels и
-              сильнейшие аккаунты по каждой нише.
+              Выберите один из готовых preset-ов или соберите buckets через editor, затем
+              запустите shortlist. Результат покажет ranking reasons, decision labels,
+              сильнейшие аккаунты и evidence pack по каждой нише.
             </p>
           </section>
         ) : null}

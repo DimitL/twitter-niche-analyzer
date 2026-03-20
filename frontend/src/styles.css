@@ -188,12 +188,37 @@ button {
   align-content: start;
 }
 
-.preset-grid {
+.preset-library {
   display: grid;
-  gap: 12px;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.54);
+  border: 1px solid rgba(72, 53, 41, 0.08);
 }
 
-.preset-button,
+.preset-library__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.preset-library__header span {
+  font-size: 0.92rem;
+}
+
+.preset-library__header p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.preset-library__list {
+  display: grid;
+  gap: 14px;
+}
+
 .state-box,
 .summary-box,
 .shortlist-score-box,
@@ -207,19 +232,72 @@ button {
   border: 1px solid rgba(72, 53, 41, 0.08);
 }
 
-.preset-button {
+.preset-card {
   display: grid;
-  gap: 6px;
-  text-align: left;
-  border: 1px solid rgba(72, 53, 41, 0.1);
+  gap: 14px;
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(72, 53, 41, 0.08);
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
-.preset-button strong {
-  color: var(--text);
+.preset-card:hover,
+.preset-card--active {
+  transform: translateY(-1px);
+  border-color: rgba(217, 111, 50, 0.28);
+  box-shadow: 0 10px 24px rgba(98, 52, 24, 0.08);
 }
 
-.preset-button span,
+.preset-card__header,
+.preset-card__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.preset-card__header h3 {
+  margin: 2px 0 0;
+}
+
+.preset-card__meta {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.preset-card__preview {
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 252, 247, 0.76);
+  border: 1px solid rgba(78, 52, 34, 0.08);
+}
+
+.preset-card__preview-summary {
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+}
+
+.preset-card__preview-summary::-webkit-details-marker {
+  display: none;
+}
+
+.preset-card__bucket-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.preset-card__bucket {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(72, 53, 41, 0.08);
+}
+
+.preset-card__bucket p,
 .state-box span,
 .summary-box span,
 .shortlist-score-box span,
@@ -230,11 +308,8 @@ button {
   font-size: 0.92rem;
 }
 
-.preset-button--active,
-.preset-button:hover {
-  transform: translateY(-1px);
-  border-color: rgba(217, 111, 50, 0.34);
-  box-shadow: 0 12px 24px rgba(98, 52, 24, 0.12);
+.preset-card__bucket p {
+  margin: 8px 0 0;
 }
 
 .shortlist-form {
@@ -1569,6 +1644,9 @@ button {
   .shortlist-card__header,
   .shortlist-card__footer,
   .shortlist-summary__header,
+  .preset-library__header,
+  .preset-card__header,
+  .preset-card__actions,
   .bucket-editor__header,
   .bucket-card-editor__header,
   .bucket-card-editor__section-header,
@@ -1587,6 +1665,10 @@ button {
   .score-badge {
     width: 100%;
     text-align: left;
+  }
+
+  .preset-card__meta {
+    grid-template-columns: 1fr;
   }
 }
 

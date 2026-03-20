@@ -33,7 +33,7 @@ export function BucketEditor({
     <div className="bucket-editor">
       <div className="bucket-editor__header">
         <div>
-          <span>Topic buckets</span>
+          <span>Тематические buckets</span>
           <p>
             Соберите buckets вручную: одно направление, короткое описание и несколько
             X-аккаунтов для сравнения.
