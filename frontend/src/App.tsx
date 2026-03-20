@@ -7,6 +7,7 @@ import {
   type NicheShortlistPresetPack
 } from "./data/nicheShortlistPresetLibrary.js";
 import { BucketEditor } from "./components/BucketEditor.js";
+import { CrossNicheContentCalendarAdaptation } from "./components/CrossNicheContentCalendarAdaptation.js";
 import { CrossNicheContentCalendarStarter } from "./components/CrossNicheContentCalendarStarter.js";
 import { CrossNichePositioningPlaybook } from "./components/CrossNichePositioningPlaybook.js";
 import { CrossNichePositioningRecommendations } from "./components/CrossNichePositioningRecommendations.js";
@@ -50,6 +51,7 @@ import {
   updateScenarioFromFormState
 } from "./utils/nicheShortlistScenarios.js";
 import { buildCrossNichePositioningRecommendations } from "./utils/nicheCrossPositioning.js";
+import { buildNicheContentCalendarAdaptation } from "./utils/nicheContentCalendarAdaptation.js";
 import { buildNicheContentCalendarStarter } from "./utils/nicheContentCalendarStarter.js";
 import { buildNichePositioningPlaybook } from "./utils/nichePositioningPlaybook.js";
 import { buildNicheRepeatableContentSeries } from "./utils/nicheRepeatableContentSeries.js";
@@ -276,6 +278,23 @@ export default function App() {
           )
         : null,
     [shortlistPositioningPlaybook, shortlistRepeatableSeries, shortlistResult]
+  );
+  const shortlistContentCalendarAdaptation = useMemo(
+    () =>
+      shortlistResult
+        ? buildNicheContentCalendarAdaptation(
+            shortlistResult,
+            shortlistPositioningPlaybook,
+            shortlistRepeatableSeries,
+            shortlistContentCalendar
+          )
+        : null,
+    [
+      shortlistContentCalendar,
+      shortlistPositioningPlaybook,
+      shortlistRepeatableSeries,
+      shortlistResult
+    ]
   );
 
   useEffect(() => {
@@ -983,6 +1002,12 @@ export default function App() {
             {shortlistContentCalendar ? (
               <CrossNicheContentCalendarStarter
                 calendar={shortlistContentCalendar}
+              />
+            ) : null}
+
+            {shortlistContentCalendarAdaptation ? (
+              <CrossNicheContentCalendarAdaptation
+                adaptation={shortlistContentCalendarAdaptation}
               />
             ) : null}
 

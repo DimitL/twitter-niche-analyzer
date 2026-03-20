@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { NicheShortlistResponse } from "../types/nicheShortlist.js";
+import { CrossNicheContentCalendarAdaptation } from "./CrossNicheContentCalendarAdaptation.js";
 import { CrossNicheContentCalendarStarter } from "./CrossNicheContentCalendarStarter.js";
 import { CrossNichePositioningPlaybook } from "./CrossNichePositioningPlaybook.js";
 import { CrossNichePositioningRecommendations } from "./CrossNichePositioningRecommendations.js";
@@ -238,6 +239,13 @@ export function ShortlistReportPanel({
                 {report.crossNicheContentCalendar ? (
                   <CrossNicheContentCalendarStarter
                     calendar={report.crossNicheContentCalendar}
+                    variant="embedded"
+                  />
+                ) : null}
+
+                {report.crossNicheContentCalendarAdaptation ? (
+                  <CrossNicheContentCalendarAdaptation
+                    adaptation={report.crossNicheContentCalendarAdaptation}
                     variant="embedded"
                   />
                 ) : null}

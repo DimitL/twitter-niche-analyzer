@@ -5,6 +5,8 @@ import type {
 import { buildNicheEvidencePack } from "./nicheEvidencePack.js";
 import type { CrossNichePositioningRecommendations } from "./nicheCrossPositioning.js";
 import { buildCrossNichePositioningRecommendations } from "./nicheCrossPositioning.js";
+import type { CrossNicheContentCalendarAdaptation } from "./nicheContentCalendarAdaptation.js";
+import { buildNicheContentCalendarAdaptation } from "./nicheContentCalendarAdaptation.js";
 import type { CrossNichePositioningPlaybook } from "./nichePositioningPlaybook.js";
 import { buildNichePositioningPlaybook } from "./nichePositioningPlaybook.js";
 import type { CrossNicheContentCalendarStarter } from "./nicheContentCalendarStarter.js";
@@ -28,6 +30,7 @@ export interface NicheShortlistReportModel {
   crossNichePlaybook: CrossNichePositioningPlaybook | null;
   crossNicheRepeatableSeries: CrossNicheRepeatableContentSeries | null;
   crossNicheContentCalendar: CrossNicheContentCalendarStarter | null;
+  crossNicheContentCalendarAdaptation: CrossNicheContentCalendarAdaptation | null;
   niches: NicheShortlistReportNiche[];
 }
 
@@ -113,6 +116,11 @@ export function buildNicheShortlistReportModel(options: {
     options.shortlist,
     crossNichePlaybook
   );
+  const crossNicheContentCalendar = buildNicheContentCalendarStarter(
+    options.shortlist,
+    crossNichePlaybook,
+    crossNicheRepeatableSeries
+  );
   const niches = options.shortlist.rankedBuckets.map((bucket) => ({
     bucketId: bucket.bucketId,
     rank: bucket.rank,
@@ -143,10 +151,12 @@ export function buildNicheShortlistReportModel(options: {
     crossNichePositioning,
     crossNichePlaybook,
     crossNicheRepeatableSeries,
-    crossNicheContentCalendar: buildNicheContentCalendarStarter(
+    crossNicheContentCalendar,
+    crossNicheContentCalendarAdaptation: buildNicheContentCalendarAdaptation(
       options.shortlist,
       crossNichePlaybook,
-      crossNicheRepeatableSeries
+      crossNicheRepeatableSeries,
+      crossNicheContentCalendar
     ),
     niches
   };
@@ -354,6 +364,39 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
+  if (report.crossNicheContentCalendarAdaptation) {
+    lines.push(
+      "",
+      "## Адаптация под budget времени",
+      "",
+      report.crossNicheContentCalendarAdaptation.adaptationSummary
+    );
+
+    if (report.crossNicheContentCalendarAdaptation.summary.easiestNicheForLowTimePosting) {
+      lines.push(
+        `- Самая удобная ниша для low-time режима: ${report.crossNicheContentCalendarAdaptation.summary.easiestNicheForLowTimePosting.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheContentCalendarAdaptation.summary.bestNicheForMediumTimeConsistency) {
+      lines.push(
+        `- Самая ровная ниша для medium-time режима: ${report.crossNicheContentCalendarAdaptation.summary.bestNicheForMediumTimeConsistency.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheContentCalendarAdaptation.summary.bestNicheForHighTimeExpansion) {
+      lines.push(
+        `- Лучшая ниша для high-time expansion: ${report.crossNicheContentCalendarAdaptation.summary.bestNicheForHighTimeExpansion.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheContentCalendarAdaptation.globalConfidenceNote) {
+      lines.push(
+        `- Ограничение уверенности: ${report.crossNicheContentCalendarAdaptation.globalConfidenceNote}`
+      );
+    }
+  }
+
   report.niches.forEach((niche, index) => {
     const positioning = report.crossNichePositioning?.perBucketRecommendations.find(
       (item) => item.bucketId === niche.bucketId
@@ -365,6 +408,9 @@ export function buildNicheShortlistMarkdownReport(
       (item) => item.bucketId === niche.bucketId
     );
     const contentCalendar = report.crossNicheContentCalendar?.perBucketCalendars.find(
+      (item) => item.bucketId === niche.bucketId
+    );
+    const calendarAdaptation = report.crossNicheContentCalendarAdaptation?.perBucketAdaptations.find(
       (item) => item.bucketId === niche.bucketId
     );
 
@@ -510,6 +556,58 @@ export function buildNicheShortlistMarkdownReport(
         lines.push(
           "",
           `- Ограничение уверенности по календарю: ${contentCalendar.calendarConfidenceNote}`
+        );
+      }
+    }
+
+    if (calendarAdaptation) {
+      lines.push(
+        "",
+        "### Адаптация под low / medium / high time mode",
+        "",
+        `- Low-time: ${calendarAdaptation.lowTimeMode.recommendedWeeklyVolume}`,
+        `- Что оставить: ${calendarAdaptation.whatToKeepWhenTimeIsLimited.join(" | ")}`,
+        `- Что резать первым: ${
+          calendarAdaptation.lowTimeMode.slotsToCutFirst.length > 0
+            ? calendarAdaptation.lowTimeMode.slotsToCutFirst.join(", ")
+            : "н/д"
+        }`
+      );
+
+      if (calendarAdaptation.lowTimeMode.lowTimeCaution) {
+        lines.push(`- Low-time caution: ${calendarAdaptation.lowTimeMode.lowTimeCaution}`);
+      }
+
+      lines.push(
+        `- Medium-time: ${calendarAdaptation.mediumTimeMode.recommendedWeeklyVolume}`,
+        `- Баланс: ${calendarAdaptation.mediumTimeMode.balancedMixGuidance.join(" | ")}`
+      );
+
+      if (calendarAdaptation.mediumTimeMode.mediumTimeCaution) {
+        lines.push(`- Medium-time caution: ${calendarAdaptation.mediumTimeMode.mediumTimeCaution}`);
+      }
+
+      lines.push(
+        `- High-time: ${calendarAdaptation.highTimeMode.recommendedWeeklyVolume}`,
+        `- Где расширять: ${calendarAdaptation.whatToExpandWhenMoreTimeIsAvailable.join(" | ")}`,
+        `- Как добавлять variety: ${calendarAdaptation.highTimeMode.varietyToAdd.join(" | ")}`
+      );
+
+      if (calendarAdaptation.highTimeMode.highTimeCaution) {
+        lines.push(`- High-time caution: ${calendarAdaptation.highTimeMode.highTimeCaution}`);
+      }
+
+      if (calendarAdaptation.whatToAvoidOverdoingInHighFrequency.length > 0) {
+        lines.push(
+          `- Что не стоит передавливать: ${calendarAdaptation.whatToAvoidOverdoingInHighFrequency.join(
+            " | "
+          )}`
+        );
+      }
+
+      if (calendarAdaptation.adaptationConfidenceNote) {
+        lines.push(
+          `- Ограничение уверенности по адаптации: ${calendarAdaptation.adaptationConfidenceNote}`
         );
       }
     }

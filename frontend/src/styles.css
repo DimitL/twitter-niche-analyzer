@@ -1222,6 +1222,83 @@ button {
   color: var(--muted);
 }
 
+.content-calendar-adaptation {
+  display: grid;
+  gap: 16px;
+}
+
+.content-calendar-adaptation--embedded {
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(72, 53, 41, 0.08);
+}
+
+.content-calendar-adaptation__header,
+.content-calendar-adaptation__summary,
+.content-calendar-adaptation__bucket-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.content-calendar-adaptation__leaders,
+.content-calendar-adaptation__grid,
+.content-calendar-adaptation__mode-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.content-calendar-adaptation__leaders {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.content-calendar-adaptation__grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.content-calendar-adaptation__mode-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.content-calendar-adaptation__bucket-card,
+.content-calendar-adaptation__mode-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 252, 247, 0.84);
+  border: 1px solid rgba(78, 52, 34, 0.08);
+}
+
+.content-calendar-adaptation__bucket-card h3 {
+  margin: 0;
+}
+
+.content-calendar-adaptation__mode-card {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.content-calendar-adaptation__bucket-section,
+.content-calendar-adaptation__mode-section {
+  display: grid;
+  gap: 10px;
+}
+
+.content-calendar-adaptation__bucket-section span,
+.content-calendar-adaptation__mode-section span {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.content-calendar-adaptation__bucket-note,
+.content-calendar-adaptation__mode-note {
+  margin: 0;
+  color: var(--muted);
+}
+
 .report-niche-card {
   display: grid;
   gap: 16px;
@@ -1974,6 +2051,9 @@ button {
   .repeatable-series__grid,
   .content-calendar-starter__leaders,
   .content-calendar-starter__grid,
+  .content-calendar-adaptation__leaders,
+  .content-calendar-adaptation__grid,
+  .content-calendar-adaptation__mode-grid,
   .shortlist-score-grid,
   .signal-grid,
   .strong-account-grid,
@@ -2011,6 +2091,9 @@ button {
   .content-calendar-starter__summary,
   .content-calendar-starter__bucket-header,
   .content-calendar-starter__plan-meta,
+  .content-calendar-adaptation__header,
+  .content-calendar-adaptation__summary,
+  .content-calendar-adaptation__bucket-header,
   .preset-library__header,
   .preset-card__header,
   .preset-card__actions,
