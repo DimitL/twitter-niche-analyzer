@@ -142,6 +142,19 @@ export interface NicheShortlistSupportingTweetReference {
     normalizedNumber: number | null;
     available: boolean;
   };
+  contentPatternTags: Array<
+    | "strongHook"
+    | "contrarianTake"
+    | "productUpdate"
+    | "benchmarkOrResult"
+    | "educationalBreakdown"
+    | "founderInsight"
+    | "timelyNewsTieIn"
+    | "audienceQuestion"
+    | "narrativeStorytelling"
+  >;
+  likelyStrengthReason: string | null;
+  tagConfidenceNotes: string[];
 }
 
 export interface NicheShortlistDecisionLabels {

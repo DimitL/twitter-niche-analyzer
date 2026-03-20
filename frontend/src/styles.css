@@ -1051,7 +1051,8 @@ button {
 }
 
 .supporting-tweet-card__meta,
-.supporting-tweet-card__metrics {
+.supporting-tweet-card__metrics,
+.supporting-tweet-card__patterns {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -1064,6 +1065,27 @@ button {
 
 .supporting-tweet-card p,
 .supporting-account-card__note {
+  margin: 0;
+  color: var(--muted);
+}
+
+.supporting-tweet-card__reason {
+  color: #18333f;
+  font-weight: 600;
+}
+
+.pattern-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(217, 111, 50, 0.14);
+  color: #8c451c;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.supporting-tweet-card__notes {
   margin: 0;
   color: var(--muted);
 }

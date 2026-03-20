@@ -51,6 +51,19 @@ interface ComparedXAccountTweetReference {
   likeCount: ScoredUsableXAccountTweet["likeCount"];
   repostCount: ScoredUsableXAccountTweet["repostCount"];
   replyCount: ScoredUsableXAccountTweet["replyCount"];
+  contentPatternTags: Array<
+    | "strongHook"
+    | "contrarianTake"
+    | "productUpdate"
+    | "benchmarkOrResult"
+    | "educationalBreakdown"
+    | "founderInsight"
+    | "timelyNewsTieIn"
+    | "audienceQuestion"
+    | "narrativeStorytelling"
+  >;
+  likelyStrengthReason: string | null;
+  tagConfidenceNotes: string[];
 }
 
 export interface ComparedXAccountResult {
@@ -286,9 +299,276 @@ function getTweetEngagementProxy(tweet: ScoredUsableXAccountTweet) {
   return metricValues.reduce((sum, value) => sum + value, 0);
 }
 
+function containsAny(text: string, patterns: string[]) {
+  return patterns.some((pattern) => text.includes(pattern));
+}
+
+function inferTweetContentPatterns(tweet: ScoredUsableXAccountTweet) {
+  const tweetText = tweet.tweetText?.replace(/\s+/g, " ").trim() ?? "";
+  const normalizedText = tweetText.toLowerCase();
+  const engagementProxy = getTweetEngagementProxy(tweet);
+  const patternScores = new Map<
+    | "strongHook"
+    | "contrarianTake"
+    | "productUpdate"
+    | "benchmarkOrResult"
+    | "educationalBreakdown"
+    | "founderInsight"
+    | "timelyNewsTieIn"
+    | "audienceQuestion"
+    | "narrativeStorytelling",
+    number
+  >();
+  const confidenceNotes: string[] = [];
+
+  if (!normalizedText) {
+    return {
+      contentPatternTags: [] as Array<
+        | "strongHook"
+        | "contrarianTake"
+        | "productUpdate"
+        | "benchmarkOrResult"
+        | "educationalBreakdown"
+        | "founderInsight"
+        | "timelyNewsTieIn"
+        | "audienceQuestion"
+        | "narrativeStorytelling"
+      >,
+      likelyStrengthReason:
+        engagementProxy !== null
+          ? "Твит выглядит сильным по реакции аудитории, но без текстового snippet трудно объяснить его content pattern."
+          : null,
+      tagConfidenceNotes:
+        engagementProxy !== null
+          ? ["Паттерны не определены: текстовый snippet для этого твита недоступен."]
+          : []
+    };
+  }
+
+  const addScore = (
+    tag:
+      | "strongHook"
+      | "contrarianTake"
+      | "productUpdate"
+      | "benchmarkOrResult"
+      | "educationalBreakdown"
+      | "founderInsight"
+      | "timelyNewsTieIn"
+      | "audienceQuestion"
+      | "narrativeStorytelling",
+    score: number
+  ) => {
+    patternScores.set(tag, (patternScores.get(tag) ?? 0) + score);
+  };
+
+  if (
+    /^(hot take|stop |why |how |what |the .*:|[0-9]+\b)/i.test(tweetText) ||
+    containsAny(normalizedText, ["here's", "nobody talks about", "the truth", "most people"])
+  ) {
+    addScore("strongHook", 3);
+  }
+
+  if (
+    containsAny(normalizedText, [
+      "hot take",
+      "unpopular opinion",
+      "most people",
+      "everyone says",
+      "you're wrong",
+      "you are wrong",
+      "myth",
+      "stop doing"
+    ])
+  ) {
+    addScore("contrarianTake", 3);
+  }
+
+  if (
+    containsAny(normalizedText, [
+      "introducing",
+      "launched",
+      "launching",
+      "shipping",
+      "shipped",
+      "new feature",
+      "release",
+      "released",
+      "rollout",
+      "now available",
+      "beta",
+      "update:"
+    ])
+  ) {
+    addScore("productUpdate", 3);
+  }
+
+  if (
+    containsAny(normalizedText, [
+      "benchmark",
+      "benchmarks",
+      "result",
+      "results",
+      "grew",
+      "growth",
+      "improved",
+      "lift",
+      "revenue",
+      "latency",
+      "faster",
+      "slower",
+      "performance"
+    ]) ||
+    /(\d+(\.\d+)?%|\d+(\.\d+)?x)/i.test(tweetText)
+  ) {
+    addScore("benchmarkOrResult", 3);
+  }
+
+  if (
+    containsAny(normalizedText, [
+      "how to",
+      "breakdown",
+      "guide",
+      "framework",
+      "playbook",
+      "step-by-step",
+      "lessons",
+      "tutorial",
+      "explained"
+    ]) ||
+    /^\d+\//.test(tweetText)
+  ) {
+    addScore("educationalBreakdown", 3);
+  }
+
+  if (
+    containsAny(normalizedText, [
+      "founder",
+      "startup",
+      "operator",
+      "company",
+      "customer",
+      "customers",
+      "team",
+      "we learned",
+      "i learned",
+      "from building",
+      "building this"
+    ])
+  ) {
+    addScore("founderInsight", 2);
+  }
+
+  if (
+    containsAny(normalizedText, [
+      "today",
+      "just announced",
+      "just launched",
+      "this week",
+      "breaking",
+      "news",
+      "latest",
+      "yesterday",
+      "announced"
+    ])
+  ) {
+    addScore("timelyNewsTieIn", 2);
+  }
+
+  if (
+    tweetText.includes("?") &&
+    /^(what|why|how|should|would|are|is|can|do|does)\b/i.test(tweetText)
+  ) {
+    addScore("audienceQuestion", 3);
+  }
+
+  if (
+    containsAny(normalizedText, [
+      "when i",
+      "when we",
+      "last year",
+      "story",
+      "journey",
+      "mistake",
+      "behind the scenes",
+      "i learned",
+      "we learned"
+    ])
+  ) {
+    addScore("narrativeStorytelling", 2);
+  }
+
+  const contentPatternTags = [...patternScores.entries()]
+    .filter(([, score]) => score >= 2)
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 3)
+    .map(([tag]) => tag);
+
+  if (contentPatternTags.length === 0) {
+    return {
+      contentPatternTags,
+      likelyStrengthReason:
+        engagementProxy !== null
+          ? "Твит выглядит сильным по реакции аудитории, но по короткому snippet трудно уверенно определить content pattern."
+          : null,
+      tagConfidenceNotes:
+        engagementProxy !== null
+          ? ["Паттерны не размечены: текст слишком общий для надёжной rule-based классификации."]
+          : []
+    };
+  }
+
+  if (tweetText.length < 90) {
+    confidenceNotes.push(
+      "Теги выведены по короткому snippet, поэтому их стоит читать как подсказку, а не как строгую классификацию."
+    );
+  }
+
+  if (contentPatternTags.length === 1) {
+    confidenceNotes.push(
+      "У этого твита определился только один уверенный паттерн, поэтому объяснение силы остаётся предварительным."
+    );
+  }
+
+  const labelMap: Record<(typeof contentPatternTags)[number], string> = {
+    strongHook: "сильный hook",
+    contrarianTake: "контрарный угол",
+    productUpdate: "продуктовый апдейт",
+    benchmarkOrResult: "результат или benchmark",
+    educationalBreakdown: "обучающий breakdown",
+    founderInsight: "founder insight",
+    timelyNewsTieIn: "привязка к актуальной новости",
+    audienceQuestion: "вопрос к аудитории",
+    narrativeStorytelling: "нарративная подача"
+  };
+
+  const likelyStrengthReason =
+    contentPatternTags.length > 0
+      ? `Похоже, твит зацепил аудиторию через ${contentPatternTags
+          .slice(0, 2)
+          .map((tag) => labelMap[tag])
+          .join(" и ")}.`
+      : null;
+
+  return {
+    contentPatternTags,
+    likelyStrengthReason,
+    tagConfidenceNotes: confidenceNotes
+  };
+}
+
 function createTweetReference(
-  tweet: ScoredUsableXAccountTweet
+  tweet: ScoredUsableXAccountTweet,
+  mode: "recent" | "bestPerforming"
 ): ComparedXAccountTweetReference {
+  const contentPatternData =
+    mode === "bestPerforming"
+      ? inferTweetContentPatterns(tweet)
+      : {
+          contentPatternTags: [] as ComparedXAccountTweetReference["contentPatternTags"],
+          likelyStrengthReason: null,
+          tagConfidenceNotes: [] as string[]
+        };
+
   return {
     tweetUrl: tweet.tweetUrl,
     publishedAt: tweet.publishedAt,
@@ -296,7 +576,10 @@ function createTweetReference(
     language: tweet.language,
     likeCount: tweet.likeCount,
     repostCount: tweet.repostCount,
-    replyCount: tweet.replyCount
+    replyCount: tweet.replyCount,
+    contentPatternTags: contentPatternData.contentPatternTags,
+    likelyStrengthReason: contentPatternData.likelyStrengthReason,
+    tagConfidenceNotes: contentPatternData.tagConfidenceNotes
   };
 }
 
@@ -315,7 +598,7 @@ function buildRecentTweetReferences(
       return left.sortIndex - right.sortIndex;
     })
     .slice(0, 2)
-    .map(createTweetReference);
+    .map((tweet) => createTweetReference(tweet, "recent"));
 }
 
 function buildRecentTweetReferencesNote(recentTweetReferencesCount: number) {
@@ -384,7 +667,9 @@ function buildBestPerformingTweetReferenceData(
   if (selectedTweets.length >= 2) {
     return {
       count: selectedTweets.length,
-      references: selectedTweets.map(createTweetReference),
+      references: selectedTweets.map((tweet) =>
+        createTweetReference(tweet, "bestPerforming")
+      ),
       note: null
     };
   }
@@ -425,7 +710,9 @@ function buildBestPerformingTweetReferenceData(
   if (selectedTweets.length === 0) {
     return {
       count: finalTweets.length,
-      references: finalTweets.map(createTweetReference),
+      references: finalTweets.map((tweet) =>
+        createTweetReference(tweet, "bestPerforming")
+      ),
       note:
         "Для режима best-performing метрик оказалось недостаточно, поэтому показаны ближайшие recent references."
     };
@@ -434,7 +721,9 @@ function buildBestPerformingTweetReferenceData(
   if (finalTweets.length < 2) {
     return {
       count: finalTweets.length,
-      references: finalTweets.map(createTweetReference),
+      references: finalTweets.map((tweet) =>
+        createTweetReference(tweet, "bestPerforming")
+      ),
       note:
         "Для режима best-performing найден только один надёжный tweet reference."
     };
@@ -442,7 +731,9 @@ function buildBestPerformingTweetReferenceData(
 
   return {
     count: finalTweets.length,
-    references: finalTweets.map(createTweetReference),
+    references: finalTweets.map((tweet) =>
+      createTweetReference(tweet, "bestPerforming")
+    ),
     note:
       "Режим best-performing частично дополнен recent references, потому что metric-rich tweets доступны не для всех usable posts."
   };

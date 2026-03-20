@@ -49,6 +49,33 @@ function getSnippetModeLabel(mode: SupportingAccountSnippetMode) {
   return mode === "recent" ? "Свежие" : "Лучшие по реакции";
 }
 
+function getContentPatternLabel(
+  tag: NicheShortlistSupportingTweetReference["contentPatternTags"][number]
+) {
+  switch (tag) {
+    case "strongHook":
+      return "Сильный hook";
+    case "contrarianTake":
+      return "Контрарный угол";
+    case "productUpdate":
+      return "Продуктовый апдейт";
+    case "benchmarkOrResult":
+      return "Результат / benchmark";
+    case "educationalBreakdown":
+      return "Обучающий breakdown";
+    case "founderInsight":
+      return "Founder insight";
+    case "timelyNewsTieIn":
+      return "Привязка к новости";
+    case "audienceQuestion":
+      return "Вопрос к аудитории";
+    case "narrativeStorytelling":
+      return "Storytelling";
+    default:
+      return tag;
+  }
+}
+
 function getTweetReferencesByMode(
   account: NicheShortlistSupportingAccount,
   mode: SupportingAccountSnippetMode
@@ -251,6 +278,27 @@ export function NicheEvidencePack({ bucket }: NicheEvidencePackProps) {
                                         "Короткий текстовый snippet для этого твита пока недоступен."}
                                     </p>
 
+                                    {snippetMode === "bestPerforming" &&
+                                    tweetReference.contentPatternTags.length > 0 ? (
+                                      <div className="supporting-tweet-card__patterns">
+                                        {tweetReference.contentPatternTags.map((tag) => (
+                                          <span
+                                            key={`${bucket.bucketId}-${account.handle ?? "unknown"}-${tag}-${tweetIndex}`}
+                                            className="pattern-chip"
+                                          >
+                                            {getContentPatternLabel(tag)}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    ) : null}
+
+                                    {snippetMode === "bestPerforming" &&
+                                    tweetReference.likelyStrengthReason ? (
+                                      <p className="supporting-tweet-card__reason">
+                                        {tweetReference.likelyStrengthReason}
+                                      </p>
+                                    ) : null}
+
                                     {metricChips.length > 0 ? (
                                       <div className="supporting-tweet-card__metrics">
                                         {metricChips.map((metricChip) => (
@@ -259,6 +307,19 @@ export function NicheEvidencePack({ bucket }: NicheEvidencePackProps) {
                                           </span>
                                         ))}
                                       </div>
+                                    ) : null}
+
+                                    {snippetMode === "bestPerforming" &&
+                                    tweetReference.tagConfidenceNotes.length > 0 ? (
+                                      <ul className="plain-list supporting-tweet-card__notes">
+                                        {tweetReference.tagConfidenceNotes.map((note) => (
+                                          <li
+                                            key={`${bucket.bucketId}-${account.handle ?? "unknown"}-${tweetIndex}-${note}`}
+                                          >
+                                            {note}
+                                          </li>
+                                        ))}
+                                      </ul>
                                     ) : null}
 
                                     {tweetReference.tweetUrl ? (
