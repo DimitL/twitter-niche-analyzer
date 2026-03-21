@@ -9,6 +9,7 @@ import {
 import { BucketEditor } from "./components/BucketEditor.js";
 import { CrossNicheContentCalendarAdaptation } from "./components/CrossNicheContentCalendarAdaptation.js";
 import { CrossNicheContentCalendarStarter } from "./components/CrossNicheContentCalendarStarter.js";
+import { CrossNicheContentRepurposingHints } from "./components/CrossNicheContentRepurposingHints.js";
 import { CrossNichePositioningPlaybook } from "./components/CrossNichePositioningPlaybook.js";
 import { CrossNichePositioningRecommendations } from "./components/CrossNichePositioningRecommendations.js";
 import { CrossNicheRepeatableContentSeries } from "./components/CrossNicheRepeatableContentSeries.js";
@@ -52,6 +53,7 @@ import {
 } from "./utils/nicheShortlistScenarios.js";
 import { buildCrossNichePositioningRecommendations } from "./utils/nicheCrossPositioning.js";
 import { buildNicheContentCalendarAdaptation } from "./utils/nicheContentCalendarAdaptation.js";
+import { buildNicheContentRepurposingHints } from "./utils/nicheContentRepurposingHints.js";
 import { buildNicheContentCalendarStarter } from "./utils/nicheContentCalendarStarter.js";
 import { buildNichePositioningPlaybook } from "./utils/nichePositioningPlaybook.js";
 import { buildNicheRepeatableContentSeries } from "./utils/nicheRepeatableContentSeries.js";
@@ -291,6 +293,25 @@ export default function App() {
         : null,
     [
       shortlistContentCalendar,
+      shortlistPositioningPlaybook,
+      shortlistRepeatableSeries,
+      shortlistResult
+    ]
+  );
+  const shortlistContentRepurposingHints = useMemo(
+    () =>
+      shortlistResult
+        ? buildNicheContentRepurposingHints(
+            shortlistResult,
+            shortlistPositioningPlaybook,
+            shortlistRepeatableSeries,
+            shortlistContentCalendar,
+            shortlistContentCalendarAdaptation
+          )
+        : null,
+    [
+      shortlistContentCalendar,
+      shortlistContentCalendarAdaptation,
       shortlistPositioningPlaybook,
       shortlistRepeatableSeries,
       shortlistResult
@@ -1008,6 +1029,12 @@ export default function App() {
             {shortlistContentCalendarAdaptation ? (
               <CrossNicheContentCalendarAdaptation
                 adaptation={shortlistContentCalendarAdaptation}
+              />
+            ) : null}
+
+            {shortlistContentRepurposingHints ? (
+              <CrossNicheContentRepurposingHints
+                hints={shortlistContentRepurposingHints}
               />
             ) : null}
 

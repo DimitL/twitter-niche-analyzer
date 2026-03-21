@@ -7,6 +7,8 @@ import type { CrossNichePositioningRecommendations } from "./nicheCrossPositioni
 import { buildCrossNichePositioningRecommendations } from "./nicheCrossPositioning.js";
 import type { CrossNicheContentCalendarAdaptation } from "./nicheContentCalendarAdaptation.js";
 import { buildNicheContentCalendarAdaptation } from "./nicheContentCalendarAdaptation.js";
+import type { CrossNicheContentRepurposingHints } from "./nicheContentRepurposingHints.js";
+import { buildNicheContentRepurposingHints } from "./nicheContentRepurposingHints.js";
 import type { CrossNichePositioningPlaybook } from "./nichePositioningPlaybook.js";
 import { buildNichePositioningPlaybook } from "./nichePositioningPlaybook.js";
 import type { CrossNicheContentCalendarStarter } from "./nicheContentCalendarStarter.js";
@@ -31,6 +33,7 @@ export interface NicheShortlistReportModel {
   crossNicheRepeatableSeries: CrossNicheRepeatableContentSeries | null;
   crossNicheContentCalendar: CrossNicheContentCalendarStarter | null;
   crossNicheContentCalendarAdaptation: CrossNicheContentCalendarAdaptation | null;
+  crossNicheContentRepurposingHints: CrossNicheContentRepurposingHints | null;
   niches: NicheShortlistReportNiche[];
 }
 
@@ -121,6 +124,19 @@ export function buildNicheShortlistReportModel(options: {
     crossNichePlaybook,
     crossNicheRepeatableSeries
   );
+  const crossNicheContentCalendarAdaptation = buildNicheContentCalendarAdaptation(
+    options.shortlist,
+    crossNichePlaybook,
+    crossNicheRepeatableSeries,
+    crossNicheContentCalendar
+  );
+  const crossNicheContentRepurposingHints = buildNicheContentRepurposingHints(
+    options.shortlist,
+    crossNichePlaybook,
+    crossNicheRepeatableSeries,
+    crossNicheContentCalendar,
+    crossNicheContentCalendarAdaptation
+  );
   const niches = options.shortlist.rankedBuckets.map((bucket) => ({
     bucketId: bucket.bucketId,
     rank: bucket.rank,
@@ -152,12 +168,8 @@ export function buildNicheShortlistReportModel(options: {
     crossNichePlaybook,
     crossNicheRepeatableSeries,
     crossNicheContentCalendar,
-    crossNicheContentCalendarAdaptation: buildNicheContentCalendarAdaptation(
-      options.shortlist,
-      crossNichePlaybook,
-      crossNicheRepeatableSeries,
-      crossNicheContentCalendar
-    ),
+    crossNicheContentCalendarAdaptation,
+    crossNicheContentRepurposingHints,
     niches
   };
 }
@@ -397,6 +409,39 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
+  if (report.crossNicheContentRepurposingHints) {
+    lines.push(
+      "",
+      "## Repurposing сильных слотов",
+      "",
+      report.crossNicheContentRepurposingHints.repurposingSummary
+    );
+
+    if (report.crossNicheContentRepurposingHints.summary.nicheWithStrongestThreadPotential) {
+      lines.push(
+        `- Самая сильная ниша для threads: ${report.crossNicheContentRepurposingHints.summary.nicheWithStrongestThreadPotential.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheContentRepurposingHints.summary.nicheWithStrongestMiniSeriesPotential) {
+      lines.push(
+        `- Самая сильная ниша для mini-series continuation: ${report.crossNicheContentRepurposingHints.summary.nicheWithStrongestMiniSeriesPotential.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheContentRepurposingHints.summary.nicheWithEasiestRecapLoop) {
+      lines.push(
+        `- Самая удобная ниша для recap loop: ${report.crossNicheContentRepurposingHints.summary.nicheWithEasiestRecapLoop.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheContentRepurposingHints.globalConfidenceNote) {
+      lines.push(
+        `- Ограничение уверенности: ${report.crossNicheContentRepurposingHints.globalConfidenceNote}`
+      );
+    }
+  }
+
   report.niches.forEach((niche, index) => {
     const positioning = report.crossNichePositioning?.perBucketRecommendations.find(
       (item) => item.bucketId === niche.bucketId
@@ -411,6 +456,9 @@ export function buildNicheShortlistMarkdownReport(
       (item) => item.bucketId === niche.bucketId
     );
     const calendarAdaptation = report.crossNicheContentCalendarAdaptation?.perBucketAdaptations.find(
+      (item) => item.bucketId === niche.bucketId
+    );
+    const repurposingHints = report.crossNicheContentRepurposingHints?.perBucketHints.find(
       (item) => item.bucketId === niche.bucketId
     );
 
@@ -608,6 +656,70 @@ export function buildNicheShortlistMarkdownReport(
       if (calendarAdaptation.adaptationConfidenceNote) {
         lines.push(
           `- Ограничение уверенности по адаптации: ${calendarAdaptation.adaptationConfidenceNote}`
+        );
+      }
+    }
+
+    if (repurposingHints) {
+      lines.push("", "### Как repurpose-ить сильные слоты", "");
+
+      if (repurposingHints.threadCandidates.length > 0) {
+        lines.push("- Thread-кандидаты:");
+        repurposingHints.threadCandidates.forEach((candidate) => {
+          lines.push(
+            `  - ${candidate.slotLabel} · ${candidate.seriesTitle}: ${candidate.postAngle}`
+          );
+          lines.push(`    Почему подходит: ${candidate.fitReason}`);
+        });
+      }
+
+      if (repurposingHints.miniSeriesCandidates.length > 0) {
+        lines.push("- Mini-series continuation:");
+        repurposingHints.miniSeriesCandidates.forEach((candidate) => {
+          lines.push(
+            `  - ${candidate.slotLabel} · ${candidate.seriesTitle}: ${candidate.postAngle}`
+          );
+          lines.push(`    Почему подходит: ${candidate.fitReason}`);
+        });
+      }
+
+      if (repurposingHints.quoteFollowUpCandidates.length > 0) {
+        lines.push("- Quote-follow-up:");
+        repurposingHints.quoteFollowUpCandidates.forEach((candidate) => {
+          lines.push(
+            `  - ${candidate.slotLabel} · ${candidate.seriesTitle}: ${candidate.postAngle}`
+          );
+          lines.push(`    Почему подходит: ${candidate.fitReason}`);
+        });
+      }
+
+      if (repurposingHints.recapCandidates.length > 0) {
+        lines.push("- Recap-посты:");
+        repurposingHints.recapCandidates.forEach((candidate) => {
+          lines.push(
+            `  - ${candidate.slotLabel} · ${candidate.seriesTitle}: ${candidate.postAngle}`
+          );
+          lines.push(`    Почему подходит: ${candidate.fitReason}`);
+        });
+      }
+
+      if (repurposingHints.whyTheseFormatsFit.length > 0) {
+        lines.push("- Почему форматы подходят:");
+        repurposingHints.whyTheseFormatsFit.forEach((reason) => {
+          lines.push(`  - ${reason}`);
+        });
+      }
+
+      if (repurposingHints.overuseWarnings.length > 0) {
+        lines.push("- Что не стоит переиспользовать слишком агрессивно:");
+        repurposingHints.overuseWarnings.forEach((warning) => {
+          lines.push(`  - ${warning}`);
+        });
+      }
+
+      if (repurposingHints.repurposingConfidenceNote) {
+        lines.push(
+          `- Ограничение уверенности по repurposing: ${repurposingHints.repurposingConfidenceNote}`
         );
       }
     }

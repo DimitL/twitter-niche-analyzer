@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { NicheShortlistResponse } from "../types/nicheShortlist.js";
 import { CrossNicheContentCalendarAdaptation } from "./CrossNicheContentCalendarAdaptation.js";
 import { CrossNicheContentCalendarStarter } from "./CrossNicheContentCalendarStarter.js";
+import { CrossNicheContentRepurposingHints } from "./CrossNicheContentRepurposingHints.js";
 import { CrossNichePositioningPlaybook } from "./CrossNichePositioningPlaybook.js";
 import { CrossNichePositioningRecommendations } from "./CrossNichePositioningRecommendations.js";
 import { CrossNicheRepeatableContentSeries } from "./CrossNicheRepeatableContentSeries.js";
@@ -246,6 +247,13 @@ export function ShortlistReportPanel({
                 {report.crossNicheContentCalendarAdaptation ? (
                   <CrossNicheContentCalendarAdaptation
                     adaptation={report.crossNicheContentCalendarAdaptation}
+                    variant="embedded"
+                  />
+                ) : null}
+
+                {report.crossNicheContentRepurposingHints ? (
+                  <CrossNicheContentRepurposingHints
+                    hints={report.crossNicheContentRepurposingHints}
                     variant="embedded"
                   />
                 ) : null}
