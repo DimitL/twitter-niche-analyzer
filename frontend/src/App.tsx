@@ -10,6 +10,7 @@ import { BucketEditor } from "./components/BucketEditor.js";
 import { CrossNicheContentCalendarAdaptation } from "./components/CrossNicheContentCalendarAdaptation.js";
 import { CrossNicheContentCalendarStarter } from "./components/CrossNicheContentCalendarStarter.js";
 import { CrossNicheContentRepurposingHints } from "./components/CrossNicheContentRepurposingHints.js";
+import { CrossNicheFormatExecutionTemplates } from "./components/CrossNicheFormatExecutionTemplates.js";
 import { CrossNichePositioningPlaybook } from "./components/CrossNichePositioningPlaybook.js";
 import { CrossNichePositioningRecommendations } from "./components/CrossNichePositioningRecommendations.js";
 import { CrossNicheRepeatableContentSeries } from "./components/CrossNicheRepeatableContentSeries.js";
@@ -55,6 +56,7 @@ import { buildCrossNichePositioningRecommendations } from "./utils/nicheCrossPos
 import { buildNicheContentCalendarAdaptation } from "./utils/nicheContentCalendarAdaptation.js";
 import { buildNicheContentRepurposingHints } from "./utils/nicheContentRepurposingHints.js";
 import { buildNicheContentCalendarStarter } from "./utils/nicheContentCalendarStarter.js";
+import { buildNicheFormatExecutionTemplates } from "./utils/nicheFormatExecutionTemplates.js";
 import { buildNichePositioningPlaybook } from "./utils/nichePositioningPlaybook.js";
 import { buildNicheRepeatableContentSeries } from "./utils/nicheRepeatableContentSeries.js";
 import { buildCrossNicheWhitespaceComparison } from "./utils/nicheCrossWhitespace.js";
@@ -312,6 +314,27 @@ export default function App() {
     [
       shortlistContentCalendar,
       shortlistContentCalendarAdaptation,
+      shortlistPositioningPlaybook,
+      shortlistRepeatableSeries,
+      shortlistResult
+    ]
+  );
+  const shortlistFormatExecutionTemplates = useMemo(
+    () =>
+      shortlistResult
+        ? buildNicheFormatExecutionTemplates(
+            shortlistResult,
+            shortlistPositioningPlaybook,
+            shortlistRepeatableSeries,
+            shortlistContentCalendar,
+            shortlistContentCalendarAdaptation,
+            shortlistContentRepurposingHints
+          )
+        : null,
+    [
+      shortlistContentCalendar,
+      shortlistContentCalendarAdaptation,
+      shortlistContentRepurposingHints,
       shortlistPositioningPlaybook,
       shortlistRepeatableSeries,
       shortlistResult
@@ -1035,6 +1058,12 @@ export default function App() {
             {shortlistContentRepurposingHints ? (
               <CrossNicheContentRepurposingHints
                 hints={shortlistContentRepurposingHints}
+              />
+            ) : null}
+
+            {shortlistFormatExecutionTemplates ? (
+              <CrossNicheFormatExecutionTemplates
+                templates={shortlistFormatExecutionTemplates}
               />
             ) : null}
 
