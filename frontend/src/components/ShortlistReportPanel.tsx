@@ -3,6 +3,7 @@ import type { NicheShortlistResponse } from "../types/nicheShortlist.js";
 import { CrossNicheContentCalendarAdaptation } from "./CrossNicheContentCalendarAdaptation.js";
 import { CrossNicheContentCalendarStarter } from "./CrossNicheContentCalendarStarter.js";
 import { CrossNicheContentRepurposingHints } from "./CrossNicheContentRepurposingHints.js";
+import { CrossNicheFormatExampleRewrites } from "./CrossNicheFormatExampleRewrites.js";
 import { CrossNicheFormatExecutionTemplates } from "./CrossNicheFormatExecutionTemplates.js";
 import { CrossNichePositioningPlaybook } from "./CrossNichePositioningPlaybook.js";
 import { CrossNichePositioningRecommendations } from "./CrossNichePositioningRecommendations.js";
@@ -262,6 +263,13 @@ export function ShortlistReportPanel({
                 {report.crossNicheFormatExecutionTemplates ? (
                   <CrossNicheFormatExecutionTemplates
                     templates={report.crossNicheFormatExecutionTemplates}
+                    variant="embedded"
+                  />
+                ) : null}
+
+                {report.crossNicheFormatExampleRewrites ? (
+                  <CrossNicheFormatExampleRewrites
+                    rewrites={report.crossNicheFormatExampleRewrites}
                     variant="embedded"
                   />
                 ) : null}

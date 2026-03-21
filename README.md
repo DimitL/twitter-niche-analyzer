@@ -43,6 +43,7 @@
 - first content calendar adaptation hints слой для перевода 2-week calendar в low-time / medium-time / high-time execution guidance
 - first content repurposing hints слой для подсказок, какие calendar slots лучше докручивать в thread, mini-series continuation, quote-follow-up и recap posts
 - first format-specific execution templates слой для коротких практических шаблонов под thread, mini-series continuation, quote-follow-up и recap formats
+- first format-specific example rewrites слой для коротких source-based skeletons под strongest candidate slot в каждом формате
 - first export/report слой для clean report view, Markdown copy и JSON export текущего shortlist или pinned scenario result
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
@@ -130,6 +131,7 @@
 │   │   │   ├── CrossNicheContentCalendarAdaptation.tsx
 │   │   │   ├── CrossNicheContentRepurposingHints.tsx
 │   │   │   ├── CrossNicheFormatExecutionTemplates.tsx
+│   │   │   ├── CrossNicheFormatExampleRewrites.tsx
 │   │   │   ├── CrossNicheWhitespaceComparison.tsx
 │   │   │   ├── HandleListEditor.tsx
 │   │   │   ├── NicheCard.tsx
@@ -155,6 +157,7 @@
 │   │   │   ├── nicheContentCalendarAdaptation.ts
 │   │   │   ├── nicheContentRepurposingHints.ts
 │   │   │   ├── nicheFormatExecutionTemplates.ts
+│   │   │   ├── nicheFormatExampleRewrites.ts
 │   │   │   ├── nicheCrossWhitespace.ts
 │   │   │   ├── nicheShortlistReport.ts
 │   │   │   └── nicheShortlistScenarios.ts
@@ -847,6 +850,7 @@ http://localhost:5173
 - затем открыть блок `Как адаптировать календарь под ваш budget времени` и проверить low-time, medium-time и high-time режимы: что оставить, что срезать первым, что расширять и что не стоит передавливать на высокой частоте
 - затем открыть новый блок `Как repurpose-ить сильные слоты` и проверить thread-кандидаты, mini-series continuation, quote-follow-up, recap-посты, причины выбора формата и overuse warnings
 - затем открыть новый блок `Как структурировать post под каждый формат` и проверить thread / mini-series / quote-follow-up / recap templates, opening patterns, structure blocks и caution notes
+- затем открыть новый блок `Как выглядел бы конкретный rewrite skeleton` и проверить source candidate, rewritten opening, structure bullets, closing hint и caution note по каждому формату
 - открыть блок `Сохранить shortlist вне live UI`, нажать `Открыть отчёт`, затем проверить `Скопировать Markdown` и `Скачать JSON`
 - нажать `Добавить к сравнению` у 1-2 дополнительных сценариев и проверить блок `Сравнение сохранённых сценариев`
 - в `Scenario Diff` сравнить flags, bucket labels, handle counts и top summary без ручного переключения editor-а
@@ -873,6 +877,7 @@ http://localhost:5173
 - появляется content calendar adaptation section: low-time / medium-time / high-time guidance, what to keep, what to cut first, what to expand, high-frequency cautions и confidence note
 - появляется content repurposing section: thread-кандидаты, mini-series continuation, quote-follow-up, recap-посты, reasons for fit, overuse warnings и confidence note
 - появляется format execution templates section: когда использовать формат, из каких блоков строить пост, как открывать его первой строкой и где чаще всего формат распадается
+- появляется format example rewrites section: конкретный source candidate, короткий rewritten opening, 3-5 structure bullets, closing hint, why it fits и caution по каждому формату
 - появляется export/report panel с clean report view, Markdown copy и JSON export по текущему shortlist или pinned scenario result
 - pinned result snapshot у каждого локального сценария
 - отдельный comparison panel для 2-3 сценариев с lightweight diff по настройкам и последнему shortlist result
@@ -895,6 +900,7 @@ http://localhost:5173
 - content calendar adaptation hints тоже пока полностью rule-based и строятся поверх текущего calendar + repeatable series, поэтому это practical execution guidance, а не персонализированная productivity system
 - content repurposing hints тоже пока полностью rule-based и строятся поверх текущего calendar/adaptation/playbook, поэтому их лучше читать как pragmatic reuse hints, а не как готовую редакционную automation system
 - format execution templates тоже пока полностью rule-based и строятся поверх repurposing/playbook/calendar outputs, поэтому это рабочие execution scaffolds, а не готовый full-post generator
+- format example rewrites тоже пока полностью rule-based и строятся поверх templates + repurposing candidates, поэтому это rewrite skeletons для ручной доработки, а не автоматически готовые финальные посты
 - UI ещё не умеет автоматически находить topics
 - текущий frontend только визуализирует existing backend shortlist route и не меняет scoring model
 - если bucket дал меньше 10 usable supporting accounts, UI честно покажет только доступный roster без искусственного заполнения

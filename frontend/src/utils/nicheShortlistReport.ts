@@ -11,6 +11,8 @@ import type { CrossNicheContentRepurposingHints } from "./nicheContentRepurposin
 import { buildNicheContentRepurposingHints } from "./nicheContentRepurposingHints.js";
 import type { CrossNicheFormatExecutionTemplates } from "./nicheFormatExecutionTemplates.js";
 import { buildNicheFormatExecutionTemplates } from "./nicheFormatExecutionTemplates.js";
+import type { CrossNicheFormatExampleRewrites } from "./nicheFormatExampleRewrites.js";
+import { buildNicheFormatExampleRewrites } from "./nicheFormatExampleRewrites.js";
 import type { CrossNichePositioningPlaybook } from "./nichePositioningPlaybook.js";
 import { buildNichePositioningPlaybook } from "./nichePositioningPlaybook.js";
 import type { CrossNicheContentCalendarStarter } from "./nicheContentCalendarStarter.js";
@@ -37,6 +39,7 @@ export interface NicheShortlistReportModel {
   crossNicheContentCalendarAdaptation: CrossNicheContentCalendarAdaptation | null;
   crossNicheContentRepurposingHints: CrossNicheContentRepurposingHints | null;
   crossNicheFormatExecutionTemplates: CrossNicheFormatExecutionTemplates | null;
+  crossNicheFormatExampleRewrites: CrossNicheFormatExampleRewrites | null;
   niches: NicheShortlistReportNiche[];
 }
 
@@ -148,6 +151,15 @@ export function buildNicheShortlistReportModel(options: {
     crossNicheContentCalendarAdaptation,
     crossNicheContentRepurposingHints
   );
+  const crossNicheFormatExampleRewrites = buildNicheFormatExampleRewrites(
+    options.shortlist,
+    crossNichePlaybook,
+    crossNicheRepeatableSeries,
+    crossNicheContentCalendar,
+    crossNicheContentCalendarAdaptation,
+    crossNicheContentRepurposingHints,
+    crossNicheFormatExecutionTemplates
+  );
   const niches = options.shortlist.rankedBuckets.map((bucket) => ({
     bucketId: bucket.bucketId,
     rank: bucket.rank,
@@ -182,6 +194,7 @@ export function buildNicheShortlistReportModel(options: {
     crossNicheContentCalendarAdaptation,
     crossNicheContentRepurposingHints,
     crossNicheFormatExecutionTemplates,
+    crossNicheFormatExampleRewrites,
     niches
   };
 }
@@ -487,6 +500,39 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
+  if (report.crossNicheFormatExampleRewrites) {
+    lines.push(
+      "",
+      "## Example rewrite skeletons",
+      "",
+      report.crossNicheFormatExampleRewrites.rewritesSummary
+    );
+
+    if (report.crossNicheFormatExampleRewrites.summary.nicheWithClearestThreadExample) {
+      lines.push(
+        `- Самая ясная ниша для thread example: ${report.crossNicheFormatExampleRewrites.summary.nicheWithClearestThreadExample.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheFormatExampleRewrites.summary.nicheWithEasiestQuoteFollowUpConversion) {
+      lines.push(
+        `- Самая удобная ниша для quote-follow-up example: ${report.crossNicheFormatExampleRewrites.summary.nicheWithEasiestQuoteFollowUpConversion.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheFormatExampleRewrites.summary.nicheWithStrongestRecapExample) {
+      lines.push(
+        `- Самая сильная ниша для recap example: ${report.crossNicheFormatExampleRewrites.summary.nicheWithStrongestRecapExample.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheFormatExampleRewrites.globalConfidenceNote) {
+      lines.push(
+        `- Ограничение уверенности: ${report.crossNicheFormatExampleRewrites.globalConfidenceNote}`
+      );
+    }
+  }
+
   report.niches.forEach((niche, index) => {
     const positioning = report.crossNichePositioning?.perBucketRecommendations.find(
       (item) => item.bucketId === niche.bucketId
@@ -507,6 +553,9 @@ export function buildNicheShortlistMarkdownReport(
       (item) => item.bucketId === niche.bucketId
     );
     const formatExecutionTemplates = report.crossNicheFormatExecutionTemplates?.perBucketTemplates.find(
+      (item) => item.bucketId === niche.bucketId
+    );
+    const formatExampleRewrites = report.crossNicheFormatExampleRewrites?.perBucketRewrites.find(
       (item) => item.bucketId === niche.bucketId
     );
 
@@ -803,6 +852,35 @@ export function buildNicheShortlistMarkdownReport(
       if (formatExecutionTemplates.templateConfidenceNote) {
         lines.push(
           `- Ограничение уверенности по templates: ${formatExecutionTemplates.templateConfidenceNote}`
+        );
+      }
+    }
+
+    if (formatExampleRewrites) {
+      const rewriteEntries = [
+        ["Thread", formatExampleRewrites.formatExampleRewrites.threadExample],
+        ["Mini-series", formatExampleRewrites.formatExampleRewrites.miniSeriesExample],
+        ["Quote-follow-up", formatExampleRewrites.formatExampleRewrites.quoteFollowUpExample],
+        ["Recap / summary", formatExampleRewrites.formatExampleRewrites.recapExample]
+      ] as const;
+
+      lines.push("", "### Example rewrites под конкретный слот", "");
+
+      rewriteEntries.forEach(([label, rewrite]) => {
+        lines.push(`- ${label}: ${rewrite.sourceCandidate}`);
+        lines.push(`  Opening: ${rewrite.rewrittenOpening}`);
+        lines.push(`  Почему fits: ${rewrite.whyItFits}`);
+        lines.push(`  Closing hint: ${rewrite.closingHint}`);
+        lines.push(`  Структура: ${rewrite.structureBullets.join(" | ")}`);
+
+        if (rewrite.caution) {
+          lines.push(`  Осторожно: ${rewrite.caution}`);
+        }
+      });
+
+      if (formatExampleRewrites.exampleRewriteConfidenceNote) {
+        lines.push(
+          `- Ограничение уверенности по rewrites: ${formatExampleRewrites.exampleRewriteConfidenceNote}`
         );
       }
     }
