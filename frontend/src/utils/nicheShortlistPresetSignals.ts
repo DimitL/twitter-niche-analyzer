@@ -1,7 +1,15 @@
 import type { NicheShortlistPresetPack } from "../data/nicheShortlistPresetLibrary.js";
 
+export type PresetSignalBadgeId =
+  | "growth-heavy"
+  | "monetization-heavy"
+  | "content-easy"
+  | "research-heavy"
+  | "builder-heavy"
+  | "commentary-heavy";
+
 export interface PresetSignalBadge {
-  id: string;
+  id: PresetSignalBadgeId;
   label: string;
   tone: "positive" | "neutral" | "accent";
 }
@@ -37,6 +45,13 @@ function pushBadge(
   }
 
   target.push(badge);
+}
+
+export function findPresetSignalBadgeById(
+  preset: NicheShortlistPresetPack,
+  badgeId: PresetSignalBadgeId
+) {
+  return buildPresetSignalBadges(preset).find((badge) => badge.id === badgeId) ?? null;
 }
 
 export function buildPresetSignalBadges(

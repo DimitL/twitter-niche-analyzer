@@ -29,6 +29,7 @@
 - first preset library / seed topic packs слой во frontend для быстрого старта shortlist через готовые topic bucket packs
 - first preset search/filter + recently used слой во frontend для быстрого поиска packs по тексту, категории и recent history
 - first preset signal badges / quick-fit labels слой во frontend для быстрого понимания, для какого типа shortlist-эксперимента лучше подходит каждый preset
+- first click-to-filter quick-fit badges слой во frontend для мгновенной фильтрации preset library по клику на signal badge
 - first shortlisted niche evidence-pack слой для объяснимого evidence trail по каждой shortlisted niche прямо во frontend
 - first top-10 supporting accounts roster слой для expanded evidence-pack view с up to 10 supporting accounts на shortlisted niche
 - first supporting-account evidence snippet слой для показа 1-2 recent tweet references у supporting accounts внутри evidence-pack
@@ -845,6 +846,7 @@ http://localhost:5173
 - в блоке `Библиотека preset-ов` можно открыть готовый seed pack, посмотреть его состав и выбрать `Загрузить preset`, `Добавить к текущему` или `Сохранить как сценарий`
 - там же можно искать preset-ы по title, description, category, bucket labels и handles, фильтровать по категории и быстро возвращаться к блоку `Недавно использованные`
 - прямо на карточках preset-ов теперь видны quick-fit badges, чтобы без открытия состава быстро понять, где pack больше заточен под рост, монетизацию, более лёгкий контент, research-heavy или builder/operator-фокус
+- по quick-fit badge теперь можно кликнуть прямо на карточке: тот же badge ещё раз снимает фильтр, а поиск + категория + quick-fit работают вместе
 - для полностью ручного старта оставить `Пустой редактор`
 - заполнить хотя бы один bucket: `Название bucket` + минимум один `X handle`
 - для быстрого ввода handles можно вставить несколько значений через пробел, запятую или новую строку
@@ -898,6 +900,7 @@ http://localhost:5173
 - библиотека статических preset packs / seed topic packs для быстрого старта repeated niche testing без ручной сборки buckets с нуля
 - поиск и фильтрация preset library по тексту и категории, плюс секция `Недавно использованные` для быстрого возврата к уже открытым packs
 - quick-fit signal badges на карточках preset-ов, чтобы сразу видеть, для какого типа shortlist-эксперимента pack подходит лучше всего
+- click-to-filter quick-fit badges: можно нажать на badge и сразу отфильтровать библиотеку по нужному preset signal, не открывая карточку
 - внутри shortlisted niche cards можно открыть `Evidence pack` и увидеть up to 10 supporting accounts, niche-level archetype rollup, whitespace hints, relevance notes, score chips, account-level content archetype summary, 1-2 recent или best-performing tweet references, content-pattern tags, coverage notes и recommended next action
 
 Ограничения текущего frontend шага:
@@ -906,6 +909,7 @@ http://localhost:5173
 - сценарии сохраняются только локально в браузере, без backend persistence
 - preset library пока тоже полностью локальная и статическая: это seed topic packs, а не автоматически найденные темы
 - quick-fit badges у preset-ов тоже пока полностью rule-based и выводятся только из статической metadata, без отдельного scoring pipeline для самих preset packs
+- click-to-filter quick-fit фильтр тоже основан только на этих статических rule-based badges, а не на live-сравнении preset packs между собой
 - recent preset history тоже хранится только локально в `localStorage`, без общей backend persistence и без синхронизации между устройствами
 - pinned results и diff тоже сохраняются только локально в `localStorage`, без общей истории запусков на backend
 - comparison panel хранит только lightweight snapshot последнего успешного run, а не полный архив всех shortlist результатов

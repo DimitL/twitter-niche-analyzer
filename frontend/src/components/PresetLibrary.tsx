@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
 import type { NicheShortlistPresetPack } from "../data/nicheShortlistPresetLibrary.js";
-import { buildPresetSignalBadges } from "../utils/nicheShortlistPresetSignals.js";
+import {
+  buildPresetSignalBadges,
+  findPresetSignalBadgeById
+} from "../utils/nicheShortlistPresetSignals.js";
+import type { PresetSignalBadgeId } from "../utils/nicheShortlistPresetSignals.js";
 
 interface PresetLibraryProps {
   presets: NicheShortlistPresetPack[];
@@ -58,11 +62,13 @@ function renderPresetCard(options: {
   preset: NicheShortlistPresetPack;
   selectedPresetId: string | null;
   variant: "default" | "recent";
+  activeQuickFit: PresetSignalBadgeId | null;
   onPresetReplace: (presetId: string) => void;
   onPresetAppend: (presetId: string) => void;
   onPresetSaveAsScenario: (presetId: string) => void;
+  onQuickFitToggle: (badgeId: PresetSignalBadgeId) => void;
 }) {
-  const { preset, selectedPresetId, variant } = options;
+  const { preset, selectedPresetId, variant, activeQuickFit } = options;
   const previewHandles = buildPresetHandlePreview(preset);
   const totalHandles = countPresetHandles(preset);
   const signalBadges = buildPresetSignalBadges(preset);
@@ -111,18 +117,26 @@ function renderPresetCard(options: {
           <span className="preset-card__signals-label">Для чего подходит быстрее всего</span>
           <div className="decision-chip-list preset-card__signals-list">
             {signalBadges.map((badge) => (
-              <span
+              <button
+                type="button"
                 key={`${preset.presetId}-${badge.id}`}
+                aria-pressed={activeQuickFit === badge.id}
                 className={`decision-chip ${
                   badge.tone === "neutral"
                     ? "decision-chip--neutral"
                     : badge.tone === "accent"
                       ? "decision-chip--accent"
                       : ""
-                }`}
+                } ${activeQuickFit === badge.id ? "decision-chip--selected" : ""} decision-chip--button`}
+                onClick={() => options.onQuickFitToggle(badge.id)}
+                title={
+                  activeQuickFit === badge.id
+                    ? "Нажмите ещё раз, чтобы снять quick-fit фильтр"
+                    : "Применить quick-fit фильтр"
+                }
               >
                 {badge.label}
-              </span>
+              </button>
             ))}
           </div>
         </div>
@@ -201,8 +215,26 @@ export function PresetLibrary({
 }: PresetLibraryProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedQuickFit, setSelectedQuickFit] = useState<PresetSignalBadgeId | null>(
+    null
+  );
   const categoryOptions = useMemo(() => buildCategoryOptions(presets), [presets]);
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const activeQuickFitBadge = useMemo(() => {
+    if (!selectedQuickFit) {
+      return null;
+    }
+
+    for (const preset of presets) {
+      const badge = findPresetSignalBadgeById(preset, selectedQuickFit);
+
+      if (badge) {
+        return badge;
+      }
+    }
+
+    return null;
+  }, [presets, selectedQuickFit]);
   const filteredPresets = useMemo(
     () =>
       presets.filter((preset) => {
@@ -213,19 +245,35 @@ export function PresetLibrary({
           return false;
         }
 
+        const matchesQuickFit =
+          !selectedQuickFit ||
+          buildPresetSignalBadges(preset).some((badge) => badge.id === selectedQuickFit);
+
+        if (!matchesQuickFit) {
+          return false;
+        }
+
         if (!normalizedSearchQuery) {
           return true;
         }
 
         return buildPresetSearchIndex(preset).includes(normalizedSearchQuery);
       }),
-    [normalizedSearchQuery, presets, selectedCategory]
+    [normalizedSearchQuery, presets, selectedCategory, selectedQuickFit]
   );
-  const hasActiveFilters = normalizedSearchQuery.length > 0 || selectedCategory !== "all";
+  const hasActiveFilters =
+    normalizedSearchQuery.length > 0 ||
+    selectedCategory !== "all" ||
+    selectedQuickFit !== null;
 
   function handleResetFilters() {
     setSearchQuery("");
     setSelectedCategory("all");
+    setSelectedQuickFit(null);
+  }
+
+  function handleQuickFitToggle(badgeId: PresetSignalBadgeId) {
+    setSelectedQuickFit((current) => (current === badgeId ? null : badgeId));
   }
 
   if (presets.length === 0) {
@@ -303,6 +351,11 @@ export function PresetLibrary({
           <span className="status-pill status-pill--neutral">
             Найдено preset-ов: {filteredPresets.length}
           </span>
+          {activeQuickFitBadge ? (
+            <span className="status-pill status-pill--accent">
+              Quick-fit: {activeQuickFitBadge.label}
+            </span>
+          ) : null}
           <button
             type="button"
             className="editor-button editor-button--ghost"
@@ -313,6 +366,17 @@ export function PresetLibrary({
           </button>
         </div>
       </div>
+
+      {activeQuickFitBadge ? (
+        <div className="state-box preset-library__active-fit">
+          <span>Активный quick-fit фильтр</span>
+          <p>
+            Сейчас библиотека показывает packs с сигналом{" "}
+            <strong>{activeQuickFitBadge.label}</strong>. Нажмите на тот же badge ещё
+            раз или сбросьте фильтры, чтобы вернуться ко всем preset-ам.
+          </p>
+        </div>
+      ) : null}
 
       {storageNotice ? (
         <div className="state-box">
@@ -339,9 +403,11 @@ export function PresetLibrary({
                 preset,
                 selectedPresetId,
                 variant: "recent",
+                activeQuickFit: selectedQuickFit,
                 onPresetReplace,
                 onPresetAppend,
-                onPresetSaveAsScenario
+                onPresetSaveAsScenario,
+                onQuickFitToggle: handleQuickFitToggle
               })
             )}
           </div>
@@ -372,9 +438,11 @@ export function PresetLibrary({
               preset,
               selectedPresetId,
               variant: "default",
+              activeQuickFit: selectedQuickFit,
               onPresetReplace,
               onPresetAppend,
-              onPresetSaveAsScenario
+              onPresetSaveAsScenario,
+              onQuickFitToggle: handleQuickFitToggle
             })
           )}
         </div>
@@ -382,8 +450,8 @@ export function PresetLibrary({
         <div className="state-box">
           <span>Ничего не найдено</span>
           <p>
-            По текущему поиску и фильтру preset-ы не нашлись. Сбросьте фильтры или
-            попробуйте другой запрос.
+            По текущему поиску, категории и quick-fit фильтру preset-ы не нашлись.
+            Сбросьте фильтры или попробуйте другой запрос.
           </p>
         </div>
       )}

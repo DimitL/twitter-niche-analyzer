@@ -160,6 +160,12 @@ button {
   color: var(--text);
 }
 
+.status-pill--accent {
+  color: var(--accent);
+  background: rgba(217, 111, 50, 0.12);
+  border-color: rgba(217, 111, 50, 0.2);
+}
+
 .eyebrow {
   margin: 0 0 8px;
   font-family: "IBM Plex Mono", monospace;
@@ -264,6 +270,10 @@ button {
 .preset-library__recent {
   display: grid;
   gap: 12px;
+}
+
+.preset-library__active-fit p {
+  margin: 6px 0 0;
 }
 
 .preset-library__recent-list {
@@ -1839,6 +1849,32 @@ button {
 .decision-chip--accent {
   background: rgba(217, 111, 50, 0.14);
   color: var(--accent);
+}
+
+.decision-chip--button {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.decision-chip--button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(72, 53, 41, 0.08);
+}
+
+.decision-chip--button:focus-visible {
+  outline: 2px solid rgba(217, 111, 50, 0.32);
+  outline-offset: 2px;
+}
+
+.decision-chip--selected {
+  box-shadow: inset 0 0 0 1px rgba(217, 111, 50, 0.28);
 }
 
 .shortlist-card__insight {
