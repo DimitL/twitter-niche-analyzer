@@ -51,6 +51,7 @@
 - first format-to-publish checklist слой для короткого pre-publish pass под thread, mini-series continuation, quote-follow-up и recap formats
 - first format-specific opening/closing variants слой для 2-3 безопасных hook и closing / CTA вариантов под каждый формат
 - first export/report слой для clean report view, Markdown copy и JSON export текущего shortlist или pinned scenario result
+- first report preset / export scope controls слой для быстрого переключения между executive, balanced и evidence-heavy отчётами с выбором включаемых секций
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
 - public X tweet metrics extraction слой для безопасного извлечения engagement metrics одиночного твита
@@ -171,6 +172,7 @@
 │   │   │   ├── nicheCrossWhitespace.ts
 │   │   │   ├── nicheShortlistPresetSignals.ts
 │   │   │   ├── nicheShortlistPresetRecents.ts
+│   │   │   ├── nicheShortlistReportControls.ts
 │   │   │   ├── nicheShortlistReport.ts
 │   │   │   └── nicheShortlistScenarios.ts
 │   │   ├── App.tsx
@@ -868,6 +870,8 @@ http://localhost:5173
 - затем открыть новый блок `Как структурировать post под каждый формат` и проверить thread / mini-series / quote-follow-up / recap templates, opening patterns, structure blocks и caution notes
 - затем открыть новый блок `Как выглядел бы конкретный rewrite skeleton` и проверить source candidate, rewritten opening, structure bullets, closing hint и caution note по каждому формату
 - открыть блок `Сохранить shortlist вне live UI`, нажать `Открыть отчёт`, затем проверить `Скопировать Markdown` и `Скачать JSON`
+- в том же блоке переключить `Preset отчёта` между `Executive`, `Balanced` и `Evidence-heavy`, затем открыть `Что включать в отчёт и export` и вручную включить или выключить нужные секции
+- убедиться, что выбранный preset и scope влияют сразу на on-screen report view, `Скопировать Markdown` и `Скачать JSON`
 - нажать `Добавить к сравнению` у 1-2 дополнительных сценариев и проверить блок `Сравнение сохранённых сценариев`
 - в `Scenario Diff` сравнить flags, bucket labels, handle counts и top summary без ручного переключения editor-а
 
@@ -897,6 +901,7 @@ http://localhost:5173
 - появляется format publish checklist section: 4-7 быстрых проверок, must-not-forget reminder, avoid warning и when-it-matters note по каждому формату
 - появляется opening/closing variants section: 2-3 безопасных hook-варианта, 2-3 closing / CTA варианта, usage notes и overuse warning по каждому формату
 - появляется export/report panel с clean report view, Markdown copy и JSON export по текущему shortlist или pinned scenario result
+- появляется report preset picker и export scope controls: можно быстро выбирать executive / balanced / evidence-heavy режим и тонко настраивать, какие блоки попадут в report/export
 - pinned result snapshot у каждого локального сценария
 - отдельный comparison panel для 2-3 сценариев с lightweight diff по настройкам и последнему shortlist result
 - библиотека статических preset packs / seed topic packs для быстрого старта repeated niche testing без ручной сборки buckets с нуля
@@ -939,6 +944,7 @@ http://localhost:5173
 - niche-level archetype rollup тоже остаётся rule-based и зависит от того, насколько много supporting accounts уже получили usable archetype summary
 - whitespace hints тоже rule-based и зависят от текущего roster supporting accounts, поэтому их лучше читать как идеи для ручной проверки, а не как готовые окончательные gaps
 - export/report слой пока не генерирует PDF и не складывает файлы на backend; он работает только как frontend export поверх текущего или pinned shortlist result
+- report presets и export scope controls тоже пока полностью frontend-only: они меняют представление и экспорт текущего результата, но не создают отдельные backend snapshots
 - следующий UI шаг лучше делать уже с более явным cross-scenario evidence/history view, чтобы сравнивать не только summary, но и закреплённые shortlist cards по нескольким прогонам
 
 ## Как проверить X profile shell

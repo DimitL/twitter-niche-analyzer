@@ -16,6 +16,19 @@ import {
   buildNicheShortlistMarkdownReport,
   buildNicheShortlistReportModel
 } from "../utils/nicheShortlistReport.js";
+import {
+  areReportScopesEqual,
+  buildReportScopeFromPreset,
+  countEnabledReportSections,
+  getReportPresetDefinition,
+  nicheShortlistReportPresets,
+  nicheShortlistReportScopeToggleDefinitions
+} from "../utils/nicheShortlistReportControls.js";
+import type {
+  NicheShortlistReportPresetId,
+  NicheShortlistReportScope,
+  NicheShortlistReportScopeKey
+} from "../utils/nicheShortlistReportControls.js";
 
 interface ShortlistReportPanelProps {
   shortlist: NicheShortlistResponse | null;
@@ -92,19 +105,57 @@ export function ShortlistReportPanel({
 }: ShortlistReportPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "success" | "error">("idle");
-  const report =
-    shortlist && sourceKind
-      ? buildNicheShortlistReportModel({
-          shortlist,
-          scenarioName,
-          generatedAt,
-          sourceKind
-        })
-      : null;
-  const markdownExport = useMemo(
-    () => (report ? buildNicheShortlistMarkdownReport(report) : ""),
-    [report]
+  const [selectedPreset, setSelectedPreset] =
+    useState<NicheShortlistReportPresetId>("balanced");
+  const [reportScope, setReportScope] = useState<NicheShortlistReportScope>(() =>
+    buildReportScopeFromPreset("balanced")
   );
+  const report = useMemo(
+    () =>
+      shortlist && sourceKind
+        ? buildNicheShortlistReportModel({
+            shortlist,
+            scenarioName,
+            generatedAt,
+            sourceKind
+          })
+        : null,
+    [generatedAt, scenarioName, shortlist, sourceKind]
+  );
+  const activePresetDefinition = useMemo(
+    () => getReportPresetDefinition(selectedPreset),
+    [selectedPreset]
+  );
+  const hasCustomScopeChanges = useMemo(
+    () => !areReportScopesEqual(reportScope, activePresetDefinition.scope),
+    [activePresetDefinition.scope, reportScope]
+  );
+  const enabledSectionCount = useMemo(
+    () => countEnabledReportSections(reportScope),
+    [reportScope]
+  );
+  const markdownExport = useMemo(
+    () =>
+      report
+        ? buildNicheShortlistMarkdownReport(report, {
+            scope: reportScope,
+            reportPreset: selectedPreset
+          })
+        : "",
+    [report, reportScope, selectedPreset]
+  );
+
+  function handlePresetSelect(presetId: NicheShortlistReportPresetId) {
+    setSelectedPreset(presetId);
+    setReportScope(buildReportScopeFromPreset(presetId));
+  }
+
+  function handleScopeToggle(scopeKey: NicheShortlistReportScopeKey) {
+    setReportScope((current) => ({
+      ...current,
+      [scopeKey]: !current[scopeKey]
+    }));
+  }
 
   async function handleCopyMarkdown() {
     if (!markdownExport) {
@@ -130,7 +181,9 @@ export function ShortlistReportPanel({
       buildFileName(scenarioName, "json"),
       buildNicheShortlistJsonExport({
         report,
-        shortlist
+        shortlist,
+        reportPreset: selectedPreset,
+        scope: reportScope
       })
     );
   }
@@ -149,6 +202,9 @@ export function ShortlistReportPanel({
 
         {report ? (
           <div className="report-panel__meta">
+            <span className="status-pill status-pill--accent">
+              Режим: {activePresetDefinition.label}
+            </span>
             <span className="status-pill status-pill--neutral">
               Источник: {report.sourceLabel}
             </span>
@@ -164,6 +220,73 @@ export function ShortlistReportPanel({
 
       {report ? (
         <>
+          <div className="report-controls">
+            <div className="report-controls__preset-picker">
+              <div>
+                <span>Preset отчёта</span>
+                <p>{activePresetDefinition.description}</p>
+              </div>
+
+              <div className="decision-chip-list report-controls__preset-list">
+                {nicheShortlistReportPresets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    aria-pressed={selectedPreset === preset.id}
+                    className={`decision-chip decision-chip--button ${
+                      selectedPreset === preset.id ? "decision-chip--selected" : ""
+                    }`}
+                    onClick={() => handlePresetSelect(preset.id)}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <details className="report-controls__scope">
+              <summary className="report-controls__scope-summary">
+                Что включать в отчёт и export
+              </summary>
+
+              <div className="report-controls__scope-toolbar">
+                <span className="status-pill status-pill--neutral">
+                  Включено секций: {enabledSectionCount}
+                </span>
+                {hasCustomScopeChanges ? (
+                  <button
+                    type="button"
+                    className="editor-button editor-button--ghost"
+                    onClick={() =>
+                      setReportScope(buildReportScopeFromPreset(selectedPreset))
+                    }
+                  >
+                    Вернуть preset
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="report-controls__scope-grid">
+                {nicheShortlistReportScopeToggleDefinitions.map((toggle) => (
+                  <label
+                    key={toggle.key}
+                    className="report-controls__scope-option"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={reportScope[toggle.key]}
+                      onChange={() => handleScopeToggle(toggle.key)}
+                    />
+                    <div>
+                      <strong>{toggle.label}</strong>
+                      <p>{toggle.description}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </details>
+          </div>
+
           <div className="report-panel__actions">
             <button type="button" onClick={() => setIsOpen((current) => !current)}>
               {isOpen ? "Скрыть отчёт" : "Открыть отчёт"}
@@ -192,98 +315,109 @@ export function ShortlistReportPanel({
                   </p>
                 </div>
 
-                <div className="report-view__summary-grid">
-                  <div className="state-box">
-                    <span>Bucket-ов запрошено</span>
-                    <strong>{report.shortlistSummary.totalRequestedBuckets}</strong>
+                {reportScope.includeShortlistSummary ? (
+                  <div className="report-view__summary-grid">
+                    <div className="state-box">
+                      <span>Bucket-ов запрошено</span>
+                      <strong>{report.shortlistSummary.totalRequestedBuckets}</strong>
+                    </div>
+                    <div className="state-box">
+                      <span>Успешно ранжировано</span>
+                      <strong>{report.shortlistSummary.successfullyRankedBuckets}</strong>
+                    </div>
+                    <div className="state-box">
+                      <span>Shortlist size</span>
+                      <strong>{report.shortlistSummary.shortlistSize}</strong>
+                    </div>
+                    <div className="state-box">
+                      <span>Best overall</span>
+                      <strong>{report.shortlistSummary.bestOverall?.label ?? "н/д"}</strong>
+                    </div>
                   </div>
-                  <div className="state-box">
-                    <span>Успешно ранжировано</span>
-                    <strong>{report.shortlistSummary.successfullyRankedBuckets}</strong>
-                  </div>
-                  <div className="state-box">
-                    <span>Shortlist size</span>
-                    <strong>{report.shortlistSummary.shortlistSize}</strong>
-                  </div>
-                  <div className="state-box">
-                    <span>Best overall</span>
-                    <strong>{report.shortlistSummary.bestOverall?.label ?? "н/д"}</strong>
-                  </div>
-                </div>
+                ) : null}
               </div>
 
               <div className="report-view__niches">
-                {report.crossNicheWhitespace ? (
+                {reportScope.includeCrossNicheWhitespace && report.crossNicheWhitespace ? (
                   <CrossNicheWhitespaceComparison
                     comparison={report.crossNicheWhitespace}
                     variant="embedded"
                   />
                 ) : null}
 
-                {report.crossNichePositioning ? (
+                {reportScope.includePositioningRecommendations &&
+                report.crossNichePositioning ? (
                   <CrossNichePositioningRecommendations
                     recommendations={report.crossNichePositioning}
                     variant="embedded"
                   />
                 ) : null}
 
-                {report.crossNichePlaybook ? (
+                {reportScope.includePlaybook && report.crossNichePlaybook ? (
                   <CrossNichePositioningPlaybook
                     playbook={report.crossNichePlaybook}
                     variant="embedded"
                   />
                 ) : null}
 
-                {report.crossNicheRepeatableSeries ? (
+                {reportScope.includeRepeatableContentSeries &&
+                report.crossNicheRepeatableSeries ? (
                   <CrossNicheRepeatableContentSeries
                     series={report.crossNicheRepeatableSeries}
                     variant="embedded"
                   />
                 ) : null}
 
-                {report.crossNicheContentCalendar ? (
+                {reportScope.includeContentCalendarStarter &&
+                report.crossNicheContentCalendar ? (
                   <CrossNicheContentCalendarStarter
                     calendar={report.crossNicheContentCalendar}
                     variant="embedded"
                   />
                 ) : null}
 
-                {report.crossNicheContentCalendarAdaptation ? (
+                {reportScope.includeAdaptationHints &&
+                report.crossNicheContentCalendarAdaptation ? (
                   <CrossNicheContentCalendarAdaptation
                     adaptation={report.crossNicheContentCalendarAdaptation}
                     variant="embedded"
                   />
                 ) : null}
 
-                {report.crossNicheContentRepurposingHints ? (
+                {reportScope.includeRepurposingHints &&
+                report.crossNicheContentRepurposingHints ? (
                   <CrossNicheContentRepurposingHints
                     hints={report.crossNicheContentRepurposingHints}
                     variant="embedded"
                   />
                 ) : null}
 
-                {report.crossNicheFormatExecutionTemplates ? (
+                {reportScope.includeExecutionTemplates &&
+                report.crossNicheFormatExecutionTemplates ? (
                   <CrossNicheFormatExecutionTemplates
                     templates={report.crossNicheFormatExecutionTemplates}
                     variant="embedded"
                   />
                 ) : null}
 
-                {report.crossNicheFormatExampleRewrites ? (
+                {reportScope.includeExampleRewrites &&
+                report.crossNicheFormatExampleRewrites ? (
                   <CrossNicheFormatExampleRewrites
                     rewrites={report.crossNicheFormatExampleRewrites}
                     variant="embedded"
                   />
                 ) : null}
 
-                {report.crossNicheFormatPublishChecklists ? (
+                {reportScope.includePublishChecklists &&
+                report.crossNicheFormatPublishChecklists ? (
                   <CrossNicheFormatPublishChecklists
                     checklists={report.crossNicheFormatPublishChecklists}
                     variant="embedded"
                   />
                 ) : null}
 
-                {report.crossNicheFormatOpeningClosingVariants ? (
+                {reportScope.includeOpeningClosingVariants &&
+                report.crossNicheFormatOpeningClosingVariants ? (
                   <CrossNicheFormatOpeningClosingVariants
                     variants={report.crossNicheFormatOpeningClosingVariants}
                     variant="embedded"
@@ -322,54 +456,58 @@ export function ShortlistReportPanel({
                       </div>
                     </div>
 
-                    <div className="report-niche-card__grid">
-                      <div className="insight-box">
-                        <span>Почему ниша в shortlist</span>
-                        <p>{niche.rankingReason}</p>
-                        <p>{niche.evidenceHighlights.promisingSummary}</p>
-                      </div>
+                    {reportScope.includeNicheEvidence ? (
+                      <div className="report-niche-card__grid">
+                        <div className="insight-box">
+                          <span>Почему ниша в shortlist</span>
+                          <p>{niche.rankingReason}</p>
+                          <p>{niche.evidenceHighlights.promisingSummary}</p>
+                        </div>
 
-                      <div className="insight-box">
-                        <span>Что стоит проверить вручную</span>
-                        <p>{niche.evidenceHighlights.misleadingSummary}</p>
-                        <p>{niche.evidenceHighlights.recommendedNextAction}</p>
-                      </div>
-                    </div>
-
-                    <div className="report-niche-card__grid">
-                      <div className="insight-box">
-                        <span>Контентные архетипы ниши</span>
-                        <p>
-                          {niche.evidenceHighlights.nicheArchetypeSummary ??
-                            "Нишевой archetype summary пока недоступен."}
-                        </p>
-                        <div className="decision-chip-list">
-                          {niche.evidenceHighlights.commonArchetypes.map((archetype) => (
-                            <span
-                              key={`${niche.bucketId}-${archetype.label}`}
-                              className="decision-chip decision-chip--neutral"
-                            >
-                              {archetype.label} · {archetype.accountCount}
-                            </span>
-                          ))}
+                        <div className="insight-box">
+                          <span>Что стоит проверить вручную</span>
+                          <p>{niche.evidenceHighlights.misleadingSummary}</p>
+                          <p>{niche.evidenceHighlights.recommendedNextAction}</p>
                         </div>
                       </div>
+                    ) : null}
 
-                      <div className="insight-box">
-                        <span>Whitespace и идеи позиционирования</span>
-                        <p>
-                          {niche.evidenceHighlights.patternCoverageBalanceSummary ??
-                            "Явной сводки по балансу паттернов пока нет."}
-                        </p>
-                        <ul className="plain-list">
-                          {niche.evidenceHighlights.nichePositioningIdeas
-                            .slice(0, 3)
-                            .map((idea) => (
-                              <li key={`${niche.bucketId}-${idea}`}>{idea}</li>
+                    {reportScope.includeNicheEvidence ? (
+                      <div className="report-niche-card__grid">
+                        <div className="insight-box">
+                          <span>Контентные архетипы ниши</span>
+                          <p>
+                            {niche.evidenceHighlights.nicheArchetypeSummary ??
+                              "Нишевой archetype summary пока недоступен."}
+                          </p>
+                          <div className="decision-chip-list">
+                            {niche.evidenceHighlights.commonArchetypes.map((archetype) => (
+                              <span
+                                key={`${niche.bucketId}-${archetype.label}`}
+                                className="decision-chip decision-chip--neutral"
+                              >
+                                {archetype.label} · {archetype.accountCount}
+                              </span>
                             ))}
-                        </ul>
+                          </div>
+                        </div>
+
+                        <div className="insight-box">
+                          <span>Whitespace и идеи позиционирования</span>
+                          <p>
+                            {niche.evidenceHighlights.patternCoverageBalanceSummary ??
+                              "Явной сводки по балансу паттернов пока нет."}
+                          </p>
+                          <ul className="plain-list">
+                            {niche.evidenceHighlights.nichePositioningIdeas
+                              .slice(0, 3)
+                              .map((idea) => (
+                                <li key={`${niche.bucketId}-${idea}`}>{idea}</li>
+                              ))}
+                          </ul>
+                        </div>
                       </div>
-                    </div>
+                    ) : null}
 
                     <div className="report-niche-card__grid">
                       <div className="insight-box">
@@ -387,20 +525,22 @@ export function ShortlistReportPanel({
                         </ul>
                       </div>
 
-                      <div className="insight-box">
-                        <span>Поддерживающие аккаунты</span>
-                        <ul className="plain-list">
-                          {niche.supportingAccounts.slice(0, 5).map((account) => (
-                            <li
-                              key={`${niche.bucketId}-${account.handle ?? account.displayName ?? account.reason}`}
-                            >
-                              {account.displayName ?? account.handle ?? "Без имени"}:{" "}
-                              итог {formatScore(account.overallAccountScore)}, engagement efficiency{" "}
-                              {formatScore(account.engagementEfficiencyScore)}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                      {reportScope.includeSupportingAccounts ? (
+                        <div className="insight-box">
+                          <span>Поддерживающие аккаунты</span>
+                          <ul className="plain-list">
+                            {niche.supportingAccounts.slice(0, 5).map((account) => (
+                              <li
+                                key={`${niche.bucketId}-${account.handle ?? account.displayName ?? account.reason}`}
+                              >
+                                {account.displayName ?? account.handle ?? "Без имени"}:{" "}
+                                итог {formatScore(account.overallAccountScore)}, engagement efficiency{" "}
+                                {formatScore(account.engagementEfficiencyScore)}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
                     </div>
                   </article>
                 ))}

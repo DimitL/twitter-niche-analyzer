@@ -940,6 +940,83 @@ button {
   gap: 18px;
 }
 
+.report-controls,
+.report-controls__preset-picker,
+.report-controls__scope {
+  display: grid;
+  gap: 14px;
+}
+
+.report-controls {
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(255, 252, 247, 0.74);
+  border: 1px solid rgba(78, 52, 34, 0.12);
+}
+
+.report-controls__preset-picker span,
+.report-controls__scope-option strong {
+  font-size: 0.95rem;
+}
+
+.report-controls__preset-picker p,
+.report-controls__scope-option p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.report-controls__preset-list,
+.report-controls__scope-toolbar {
+  margin: 0;
+}
+
+.report-controls__scope {
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(72, 53, 41, 0.08);
+}
+
+.report-controls__scope-summary {
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+}
+
+.report-controls__scope-summary::-webkit-details-marker {
+  display: none;
+}
+
+.report-controls__scope-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.report-controls__scope-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.report-controls__scope-option {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 252, 247, 0.72);
+  border: 1px solid rgba(72, 53, 41, 0.08);
+}
+
+.report-controls__scope-option input {
+  margin-top: 2px;
+}
+
 .report-panel__header,
 .report-panel__actions,
 .report-view__hero,
@@ -2580,6 +2657,7 @@ button {
   .summary-grid,
   .summary-grid--labels,
   .report-view__summary-grid,
+  .report-controls__scope-grid,
   .cross-niche-whitespace__angles,
   .cross-niche-whitespace__grid,
   .cross-niche-positioning__leaders,
@@ -2668,6 +2746,7 @@ button {
   .preset-library__section-header,
   .preset-card__header,
   .preset-card__actions,
+  .report-controls__scope-toolbar,
   .bucket-editor__header,
   .bucket-card-editor__header,
   .bucket-card-editor__section-header,

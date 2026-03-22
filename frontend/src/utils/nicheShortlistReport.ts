@@ -25,6 +25,14 @@ import type { CrossNicheRepeatableContentSeries } from "./nicheRepeatableContent
 import { buildNicheRepeatableContentSeries } from "./nicheRepeatableContentSeries.js";
 import type { CrossNicheWhitespaceComparison } from "./nicheCrossWhitespace.js";
 import { buildCrossNicheWhitespaceComparison } from "./nicheCrossWhitespace.js";
+import {
+  buildReportScopeFromPreset,
+  getReportPresetDefinition
+} from "./nicheShortlistReportControls.js";
+import type {
+  NicheShortlistReportPresetId,
+  NicheShortlistReportScope
+} from "./nicheShortlistReportControls.js";
 
 export interface NicheShortlistReportModel {
   title: string;
@@ -222,29 +230,40 @@ export function buildNicheShortlistReportModel(options: {
 }
 
 export function buildNicheShortlistMarkdownReport(
-  report: NicheShortlistReportModel
+  report: NicheShortlistReportModel,
+  options?: {
+    scope?: NicheShortlistReportScope;
+    reportPreset?: NicheShortlistReportPresetId;
+  }
 ) {
+  const scope = options?.scope ?? buildReportScopeFromPreset("evidence-heavy");
+  const presetLabel = getReportPresetDefinition(options?.reportPreset ?? "balanced").label;
   const lines: string[] = [
     `# ${report.title}`,
     "",
     `- Сценарий: ${report.scenarioName ?? "Без имени"}`,
     `- Сгенерировано: ${formatGeneratedAt(report.generatedAt)}`,
     `- Источник: ${report.sourceLabel}`,
+    `- Режим отчёта: ${presetLabel}`,
     `- Статус: ${report.status}`,
     "",
-    "## Сводка",
-    "",
-    `- Запрошено bucket-ов: ${report.shortlistSummary.totalRequestedBuckets}`,
-    `- Успешно ранжировано: ${report.shortlistSummary.successfullyRankedBuckets}`,
-    `- Размер shortlist: ${report.shortlistSummary.shortlistSize}`,
-    `- Лучшая ниша overall: ${report.shortlistSummary.bestOverall?.label ?? "н/д"}`,
-    `- Лучшая ниша для роста: ${report.shortlistSummary.bestForGrowth?.label ?? "н/д"}`,
-    `- Лучшая ниша для монетизации: ${report.shortlistSummary.bestForMonetization?.label ?? "н/д"}`,
-    `- Самый простой старт: ${report.shortlistSummary.easiestToStart?.label ?? "н/д"}`,
-    `- Самый сбалансированный вариант: ${report.shortlistSummary.bestBalanced?.label ?? "н/д"}`
+    ...(scope.includeShortlistSummary
+      ? [
+          "## Сводка",
+          "",
+          `- Запрошено bucket-ов: ${report.shortlistSummary.totalRequestedBuckets}`,
+          `- Успешно ранжировано: ${report.shortlistSummary.successfullyRankedBuckets}`,
+          `- Размер shortlist: ${report.shortlistSummary.shortlistSize}`,
+          `- Лучшая ниша overall: ${report.shortlistSummary.bestOverall?.label ?? "н/д"}`,
+          `- Лучшая ниша для роста: ${report.shortlistSummary.bestForGrowth?.label ?? "н/д"}`,
+          `- Лучшая ниша для монетизации: ${report.shortlistSummary.bestForMonetization?.label ?? "н/д"}`,
+          `- Самый простой старт: ${report.shortlistSummary.easiestToStart?.label ?? "н/д"}`,
+          `- Самый сбалансированный вариант: ${report.shortlistSummary.bestBalanced?.label ?? "н/д"}`
+        ]
+      : [])
   ];
 
-  if (report.crossNicheWhitespace) {
+  if (scope.includeCrossNicheWhitespace && report.crossNicheWhitespace) {
     lines.push(
       "",
       "## Межнишевое сравнение whitespace-углов",
@@ -285,7 +304,7 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
-  if (report.crossNichePositioning) {
+  if (scope.includePositioningRecommendations && report.crossNichePositioning) {
     lines.push(
       "",
       "## Рекомендации по входу в нишу",
@@ -324,7 +343,7 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
-  if (report.crossNichePlaybook) {
+  if (scope.includePlaybook && report.crossNichePlaybook) {
     lines.push(
       "",
       "## Практический playbook старта",
@@ -357,7 +376,7 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
-  if (report.crossNicheRepeatableSeries) {
+  if (scope.includeRepeatableContentSeries && report.crossNicheRepeatableSeries) {
     lines.push(
       "",
       "## Повторяемые контент-серии",
@@ -390,7 +409,7 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
-  if (report.crossNicheContentCalendar) {
+  if (scope.includeContentCalendarStarter && report.crossNicheContentCalendar) {
     lines.push(
       "",
       "## 2-недельный content calendar",
@@ -423,7 +442,7 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
-  if (report.crossNicheContentCalendarAdaptation) {
+  if (scope.includeAdaptationHints && report.crossNicheContentCalendarAdaptation) {
     lines.push(
       "",
       "## Адаптация под budget времени",
@@ -456,7 +475,7 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
-  if (report.crossNicheContentRepurposingHints) {
+  if (scope.includeRepurposingHints && report.crossNicheContentRepurposingHints) {
     lines.push(
       "",
       "## Repurposing сильных слотов",
@@ -489,7 +508,7 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
-  if (report.crossNicheFormatExecutionTemplates) {
+  if (scope.includeExecutionTemplates && report.crossNicheFormatExecutionTemplates) {
     lines.push(
       "",
       "## Короткие execution templates",
@@ -522,7 +541,7 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
-  if (report.crossNicheFormatExampleRewrites) {
+  if (scope.includeExampleRewrites && report.crossNicheFormatExampleRewrites) {
     lines.push(
       "",
       "## Example rewrite skeletons",
@@ -555,7 +574,7 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
-  if (report.crossNicheFormatPublishChecklists) {
+  if (scope.includePublishChecklists && report.crossNicheFormatPublishChecklists) {
     lines.push(
       "",
       "## Checklist перед публикацией",
@@ -596,7 +615,7 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
-  if (report.crossNicheFormatOpeningClosingVariants) {
+  if (scope.includeOpeningClosingVariants && report.crossNicheFormatOpeningClosingVariants) {
     lines.push(
       "",
       "## Варианты hook и closing",
@@ -679,27 +698,37 @@ export function buildNicheShortlistMarkdownReport(
       `- Потенциал роста: ${formatScore(niche.topicScores.growthPotential)}`,
       `- Потенциал монетизации: ${formatScore(niche.topicScores.monetizationPotential)}`,
       `- Простота контента: ${formatScore(niche.topicScores.contentEase)}`,
-      `- Надёжность данных: ${formatScore(niche.topicScores.dataConfidence)}`,
-      positioning?.strongestRecommendedAngle
-        ? `- Лучший угол входа: ${positioning.strongestRecommendedAngle.label} (${positioning.strongestRecommendedAngle.score.toFixed(1)})`
-        : "- Лучший угол входа: н/д",
-      "",
-      "### Почему ниша в shortlist",
-      "",
-      niche.rankingReason,
-      "",
-      "### Ключевые доказательства",
-      "",
-      `- Почему перспективно: ${niche.evidenceHighlights.promisingSummary}`,
-      `- Что может исказить вывод: ${niche.evidenceHighlights.misleadingSummary}`,
-      `- Рекомендуемый следующий шаг: ${niche.evidenceHighlights.recommendedNextAction}`,
-      "",
-      "### Как лучше заходить в нишу",
-      "",
-      positioning?.positioningWhyItFits ?? "Позиционирование пока недоступно."
+      `- Надёжность данных: ${formatScore(niche.topicScores.dataConfidence)}`
     );
 
-    if (positioning?.recommendedEntryAngles.length) {
+    if (scope.includePositioningRecommendations) {
+      lines.push(
+        positioning?.strongestRecommendedAngle
+          ? `- Лучший угол входа: ${positioning.strongestRecommendedAngle.label} (${positioning.strongestRecommendedAngle.score.toFixed(1)})`
+          : "- Лучший угол входа: н/д",
+        "",
+        "### Как лучше заходить в нишу",
+        "",
+        positioning?.positioningWhyItFits ?? "Позиционирование пока недоступно."
+      );
+    }
+
+    if (scope.includeNicheEvidence) {
+      lines.push(
+        "",
+        "### Почему ниша в shortlist",
+        "",
+        niche.rankingReason,
+        "",
+        "### Ключевые доказательства",
+        "",
+        `- Почему перспективно: ${niche.evidenceHighlights.promisingSummary}`,
+        `- Что может исказить вывод: ${niche.evidenceHighlights.misleadingSummary}`,
+        `- Рекомендуемый следующий шаг: ${niche.evidenceHighlights.recommendedNextAction}`
+      );
+    }
+
+    if (scope.includePositioningRecommendations && positioning?.recommendedEntryAngles.length) {
       lines.push(
         `- Альтернативные углы входа: ${positioning.recommendedEntryAngles
           .map((angle) => `${angle.label} (${angle.score.toFixed(1)})`)
@@ -707,17 +736,20 @@ export function buildNicheShortlistMarkdownReport(
       );
     }
 
-    if (positioning?.positioningRisks.length) {
+    if (scope.includePositioningRecommendations && positioning?.positioningRisks.length) {
       positioning.positioningRisks.slice(0, 2).forEach((risk) => {
         lines.push(`- Риск: ${risk}`);
       });
     }
 
-    if (positioning?.positioningConfidenceNote) {
+    if (
+      scope.includePositioningRecommendations &&
+      positioning?.positioningConfidenceNote
+    ) {
       lines.push(`- Уровень уверенности: ${positioning.positioningConfidenceNote}`);
     }
 
-    if (playbook) {
+    if (scope.includePlaybook && playbook) {
       lines.push(
         "",
         "### Практический playbook старта",
@@ -755,7 +787,7 @@ export function buildNicheShortlistMarkdownReport(
       }
     }
 
-    if (repeatableSeries) {
+    if (scope.includeRepeatableContentSeries && repeatableSeries) {
       lines.push("", "### Повторяемые контент-серии", "");
 
       repeatableSeries.repeatableContentSeries.forEach((series) => {
@@ -786,7 +818,7 @@ export function buildNicheShortlistMarkdownReport(
       }
     }
 
-    if (contentCalendar) {
+    if (scope.includeContentCalendarStarter && contentCalendar) {
       lines.push(
         "",
         "### 2-недельный content calendar",
@@ -814,7 +846,7 @@ export function buildNicheShortlistMarkdownReport(
       }
     }
 
-    if (calendarAdaptation) {
+    if (scope.includeAdaptationHints && calendarAdaptation) {
       lines.push(
         "",
         "### Адаптация под low / medium / high time mode",
@@ -866,7 +898,7 @@ export function buildNicheShortlistMarkdownReport(
       }
     }
 
-    if (repurposingHints) {
+    if (scope.includeRepurposingHints && repurposingHints) {
       lines.push("", "### Как repurpose-ить сильные слоты", "");
 
       if (repurposingHints.threadCandidates.length > 0) {
@@ -930,7 +962,7 @@ export function buildNicheShortlistMarkdownReport(
       }
     }
 
-    if (formatExecutionTemplates) {
+    if (scope.includeExecutionTemplates && formatExecutionTemplates) {
       const templateEntries = [
         ["Thread", formatExecutionTemplates.formatExecutionTemplates.threadTemplate],
         [
@@ -965,7 +997,7 @@ export function buildNicheShortlistMarkdownReport(
       }
     }
 
-    if (formatExampleRewrites) {
+    if (scope.includeExampleRewrites && formatExampleRewrites) {
       const rewriteEntries = [
         ["Thread", formatExampleRewrites.formatExampleRewrites.threadExample],
         ["Mini-series", formatExampleRewrites.formatExampleRewrites.miniSeriesExample],
@@ -994,7 +1026,7 @@ export function buildNicheShortlistMarkdownReport(
       }
     }
 
-    if (formatPublishChecklists) {
+    if (scope.includePublishChecklists && formatPublishChecklists) {
       const checklistEntries = [
         ["Thread", formatPublishChecklists.formatPublishChecklists.threadChecklist],
         [
@@ -1028,7 +1060,7 @@ export function buildNicheShortlistMarkdownReport(
       }
     }
 
-    if (formatOpeningClosingVariants) {
+    if (scope.includeOpeningClosingVariants && formatOpeningClosingVariants) {
       const variantEntries = [
         ["Thread", formatOpeningClosingVariants.formatOpeningClosingVariants.threadVariants],
         [
@@ -1070,48 +1102,53 @@ export function buildNicheShortlistMarkdownReport(
       }
     }
 
-    lines.push(
-      "",
-      "### Сводка по контентным архетипам",
-      "",
-      `- Сводка: ${niche.evidenceHighlights.nicheArchetypeSummary ?? "Пока недоступно"}`,
-      `- Доминирующие паттерны: ${
-        niche.evidenceHighlights.dominantNichePatterns.length > 0
-          ? niche.evidenceHighlights.dominantNichePatterns
-              .map((pattern) => formatPatternLabel(pattern))
-              .join(", ")
-          : "н/д"
-      }`,
-      `- Повторяющиеся архетипы: ${
-        niche.evidenceHighlights.commonArchetypes.length > 0
-          ? niche.evidenceHighlights.commonArchetypes
-              .map((archetype) => `${archetype.label} (${archetype.accountCount})`)
-              .join(", ")
-          : "н/д"
-      }`,
-      `- Уровень уверенности: ${niche.evidenceHighlights.nicheArchetypeConfidenceNote ?? "н/д"}`,
-      "",
-      "### Whitespace и gaps",
-      "",
-      `- Баланс покрытия: ${niche.evidenceHighlights.patternCoverageBalanceSummary ?? "н/д"}`,
-      `- Недопокрытые паттерны: ${
-        niche.evidenceHighlights.underrepresentedPatterns.length > 0
-          ? niche.evidenceHighlights.underrepresentedPatterns
-              .map((pattern) => formatPatternLabel(pattern))
-              .join(", ")
-          : "н/д"
-      }`,
-      `- Уровень уверенности: ${niche.evidenceHighlights.gapsConfidenceNote ?? "н/д"}`
-    );
+    if (scope.includeNicheEvidence) {
+      lines.push(
+        "",
+        "### Сводка по контентным архетипам",
+        "",
+        `- Сводка: ${niche.evidenceHighlights.nicheArchetypeSummary ?? "Пока недоступно"}`,
+        `- Доминирующие паттерны: ${
+          niche.evidenceHighlights.dominantNichePatterns.length > 0
+            ? niche.evidenceHighlights.dominantNichePatterns
+                .map((pattern) => formatPatternLabel(pattern))
+                .join(", ")
+            : "н/д"
+        }`,
+        `- Повторяющиеся архетипы: ${
+          niche.evidenceHighlights.commonArchetypes.length > 0
+            ? niche.evidenceHighlights.commonArchetypes
+                .map((archetype) => `${archetype.label} (${archetype.accountCount})`)
+                .join(", ")
+            : "н/д"
+        }`,
+        `- Уровень уверенности: ${niche.evidenceHighlights.nicheArchetypeConfidenceNote ?? "н/д"}`,
+        "",
+        "### Whitespace и gaps",
+        "",
+        `- Баланс покрытия: ${niche.evidenceHighlights.patternCoverageBalanceSummary ?? "н/д"}`,
+        `- Недопокрытые паттерны: ${
+          niche.evidenceHighlights.underrepresentedPatterns.length > 0
+            ? niche.evidenceHighlights.underrepresentedPatterns
+                .map((pattern) => formatPatternLabel(pattern))
+                .join(", ")
+            : "н/д"
+        }`,
+        `- Уровень уверенности: ${niche.evidenceHighlights.gapsConfidenceNote ?? "н/д"}`
+      );
+    }
 
-    if (niche.evidenceHighlights.whitespaceHints.length > 0) {
+    if (scope.includeNicheEvidence && niche.evidenceHighlights.whitespaceHints.length > 0) {
       lines.push("", "### Что выглядит недопокрытым", "");
       niche.evidenceHighlights.whitespaceHints.forEach((hint) => {
         lines.push(`- ${hint}`);
       });
     }
 
-    if (niche.evidenceHighlights.nichePositioningIdeas.length > 0) {
+    if (
+      scope.includeNicheEvidence &&
+      niche.evidenceHighlights.nichePositioningIdeas.length > 0
+    ) {
       lines.push("", "### Идеи для позиционирования", "");
       niche.evidenceHighlights.nichePositioningIdeas.forEach((idea) => {
         lines.push(`- ${idea}`);
@@ -1131,7 +1168,7 @@ export function buildNicheShortlistMarkdownReport(
       });
     }
 
-    if (niche.supportingAccounts.length > 0) {
+    if (scope.includeSupportingAccounts && niche.supportingAccounts.length > 0) {
       lines.push("", "### Поддерживающие аккаунты", "");
       niche.supportingAccounts.slice(0, 5).forEach((account) => {
         const displayName = account.displayName ?? account.handle ?? "Без имени";
@@ -1160,10 +1197,77 @@ export function buildNicheShortlistMarkdownReport(
 export function buildNicheShortlistJsonExport(options: {
   report: NicheShortlistReportModel;
   shortlist: NicheShortlistResponse;
+  reportPreset?: NicheShortlistReportPresetId;
+  scope?: NicheShortlistReportScope;
 }) {
+  const scope = options.scope ?? buildReportScopeFromPreset("evidence-heavy");
+  const presetId = options.reportPreset ?? "balanced";
+
   return {
     exportedAt: new Date().toISOString(),
-    report: options.report,
-    shortlistResult: options.shortlist
+    reportPreset: presetId,
+    reportPresetLabel: getReportPresetDefinition(presetId).label,
+    exportScope: scope,
+    report: {
+      title: options.report.title,
+      scenarioName: options.report.scenarioName,
+      generatedAt: options.report.generatedAt,
+      sourceKind: options.report.sourceKind,
+      sourceLabel: options.report.sourceLabel,
+      status: options.report.status,
+      notes: options.report.notes,
+      shortlistSummary: scope.includeShortlistSummary
+        ? options.report.shortlistSummary
+        : null,
+      crossNicheWhitespace: scope.includeCrossNicheWhitespace
+        ? options.report.crossNicheWhitespace
+        : null,
+      crossNichePositioning: scope.includePositioningRecommendations
+        ? options.report.crossNichePositioning
+        : null,
+      crossNichePlaybook: scope.includePlaybook ? options.report.crossNichePlaybook : null,
+      crossNicheRepeatableSeries: scope.includeRepeatableContentSeries
+        ? options.report.crossNicheRepeatableSeries
+        : null,
+      crossNicheContentCalendar: scope.includeContentCalendarStarter
+        ? options.report.crossNicheContentCalendar
+        : null,
+      crossNicheContentCalendarAdaptation: scope.includeAdaptationHints
+        ? options.report.crossNicheContentCalendarAdaptation
+        : null,
+      crossNicheContentRepurposingHints: scope.includeRepurposingHints
+        ? options.report.crossNicheContentRepurposingHints
+        : null,
+      crossNicheFormatExecutionTemplates: scope.includeExecutionTemplates
+        ? options.report.crossNicheFormatExecutionTemplates
+        : null,
+      crossNicheFormatExampleRewrites: scope.includeExampleRewrites
+        ? options.report.crossNicheFormatExampleRewrites
+        : null,
+      crossNicheFormatPublishChecklists: scope.includePublishChecklists
+        ? options.report.crossNicheFormatPublishChecklists
+        : null,
+      crossNicheFormatOpeningClosingVariants: scope.includeOpeningClosingVariants
+        ? options.report.crossNicheFormatOpeningClosingVariants
+        : null,
+      niches: options.report.niches.map((niche) => ({
+        bucketId: niche.bucketId,
+        rank: niche.rank,
+        label: niche.label,
+        description: niche.description,
+        status: niche.status,
+        recommendedUseCase: niche.recommendedUseCase,
+        topicScores: niche.topicScores,
+        strongestAccounts: niche.strongestAccounts.slice(0, 3),
+        rankingReason: scope.includeNicheEvidence ? niche.rankingReason : null,
+        evidenceHighlights: scope.includeNicheEvidence ? niche.evidenceHighlights : null,
+        supportingAccounts: scope.includeSupportingAccounts ? niche.supportingAccounts : []
+      }))
+    },
+    shortlistMeta: {
+      status: options.shortlist.status,
+      requestedBucketCount: options.shortlist.requestedBuckets.length,
+      rankedBucketCount: options.shortlist.rankedBuckets.length
+    }
   };
 }
