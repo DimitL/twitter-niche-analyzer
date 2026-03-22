@@ -22,6 +22,10 @@ import { NicheCard } from "./components/NicheCard.js";
 import { NicheShortlistCard } from "./components/NicheShortlistCard.js";
 import { PresetLibrary } from "./components/PresetLibrary.js";
 import { ShortlistReportPanel } from "./components/ShortlistReportPanel.js";
+import {
+  ShortlistJumpBar,
+  type ShortlistJumpBarSection
+} from "./components/ShortlistJumpBar.js";
 import { ShortlistPayloadPreview } from "./components/ShortlistPayloadPreview.js";
 import { ShortlistScenarioComparison } from "./components/ShortlistScenarioComparison.js";
 import { ShortlistScenarioSwitcher } from "./components/ShortlistScenarioSwitcher.js";
@@ -215,6 +219,8 @@ export default function App() {
   );
   const [shortlistErrorMessage, setShortlistErrorMessage] = useState("");
   const [showShortlistValidation, setShowShortlistValidation] = useState(false);
+  const [activeShortlistSectionId, setActiveShortlistSectionId] =
+    useState<string>("shortlist-workbench");
   const activeScenarioIdRef = useRef(scenarioBootstrap.activeScenarioId);
 
   const currentShortlistValidations = useMemo(
@@ -443,6 +449,36 @@ export default function App() {
       shortlistResult
     ]
   );
+  const shortlistJumpBarSections = useMemo<ShortlistJumpBarSection[]>(
+    () => [
+      {
+        id: "shortlist-workbench",
+        label: "Preset-ы и buckets",
+        enabled: true
+      },
+      {
+        id: "shortlist-overview",
+        label: "Общая картина",
+        enabled: Boolean(shortlistResult)
+      },
+      {
+        id: "shortlist-planning",
+        label: "Content-план",
+        enabled: Boolean(shortlistResult)
+      },
+      {
+        id: "shortlist-niches",
+        label: "Детали по нишам",
+        enabled: Boolean(shortlistResult)
+      },
+      {
+        id: "shortlist-report",
+        label: "Отчёт и export",
+        enabled: true
+      }
+    ],
+    [shortlistResult]
+  );
 
   useEffect(() => {
     void loadHealth();
@@ -502,6 +538,79 @@ export default function App() {
       );
     }
   }, [selectedPresetQuickFit]);
+
+  useEffect(() => {
+    const enabledSections = shortlistJumpBarSections.filter((section) => section.enabled);
+
+    if (enabledSections.some((section) => section.id === activeShortlistSectionId)) {
+      return;
+    }
+
+    setActiveShortlistSectionId(enabledSections[0]?.id ?? "shortlist-workbench");
+  }, [activeShortlistSectionId, shortlistJumpBarSections]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const enabledSections = shortlistJumpBarSections.filter((section) => section.enabled);
+    const sectionElements = enabledSections
+      .map((section) => document.getElementById(section.id))
+      .filter((element): element is HTMLElement => element instanceof HTMLElement);
+
+    if (sectionElements.length === 0) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((left, right) => {
+            if (left.intersectionRatio !== right.intersectionRatio) {
+              return right.intersectionRatio - left.intersectionRatio;
+            }
+
+            return left.boundingClientRect.top - right.boundingClientRect.top;
+          });
+
+        if (visibleEntries.length > 0) {
+          setActiveShortlistSectionId(visibleEntries[0].target.id);
+        }
+      },
+      {
+        rootMargin: "-20% 0px -55% 0px",
+        threshold: [0.2, 0.35, 0.6]
+      }
+    );
+
+    for (const element of sectionElements) {
+      observer.observe(element);
+    }
+
+    return () => observer.disconnect();
+  }, [shortlistJumpBarSections]);
+
+  function handleShortlistJump(sectionId: string) {
+    const section = shortlistJumpBarSections.find((item) => item.id === sectionId);
+
+    if (!section?.enabled) {
+      return;
+    }
+
+    const element = document.getElementById(sectionId);
+
+    if (!element) {
+      return;
+    }
+
+    setActiveShortlistSectionId(sectionId);
+    element.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
 
   async function loadHealth() {
     try {
@@ -928,7 +1037,13 @@ export default function App() {
           </div>
         </section>
 
-        <section className="panel shortlist-panel">
+        <ShortlistJumpBar
+          sections={shortlistJumpBarSections}
+          activeSectionId={activeShortlistSectionId}
+          onJump={handleShortlistJump}
+        />
+
+        <section id="shortlist-workbench" className="panel shortlist-panel jump-target">
           <div className="shortlist-panel__intro">
             <div>
               <p className="eyebrow">Ручной shortlist ниш</p>
@@ -1155,7 +1270,10 @@ export default function App() {
 
         {shortlistResult ? (
           <>
-            <section className="analysis-stage">
+            <section
+              id="shortlist-overview"
+              className="analysis-stage jump-target"
+            >
               <div className="analysis-stage__header">
                 <div>
                   <p className="eyebrow">Шаг 1 из 3</p>
@@ -1189,7 +1307,10 @@ export default function App() {
               ) : null}
             </section>
 
-            <section className="analysis-stage analysis-stage--planning">
+            <section
+              id="shortlist-planning"
+              className="analysis-stage analysis-stage--planning jump-target"
+            >
               <div className="analysis-stage__header">
                 <div>
                   <p className="eyebrow">Шаг 2 из 3</p>
@@ -1263,7 +1384,10 @@ export default function App() {
               ) : null}
             </section>
 
-            <section className="analysis-stage">
+            <section
+              id="shortlist-niches"
+              className="analysis-stage jump-target"
+            >
               <div className="analysis-stage__header">
                 <div>
                   <p className="eyebrow">Шаг 3 из 3</p>
@@ -1295,12 +1419,14 @@ export default function App() {
           </section>
         ) : null}
 
-        <ShortlistReportPanel
-          shortlist={shortlistReportSource.shortlist}
-          scenarioName={activeScenario?.name ?? null}
-          generatedAt={shortlistReportSource.generatedAt}
-          sourceKind={shortlistReportSource.sourceKind}
-        />
+        <section id="shortlist-report" className="jump-target">
+          <ShortlistReportPanel
+            shortlist={shortlistReportSource.shortlist}
+            scenarioName={activeScenario?.name ?? null}
+            generatedAt={shortlistReportSource.generatedAt}
+            sourceKind={shortlistReportSource.sourceKind}
+          />
+        </section>
 
         <section className="panel control-panel">
           <div>
