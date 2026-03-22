@@ -13,9 +13,11 @@ interface PresetLibraryProps {
   recentPresets: NicheShortlistPresetPack[];
   storageNotice: string | null;
   selectedPresetId: string | null;
+  selectedQuickFit: PresetSignalBadgeId | null;
   onPresetReplace: (presetId: string) => void;
   onPresetAppend: (presetId: string) => void;
   onPresetSaveAsScenario: (presetId: string) => void;
+  onQuickFitChange: (nextQuickFit: PresetSignalBadgeId | null) => void;
   onResetEditor: () => void;
 }
 
@@ -210,16 +212,15 @@ export function PresetLibrary({
   recentPresets,
   storageNotice,
   selectedPresetId,
+  selectedQuickFit,
   onPresetReplace,
   onPresetAppend,
   onPresetSaveAsScenario,
+  onQuickFitChange,
   onResetEditor
 }: PresetLibraryProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedQuickFit, setSelectedQuickFit] = useState<PresetSignalBadgeId | null>(
-    null
-  );
   const categoryOptions = useMemo(() => buildCategoryOptions(presets), [presets]);
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const baseFilteredPresets = useMemo(
@@ -292,11 +293,11 @@ export function PresetLibrary({
   function handleResetFilters() {
     setSearchQuery("");
     setSelectedCategory("all");
-    setSelectedQuickFit(null);
+    onQuickFitChange(null);
   }
 
   function handleQuickFitToggle(badgeId: PresetSignalBadgeId) {
-    setSelectedQuickFit((current) => (current === badgeId ? null : badgeId));
+    onQuickFitChange(selectedQuickFit === badgeId ? null : badgeId);
   }
 
   if (presets.length === 0) {
@@ -376,7 +377,7 @@ export function PresetLibrary({
           </span>
           {activeQuickFitBadge ? (
             <span className="status-pill status-pill--accent">
-              Quick-fit: {activeQuickFitBadge.label}
+              Сигнал: {activeQuickFitBadge.label}
             </span>
           ) : null}
           <button
@@ -405,7 +406,7 @@ export function PresetLibrary({
               <button
                 type="button"
                 className="editor-button editor-button--ghost"
-                onClick={() => setSelectedQuickFit(null)}
+                onClick={() => onQuickFitChange(null)}
               >
                 Снять quick-fit
               </button>
@@ -446,7 +447,8 @@ export function PresetLibrary({
           <p>
             Сейчас библиотека показывает packs с сигналом{" "}
             <strong>{activeQuickFitBadge.label}</strong>. Нажмите на тот же badge ещё
-            раз или сбросьте фильтры, чтобы вернуться ко всем preset-ам.
+            раз или сбросьте фильтры, чтобы вернуться ко всем preset-ам. Этот quick-fit
+            запоминается для текущего shortlist workflow.
           </p>
         </div>
       ) : null}

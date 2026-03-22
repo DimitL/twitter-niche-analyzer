@@ -60,6 +60,10 @@ import {
   markPresetAsRecentlyUsed,
   persistRecentPresetIds
 } from "./utils/nicheShortlistPresetRecents.js";
+import {
+  loadPresetQuickFitState,
+  persistPresetQuickFit
+} from "./utils/nicheShortlistPresetQuickFit.js";
 import { buildCrossNichePositioningRecommendations } from "./utils/nicheCrossPositioning.js";
 import { buildNicheContentCalendarAdaptation } from "./utils/nicheContentCalendarAdaptation.js";
 import { buildNicheContentRepurposingHints } from "./utils/nicheContentRepurposingHints.js";
@@ -71,6 +75,7 @@ import { buildNicheFormatExecutionTemplates } from "./utils/nicheFormatExecution
 import { buildNichePositioningPlaybook } from "./utils/nichePositioningPlaybook.js";
 import { buildNicheRepeatableContentSeries } from "./utils/nicheRepeatableContentSeries.js";
 import { buildCrossNicheWhitespaceComparison } from "./utils/nicheCrossWhitespace.js";
+import type { PresetSignalBadgeId } from "./utils/nicheShortlistPresetSignals.js";
 
 const initialRequest: AnalysisRequest = {
   marketHint: "англоязычный tech X",
@@ -172,6 +177,7 @@ export default function App() {
   const [presetRecentsBootstrap] = useState(() =>
     loadPresetRecentsState(nicheShortlistPresetLibrary.map((preset) => preset.presetId))
   );
+  const [presetQuickFitBootstrap] = useState(() => loadPresetQuickFitState());
   const [scenarioBootstrap] = useState(() => loadScenarioBootstrapState());
   const [request, setRequest] = useState<AnalysisRequest>(initialRequest);
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
@@ -179,12 +185,16 @@ export default function App() {
   const [analysisStatus, setAnalysisStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedPresetPackId, setSelectedPresetPackId] = useState<string | null>(null);
+  const [selectedPresetQuickFit, setSelectedPresetQuickFit] =
+    useState<PresetSignalBadgeId | null>(() => presetQuickFitBootstrap.selectedQuickFit);
   const [recentPresetIds, setRecentPresetIds] = useState(
     () => presetRecentsBootstrap.recentPresetIds
   );
-  const [presetStorageNotice, setPresetStorageNotice] = useState<string | null>(
+  const [presetRecentsStorageNotice, setPresetRecentsStorageNotice] = useState<string | null>(
     () => presetRecentsBootstrap.storageNotice
   );
+  const [presetQuickFitStorageNotice, setPresetQuickFitStorageNotice] =
+    useState<string | null>(() => presetQuickFitBootstrap.storageNotice);
   const [shortlistScenarios, setShortlistScenarios] = useState(() => scenarioBootstrap.scenarios);
   const [activeScenarioId, setActiveScenarioId] = useState(() => scenarioBootstrap.activeScenarioId);
   const [comparedScenarioIds, setComparedScenarioIds] = useState<string[]>(() =>
@@ -235,6 +245,13 @@ export default function App() {
         .filter((preset): preset is NicheShortlistPresetPack => preset !== null),
     [recentPresetIds]
   );
+  const presetStorageNotice = useMemo(() => {
+    const notices = [presetRecentsStorageNotice, presetQuickFitStorageNotice].filter(
+      (value): value is string => Boolean(value)
+    );
+
+    return notices.length > 0 ? notices.join(" ") : null;
+  }, [presetQuickFitStorageNotice, presetRecentsStorageNotice]);
   const shortlistReportSource = useMemo(() => {
     if (shortlistResult && shortlistResultScenarioId === activeScenarioId) {
       return {
@@ -463,15 +480,28 @@ export default function App() {
   useEffect(() => {
     try {
       persistRecentPresetIds(recentPresetIds);
-      setPresetStorageNotice((current) =>
+      setPresetRecentsStorageNotice((current) =>
         current?.includes("preset") ? null : current
       );
     } catch {
-      setPresetStorageNotice(
+      setPresetRecentsStorageNotice(
         "Не удалось сохранить recently used preset-ы в localStorage. Можно продолжать работу, но история recent может не сохраниться."
       );
     }
   }, [recentPresetIds]);
+
+  useEffect(() => {
+    try {
+      persistPresetQuickFit(selectedPresetQuickFit);
+      setPresetQuickFitStorageNotice((current) =>
+        current?.includes("quick-fit") ? null : current
+      );
+    } catch {
+      setPresetQuickFitStorageNotice(
+        "Не удалось сохранить активный quick-fit фильтр в localStorage. Можно продолжать работу, но remembered filter может не сохраниться."
+      );
+    }
+  }, [selectedPresetQuickFit]);
 
   async function loadHealth() {
     try {
@@ -931,9 +961,11 @@ export default function App() {
               recentPresets={recentPresets}
               storageNotice={presetStorageNotice}
               selectedPresetId={selectedPresetPackId}
+              selectedQuickFit={selectedPresetQuickFit}
               onPresetReplace={applyPresetReplace}
               onPresetAppend={handlePresetAppend}
               onPresetSaveAsScenario={handlePresetSaveAsScenario}
+              onQuickFitChange={setSelectedPresetQuickFit}
               onResetEditor={resetShortlistEditor}
             />
 
