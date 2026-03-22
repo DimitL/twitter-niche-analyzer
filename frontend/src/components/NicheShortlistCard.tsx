@@ -106,14 +106,39 @@ export function NicheShortlistCard({ bucket }: NicheShortlistCardProps) {
         ))}
       </div>
 
-      <div className="signal-grid">
-        {signalLabels.map((signal) => (
-          <div key={signal.key} className="signal-box">
-            <span>{signal.label}</span>
-            <strong>{formatSignalValue(bucket.topicSignals[signal.key])}</strong>
+      <details className="shortlist-card__details">
+        <summary className="shortlist-card__details-summary">
+          <div>
+            <strong>Raw signals и правило ранжирования</strong>
+            <p>
+              Откройте numeric signals и formula breakdown, если нужно проверить bucket
+              детальнее перед ручным решением.
+            </p>
           </div>
-        ))}
-      </div>
+          <span className="decision-chip decision-chip--neutral">
+            {signalLabels.length} сигналов
+          </span>
+        </summary>
+
+        <div className="shortlist-card__details-content">
+          <div className="signal-grid">
+            {signalLabels.map((signal) => (
+              <div key={signal.key} className="signal-box">
+                <span>{signal.label}</span>
+                <strong>{formatSignalValue(bucket.topicSignals[signal.key])}</strong>
+              </div>
+            ))}
+          </div>
+
+          {bucket.rankingBreakdown ? (
+            <div className="ranking-breakdown-box">
+              <p className="eyebrow">Правило ранжирования</p>
+              <strong>{bucket.rankingBreakdown.rankingScore.toFixed(1)}</strong>
+              <p>{bucket.rankingBreakdown.formula}</p>
+            </div>
+          ) : null}
+        </div>
+      </details>
 
       <div className="pros-cons-grid">
         <div className="insight-box">
@@ -157,14 +182,6 @@ export function NicheShortlistCard({ bucket }: NicheShortlistCardProps) {
             )}
           </div>
         </div>
-
-        {bucket.rankingBreakdown ? (
-          <div className="ranking-breakdown-box">
-            <p className="eyebrow">Правило ранжирования</p>
-            <strong>{bucket.rankingBreakdown.rankingScore.toFixed(1)}</strong>
-            <p>{bucket.rankingBreakdown.formula}</p>
-          </div>
-        ) : null}
       </div>
 
       {bucket.shortlistIncluded ? <NicheEvidencePack bucket={bucket} /> : null}

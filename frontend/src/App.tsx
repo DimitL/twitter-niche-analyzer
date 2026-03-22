@@ -1135,7 +1135,7 @@ export default function App() {
         />
 
         {shortlistErrorMessage ? (
-          <section className="panel state-panel">
+          <section className="panel state-panel state-panel--error">
             <p className="eyebrow">Ошибка запроса</p>
             <h2>Shortlist пока не получен</h2>
             <p className="error-text">{shortlistErrorMessage}</p>
@@ -1143,7 +1143,7 @@ export default function App() {
         ) : null}
 
         {shortlistStatus === "loading" ? (
-          <section className="panel state-panel">
+          <section className="panel state-panel state-panel--loading">
             <p className="eyebrow">Загрузка</p>
             <h2>Backend собирает shortlist</h2>
             <p className="section-copy">
@@ -1155,80 +1155,136 @@ export default function App() {
 
         {shortlistResult ? (
           <>
-            <NicheShortlistSummary shortlist={shortlistResult} />
+            <section className="analysis-stage">
+              <div className="analysis-stage__header">
+                <div>
+                  <p className="eyebrow">Шаг 1 из 3</p>
+                  <h2>Сначала общая картина по shortlist</h2>
+                  <p className="section-copy">
+                    Здесь собраны итоговая сводка по shortlist и межнишевые сигналы,
+                    чтобы сначала понять, какие темы выглядят сильнее и почему.
+                  </p>
+                </div>
 
-            {shortlistCrossWhitespace ? (
-              <CrossNicheWhitespaceComparison comparison={shortlistCrossWhitespace} />
-            ) : null}
+                <div className="decision-chip-list analysis-stage__meta">
+                  <span className="decision-chip">
+                    {shortlistResult.shortlistSummary.shortlistSize} ниши в shortlist
+                  </span>
+                  <span className="decision-chip decision-chip--neutral">
+                    {shortlistResult.rankedBuckets.length} bucket-ов ранжировано
+                  </span>
+                </div>
+              </div>
 
-            {shortlistCrossPositioning ? (
-              <CrossNichePositioningRecommendations
-                recommendations={shortlistCrossPositioning}
-              />
-            ) : null}
+              <NicheShortlistSummary shortlist={shortlistResult} />
 
-            {shortlistPositioningPlaybook ? (
-              <CrossNichePositioningPlaybook
-                playbook={shortlistPositioningPlaybook}
-              />
-            ) : null}
+              {shortlistCrossWhitespace ? (
+                <CrossNicheWhitespaceComparison comparison={shortlistCrossWhitespace} />
+              ) : null}
 
-            {shortlistRepeatableSeries ? (
-              <CrossNicheRepeatableContentSeries
-                series={shortlistRepeatableSeries}
-              />
-            ) : null}
+              {shortlistCrossPositioning ? (
+                <CrossNichePositioningRecommendations
+                  recommendations={shortlistCrossPositioning}
+                />
+              ) : null}
+            </section>
 
-            {shortlistContentCalendar ? (
-              <CrossNicheContentCalendarStarter
-                calendar={shortlistContentCalendar}
-              />
-            ) : null}
+            <section className="analysis-stage analysis-stage--planning">
+              <div className="analysis-stage__header">
+                <div>
+                  <p className="eyebrow">Шаг 2 из 3</p>
+                  <h2>Потом рабочий content-план</h2>
+                  <p className="section-copy">
+                    Этот слой переводит shortlist в практические решения: как заходить в
+                    нишу, что публиковать сначала и как превращать сильные идеи в
+                    повторяемый posting workflow.
+                  </p>
+                </div>
 
-            {shortlistContentCalendarAdaptation ? (
-              <CrossNicheContentCalendarAdaptation
-                adaptation={shortlistContentCalendarAdaptation}
-              />
-            ) : null}
+                <div className="decision-chip-list analysis-stage__meta">
+                  <span className="decision-chip decision-chip--neutral">
+                    От стратегии до post execution
+                  </span>
+                </div>
+              </div>
 
-            {shortlistContentRepurposingHints ? (
-              <CrossNicheContentRepurposingHints
-                hints={shortlistContentRepurposingHints}
-              />
-            ) : null}
+              {shortlistPositioningPlaybook ? (
+                <CrossNichePositioningPlaybook
+                  playbook={shortlistPositioningPlaybook}
+                />
+              ) : null}
 
-            {shortlistFormatExecutionTemplates ? (
-              <CrossNicheFormatExecutionTemplates
-                templates={shortlistFormatExecutionTemplates}
-              />
-            ) : null}
+              {shortlistRepeatableSeries ? (
+                <CrossNicheRepeatableContentSeries
+                  series={shortlistRepeatableSeries}
+                />
+              ) : null}
 
-            {shortlistFormatExampleRewrites ? (
-              <CrossNicheFormatExampleRewrites
-                rewrites={shortlistFormatExampleRewrites}
-              />
-            ) : null}
+              {shortlistContentCalendar ? (
+                <CrossNicheContentCalendarStarter
+                  calendar={shortlistContentCalendar}
+                />
+              ) : null}
 
-            {shortlistFormatPublishChecklists ? (
-              <CrossNicheFormatPublishChecklists
-                checklists={shortlistFormatPublishChecklists}
-              />
-            ) : null}
+              {shortlistContentCalendarAdaptation ? (
+                <CrossNicheContentCalendarAdaptation
+                  adaptation={shortlistContentCalendarAdaptation}
+                />
+              ) : null}
 
-            {shortlistFormatOpeningClosingVariants ? (
-              <CrossNicheFormatOpeningClosingVariants
-                variants={shortlistFormatOpeningClosingVariants}
-              />
-            ) : null}
+              {shortlistContentRepurposingHints ? (
+                <CrossNicheContentRepurposingHints
+                  hints={shortlistContentRepurposingHints}
+                />
+              ) : null}
 
-            <section className="shortlist-results">
-              {shortlistResult.rankedBuckets.map((bucket) => (
-                <NicheShortlistCard key={bucket.bucketId} bucket={bucket} />
-              ))}
+              {shortlistFormatExecutionTemplates ? (
+                <CrossNicheFormatExecutionTemplates
+                  templates={shortlistFormatExecutionTemplates}
+                />
+              ) : null}
+
+              {shortlistFormatExampleRewrites ? (
+                <CrossNicheFormatExampleRewrites
+                  rewrites={shortlistFormatExampleRewrites}
+                />
+              ) : null}
+
+              {shortlistFormatPublishChecklists ? (
+                <CrossNicheFormatPublishChecklists
+                  checklists={shortlistFormatPublishChecklists}
+                />
+              ) : null}
+
+              {shortlistFormatOpeningClosingVariants ? (
+                <CrossNicheFormatOpeningClosingVariants
+                  variants={shortlistFormatOpeningClosingVariants}
+                />
+              ) : null}
+            </section>
+
+            <section className="analysis-stage">
+              <div className="analysis-stage__header">
+                <div>
+                  <p className="eyebrow">Шаг 3 из 3</p>
+                  <h2>Наконец детали по каждой нише</h2>
+                  <p className="section-copy">
+                    После общей картины и content-плана можно перейти к каждому bucket-у:
+                    посмотреть ranking reason, strongest accounts и открыть evidence pack
+                    с supporting accounts и tweet snippets.
+                  </p>
+                </div>
+              </div>
+
+              <section className="shortlist-results">
+                {shortlistResult.rankedBuckets.map((bucket) => (
+                  <NicheShortlistCard key={bucket.bucketId} bucket={bucket} />
+                ))}
+              </section>
             </section>
           </>
         ) : shortlistStatus === "idle" ? (
-          <section className="panel state-panel">
+          <section className="panel state-panel state-panel--empty">
             <p className="eyebrow">Пустое состояние</p>
             <h2>Shortlist появится здесь</h2>
             <p className="section-copy">

@@ -244,6 +244,20 @@ export function ShortlistReportPanel({
               </div>
             </div>
 
+            <div className="report-controls__status">
+              <span className="status-pill status-pill--accent">
+                Режим: {activePresetDefinition.label}
+              </span>
+              <span className="status-pill status-pill--neutral">
+                Секций включено: {enabledSectionCount}
+              </span>
+              <span className="status-pill status-pill--neutral">
+                {hasCustomScopeChanges
+                  ? "Scope настроен вручную"
+                  : "Scope совпадает с preset"}
+              </span>
+            </div>
+
             <details className="report-controls__scope">
               <summary className="report-controls__scope-summary">
                 Что включать в отчёт и export
@@ -288,17 +302,29 @@ export function ShortlistReportPanel({
           </div>
 
           <div className="report-panel__actions">
-            <button type="button" onClick={() => setIsOpen((current) => !current)}>
+            <button
+              type="button"
+              className="editor-button editor-button--accent"
+              onClick={() => setIsOpen((current) => !current)}
+            >
               {isOpen ? "Скрыть отчёт" : "Открыть отчёт"}
             </button>
-            <button type="button" onClick={() => void handleCopyMarkdown()}>
+            <button
+              type="button"
+              className="editor-button editor-button--secondary"
+              onClick={() => void handleCopyMarkdown()}
+            >
               {copyState === "success"
                 ? "Markdown скопирован"
                 : copyState === "error"
                   ? "Не удалось скопировать"
                   : "Скопировать Markdown"}
             </button>
-            <button type="button" onClick={handleDownloadJson}>
+            <button
+              type="button"
+              className="editor-button editor-button--ghost"
+              onClick={handleDownloadJson}
+            >
               Скачать JSON
             </button>
           </div>
