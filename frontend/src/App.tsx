@@ -55,6 +55,11 @@ import {
   restoreFormStateFromSnapshot,
   updateScenarioFromFormState
 } from "./utils/nicheShortlistScenarios.js";
+import {
+  loadPresetRecentsState,
+  markPresetAsRecentlyUsed,
+  persistRecentPresetIds
+} from "./utils/nicheShortlistPresetRecents.js";
 import { buildCrossNichePositioningRecommendations } from "./utils/nicheCrossPositioning.js";
 import { buildNicheContentCalendarAdaptation } from "./utils/nicheContentCalendarAdaptation.js";
 import { buildNicheContentRepurposingHints } from "./utils/nicheContentRepurposingHints.js";
@@ -164,6 +169,9 @@ function buildShortlistRequestPayload(
 }
 
 export default function App() {
+  const [presetRecentsBootstrap] = useState(() =>
+    loadPresetRecentsState(nicheShortlistPresetLibrary.map((preset) => preset.presetId))
+  );
   const [scenarioBootstrap] = useState(() => loadScenarioBootstrapState());
   const [request, setRequest] = useState<AnalysisRequest>(initialRequest);
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
@@ -171,6 +179,12 @@ export default function App() {
   const [analysisStatus, setAnalysisStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedPresetPackId, setSelectedPresetPackId] = useState<string | null>(null);
+  const [recentPresetIds, setRecentPresetIds] = useState(
+    () => presetRecentsBootstrap.recentPresetIds
+  );
+  const [presetStorageNotice, setPresetStorageNotice] = useState<string | null>(
+    () => presetRecentsBootstrap.storageNotice
+  );
   const [shortlistScenarios, setShortlistScenarios] = useState(() => scenarioBootstrap.scenarios);
   const [activeScenarioId, setActiveScenarioId] = useState(() => scenarioBootstrap.activeScenarioId);
   const [comparedScenarioIds, setComparedScenarioIds] = useState<string[]>(() =>
@@ -213,6 +227,13 @@ export default function App() {
   const hasUnsavedScenarioChanges = useMemo(
     () => !areFormStateAndScenarioEqual(shortlistForm, activeScenario),
     [activeScenario, shortlistForm]
+  );
+  const recentPresets = useMemo(
+    () =>
+      recentPresetIds
+        .map((presetId) => resolvePresetById(presetId))
+        .filter((preset): preset is NicheShortlistPresetPack => preset !== null),
+    [recentPresetIds]
   );
   const shortlistReportSource = useMemo(() => {
     if (shortlistResult && shortlistResultScenarioId === activeScenarioId) {
@@ -439,6 +460,19 @@ export default function App() {
     }
   }, [activeScenarioId, shortlistScenarios]);
 
+  useEffect(() => {
+    try {
+      persistRecentPresetIds(recentPresetIds);
+      setPresetStorageNotice((current) =>
+        current?.includes("preset") ? null : current
+      );
+    } catch {
+      setPresetStorageNotice(
+        "Не удалось сохранить recently used preset-ы в localStorage. Можно продолжать работу, но история recent может не сохраниться."
+      );
+    }
+  }, [recentPresetIds]);
+
   async function loadHealth() {
     try {
       await getApiHealth();
@@ -554,6 +588,7 @@ export default function App() {
     }
 
     setSelectedPresetPackId(presetId);
+    setRecentPresetIds((current) => markPresetAsRecentlyUsed(current, presetId));
     setShortlistForm(buildShortlistFormStateFromPreset(preset));
     resetShortlistTransientState();
   }
@@ -572,6 +607,7 @@ export default function App() {
     }
 
     setSelectedPresetPackId(presetId);
+    setRecentPresetIds((current) => markPresetAsRecentlyUsed(current, presetId));
     patchShortlistForm(
       (current) => ({
         ...current,
@@ -602,6 +638,7 @@ export default function App() {
       [nextScenario.scenarioId, ...current].slice(0, maxScenarioCompareCount)
     );
     setSelectedPresetPackId(presetId);
+    setRecentPresetIds((current) => markPresetAsRecentlyUsed(current, presetId));
     setShortlistForm(nextForm);
     resetShortlistTransientState();
   }
@@ -891,6 +928,8 @@ export default function App() {
 
             <PresetLibrary
               presets={nicheShortlistPresetLibrary}
+              recentPresets={recentPresets}
+              storageNotice={presetStorageNotice}
               selectedPresetId={selectedPresetPackId}
               onPresetReplace={applyPresetReplace}
               onPresetAppend={handlePresetAppend}
