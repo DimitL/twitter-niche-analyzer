@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import type { NicheShortlistPresetPack } from "../data/nicheShortlistPresetLibrary.js";
 import {
   buildPresetSignalBadges,
+  buildPresetSignalBadgeSummary,
+  doesPresetMatchSignalBadge,
   findPresetSignalBadgeById
 } from "../utils/nicheShortlistPresetSignals.js";
 import type { PresetSignalBadgeId } from "../utils/nicheShortlistPresetSignals.js";
@@ -220,6 +222,28 @@ export function PresetLibrary({
   );
   const categoryOptions = useMemo(() => buildCategoryOptions(presets), [presets]);
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const baseFilteredPresets = useMemo(
+    () =>
+      presets.filter((preset) => {
+        const matchesCategory =
+          selectedCategory === "all" || preset.category === selectedCategory;
+
+        if (!matchesCategory) {
+          return false;
+        }
+
+        if (!normalizedSearchQuery) {
+          return true;
+        }
+
+        return buildPresetSearchIndex(preset).includes(normalizedSearchQuery);
+      }),
+    [normalizedSearchQuery, presets, selectedCategory]
+  );
+  const quickFitOptions = useMemo(
+    () => buildPresetSignalBadgeSummary(baseFilteredPresets),
+    [baseFilteredPresets]
+  );
   const activeQuickFitBadge = useMemo(() => {
     if (!selectedQuickFit) {
       return null;
@@ -235,31 +259,30 @@ export function PresetLibrary({
 
     return null;
   }, [presets, selectedQuickFit]);
+  const quickFitBarOptions = useMemo(() => {
+    if (!activeQuickFitBadge) {
+      return quickFitOptions;
+    }
+
+    if (quickFitOptions.some((badge) => badge.id === activeQuickFitBadge.id)) {
+      return quickFitOptions;
+    }
+
+    return [
+      {
+        ...activeQuickFitBadge,
+        count: 0
+      },
+      ...quickFitOptions
+    ];
+  }, [activeQuickFitBadge, quickFitOptions]);
   const filteredPresets = useMemo(
     () =>
-      presets.filter((preset) => {
-        const matchesCategory =
-          selectedCategory === "all" || preset.category === selectedCategory;
-
-        if (!matchesCategory) {
-          return false;
-        }
-
-        const matchesQuickFit =
-          !selectedQuickFit ||
-          buildPresetSignalBadges(preset).some((badge) => badge.id === selectedQuickFit);
-
-        if (!matchesQuickFit) {
-          return false;
-        }
-
-        if (!normalizedSearchQuery) {
-          return true;
-        }
-
-        return buildPresetSearchIndex(preset).includes(normalizedSearchQuery);
-      }),
-    [normalizedSearchQuery, presets, selectedCategory, selectedQuickFit]
+      baseFilteredPresets.filter(
+        (preset) =>
+          !selectedQuickFit || doesPresetMatchSignalBadge(preset, selectedQuickFit)
+      ),
+    [baseFilteredPresets, selectedQuickFit]
   );
   const hasActiveFilters =
     normalizedSearchQuery.length > 0 ||
@@ -366,6 +389,56 @@ export function PresetLibrary({
           </button>
         </div>
       </div>
+
+      {quickFitBarOptions.length > 0 ? (
+        <div className="preset-library__quick-fit-bar">
+          <div className="preset-library__section-header preset-library__quick-fit-header">
+            <div>
+              <span>Быстрые сигналы preset-ов</span>
+              <p>
+                Можно заранее сузить библиотеку по типу pack-а, не открывая карточки
+                вручную.
+              </p>
+            </div>
+
+            {selectedQuickFit ? (
+              <button
+                type="button"
+                className="editor-button editor-button--ghost"
+                onClick={() => setSelectedQuickFit(null)}
+              >
+                Снять quick-fit
+              </button>
+            ) : null}
+          </div>
+
+          <div className="decision-chip-list preset-library__quick-fit-list">
+            {quickFitBarOptions.map((badge) => (
+              <button
+                key={`quick-fit-${badge.id}`}
+                type="button"
+                aria-pressed={selectedQuickFit === badge.id}
+                className={`decision-chip ${
+                  badge.tone === "neutral"
+                    ? "decision-chip--neutral"
+                    : badge.tone === "accent"
+                      ? "decision-chip--accent"
+                      : ""
+                } ${selectedQuickFit === badge.id ? "decision-chip--selected" : ""} decision-chip--button`}
+                onClick={() => handleQuickFitToggle(badge.id)}
+                title={
+                  selectedQuickFit === badge.id
+                    ? "Нажмите ещё раз, чтобы снять quick-fit фильтр"
+                    : "Фильтровать preset-ы по этому сигналу"
+                }
+              >
+                <span>{badge.label}</span>
+                <span className="decision-chip__count">{badge.count}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {activeQuickFitBadge ? (
         <div className="state-box preset-library__active-fit">

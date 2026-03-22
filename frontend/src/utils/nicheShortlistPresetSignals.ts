@@ -14,6 +14,19 @@ export interface PresetSignalBadge {
   tone: "positive" | "neutral" | "accent";
 }
 
+export interface PresetSignalBadgeSummary extends PresetSignalBadge {
+  count: number;
+}
+
+export const presetSignalBadgeOrder: PresetSignalBadgeId[] = [
+  "growth-heavy",
+  "monetization-heavy",
+  "content-easy",
+  "research-heavy",
+  "builder-heavy",
+  "commentary-heavy"
+];
+
 function buildPresetKeywordText(preset: NicheShortlistPresetPack) {
   return [
     preset.title,
@@ -52,6 +65,39 @@ export function findPresetSignalBadgeById(
   badgeId: PresetSignalBadgeId
 ) {
   return buildPresetSignalBadges(preset).find((badge) => badge.id === badgeId) ?? null;
+}
+
+export function doesPresetMatchSignalBadge(
+  preset: NicheShortlistPresetPack,
+  badgeId: PresetSignalBadgeId
+) {
+  return buildPresetSignalBadges(preset).some((badge) => badge.id === badgeId);
+}
+
+export function buildPresetSignalBadgeSummary(
+  presets: NicheShortlistPresetPack[]
+): PresetSignalBadgeSummary[] {
+  const summaryMap = new Map<PresetSignalBadgeId, PresetSignalBadgeSummary>();
+
+  for (const preset of presets) {
+    for (const badge of buildPresetSignalBadges(preset)) {
+      const existing = summaryMap.get(badge.id);
+
+      if (existing) {
+        existing.count += 1;
+        continue;
+      }
+
+      summaryMap.set(badge.id, {
+        ...badge,
+        count: 1
+      });
+    }
+  }
+
+  return presetSignalBadgeOrder
+    .map((badgeId) => summaryMap.get(badgeId))
+    .filter((badge): badge is PresetSignalBadgeSummary => Boolean(badge));
 }
 
 export function buildPresetSignalBadges(
