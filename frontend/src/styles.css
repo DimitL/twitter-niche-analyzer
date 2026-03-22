@@ -328,6 +328,21 @@ button {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.preset-card__signals {
+  display: grid;
+  gap: 10px;
+}
+
+.preset-card__signals-label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.preset-card__signals-list {
+  margin: 0;
+}
+
 .preset-card__preview {
   padding: 14px;
   border-radius: 18px;
@@ -1819,6 +1834,11 @@ button {
 .decision-chip--neutral {
   background: rgba(72, 53, 41, 0.08);
   color: var(--muted);
+}
+
+.decision-chip--accent {
+  background: rgba(217, 111, 50, 0.14);
+  color: var(--accent);
 }
 
 .shortlist-card__insight {

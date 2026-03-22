@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { NicheShortlistPresetPack } from "../data/nicheShortlistPresetLibrary.js";
+import { buildPresetSignalBadges } from "../utils/nicheShortlistPresetSignals.js";
 
 interface PresetLibraryProps {
   presets: NicheShortlistPresetPack[];
@@ -64,6 +65,7 @@ function renderPresetCard(options: {
   const { preset, selectedPresetId, variant } = options;
   const previewHandles = buildPresetHandlePreview(preset);
   const totalHandles = countPresetHandles(preset);
+  const signalBadges = buildPresetSignalBadges(preset);
   const cardClassName = `preset-card ${
     selectedPresetId === preset.presetId ? "preset-card--active" : ""
   } ${variant === "recent" ? "preset-card--recent" : ""}`;
@@ -103,6 +105,28 @@ function renderPresetCard(options: {
           <strong>{preset.sortBy}</strong>
         </div>
       </div>
+
+      {signalBadges.length > 0 ? (
+        <div className="preset-card__signals">
+          <span className="preset-card__signals-label">Для чего подходит быстрее всего</span>
+          <div className="decision-chip-list preset-card__signals-list">
+            {signalBadges.map((badge) => (
+              <span
+                key={`${preset.presetId}-${badge.id}`}
+                className={`decision-chip ${
+                  badge.tone === "neutral"
+                    ? "decision-chip--neutral"
+                    : badge.tone === "accent"
+                      ? "decision-chip--accent"
+                      : ""
+                }`}
+              >
+                {badge.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="decision-chip-list">
         {previewHandles.map((handle) => (
