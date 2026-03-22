@@ -11,6 +11,7 @@ import { CrossNicheContentCalendarAdaptation } from "./components/CrossNicheCont
 import { CrossNicheContentCalendarStarter } from "./components/CrossNicheContentCalendarStarter.js";
 import { CrossNicheContentRepurposingHints } from "./components/CrossNicheContentRepurposingHints.js";
 import { CrossNicheFormatExampleRewrites } from "./components/CrossNicheFormatExampleRewrites.js";
+import { CrossNicheFormatOpeningClosingVariants } from "./components/CrossNicheFormatOpeningClosingVariants.js";
 import { CrossNicheFormatPublishChecklists } from "./components/CrossNicheFormatPublishChecklists.js";
 import { CrossNicheFormatExecutionTemplates } from "./components/CrossNicheFormatExecutionTemplates.js";
 import { CrossNichePositioningPlaybook } from "./components/CrossNichePositioningPlaybook.js";
@@ -59,6 +60,7 @@ import { buildNicheContentCalendarAdaptation } from "./utils/nicheContentCalenda
 import { buildNicheContentRepurposingHints } from "./utils/nicheContentRepurposingHints.js";
 import { buildNicheContentCalendarStarter } from "./utils/nicheContentCalendarStarter.js";
 import { buildNicheFormatExampleRewrites } from "./utils/nicheFormatExampleRewrites.js";
+import { buildNicheFormatOpeningClosingVariants } from "./utils/nicheFormatOpeningClosingVariants.js";
 import { buildNicheFormatPublishChecklists } from "./utils/nicheFormatPublishChecklists.js";
 import { buildNicheFormatExecutionTemplates } from "./utils/nicheFormatExecutionTemplates.js";
 import { buildNichePositioningPlaybook } from "./utils/nichePositioningPlaybook.js";
@@ -381,6 +383,25 @@ export default function App() {
       shortlistContentRepurposingHints,
       shortlistFormatExampleRewrites,
       shortlistFormatExecutionTemplates,
+      shortlistResult
+    ]
+  );
+  const shortlistFormatOpeningClosingVariants = useMemo(
+    () =>
+      shortlistResult
+        ? buildNicheFormatOpeningClosingVariants(
+            shortlistResult,
+            shortlistContentRepurposingHints,
+            shortlistFormatExecutionTemplates,
+            shortlistFormatExampleRewrites,
+            shortlistFormatPublishChecklists
+          )
+        : null,
+    [
+      shortlistContentRepurposingHints,
+      shortlistFormatExampleRewrites,
+      shortlistFormatExecutionTemplates,
+      shortlistFormatPublishChecklists,
       shortlistResult
     ]
   );
@@ -1120,6 +1141,12 @@ export default function App() {
             {shortlistFormatPublishChecklists ? (
               <CrossNicheFormatPublishChecklists
                 checklists={shortlistFormatPublishChecklists}
+              />
+            ) : null}
+
+            {shortlistFormatOpeningClosingVariants ? (
+              <CrossNicheFormatOpeningClosingVariants
+                variants={shortlistFormatOpeningClosingVariants}
               />
             ) : null}
 

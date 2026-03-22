@@ -45,6 +45,7 @@
 - first format-specific execution templates слой для коротких практических шаблонов под thread, mini-series continuation, quote-follow-up и recap formats
 - first format-specific example rewrites слой для коротких source-based skeletons под strongest candidate slot в каждом формате
 - first format-to-publish checklist слой для короткого pre-publish pass под thread, mini-series continuation, quote-follow-up и recap formats
+- first format-specific opening/closing variants слой для 2-3 безопасных hook и closing / CTA вариантов под каждый формат
 - first export/report слой для clean report view, Markdown copy и JSON export текущего shortlist или pinned scenario result
 - public X tweet shell diagnostic слой для проверки каркаса страницы одиночного твита
 - public X tweet field extraction слой для безопасного извлечения верхнеуровневых полей одиночного твита
@@ -133,6 +134,7 @@
 │   │   │   ├── CrossNicheContentRepurposingHints.tsx
 │   │   │   ├── CrossNicheFormatExecutionTemplates.tsx
 │   │   │   ├── CrossNicheFormatExampleRewrites.tsx
+│   │   │   ├── CrossNicheFormatOpeningClosingVariants.tsx
 │   │   │   ├── CrossNicheFormatPublishChecklists.tsx
 │   │   │   ├── CrossNicheWhitespaceComparison.tsx
 │   │   │   ├── HandleListEditor.tsx
@@ -160,6 +162,7 @@
 │   │   │   ├── nicheContentRepurposingHints.ts
 │   │   │   ├── nicheFormatExecutionTemplates.ts
 │   │   │   ├── nicheFormatExampleRewrites.ts
+│   │   │   ├── nicheFormatOpeningClosingVariants.ts
 │   │   │   ├── nicheFormatPublishChecklists.ts
 │   │   │   ├── nicheCrossWhitespace.ts
 │   │   │   ├── nicheShortlistReport.ts
@@ -882,6 +885,7 @@ http://localhost:5173
 - появляется format execution templates section: когда использовать формат, из каких блоков строить пост, как открывать его первой строкой и где чаще всего формат распадается
 - появляется format example rewrites section: конкретный source candidate, короткий rewritten opening, 3-5 structure bullets, closing hint, why it fits и caution по каждому формату
 - появляется format publish checklist section: 4-7 быстрых проверок, must-not-forget reminder, avoid warning и when-it-matters note по каждому формату
+- появляется opening/closing variants section: 2-3 безопасных hook-варианта, 2-3 closing / CTA варианта, usage notes и overuse warning по каждому формату
 - появляется export/report panel с clean report view, Markdown copy и JSON export по текущему shortlist или pinned scenario result
 - pinned result snapshot у каждого локального сценария
 - отдельный comparison panel для 2-3 сценариев с lightweight diff по настройкам и последнему shortlist result
@@ -906,6 +910,7 @@ http://localhost:5173
 - format execution templates тоже пока полностью rule-based и строятся поверх repurposing/playbook/calendar outputs, поэтому это рабочие execution scaffolds, а не готовый full-post generator
 - format example rewrites тоже пока полностью rule-based и строятся поверх templates + repurposing candidates, поэтому это rewrite skeletons для ручной доработки, а не автоматически готовые финальные посты
 - format publish checklists тоже пока полностью rule-based и строятся поверх templates + example rewrites, поэтому это practical pre-publish reminders, а не полноценная editorial QA system
+- opening/closing variants тоже пока полностью rule-based и строятся поверх templates + rewrites + checklists, поэтому это safe assembly options для ручной сборки поста, а не автоматический hook/CTA generator
 - UI ещё не умеет автоматически находить topics
 - текущий frontend только визуализирует existing backend shortlist route и не меняет scoring model
 - если bucket дал меньше 10 usable supporting accounts, UI честно покажет только доступный roster без искусственного заполнения

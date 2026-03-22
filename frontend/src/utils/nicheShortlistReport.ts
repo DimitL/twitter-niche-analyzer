@@ -15,6 +15,8 @@ import type { CrossNicheFormatExampleRewrites } from "./nicheFormatExampleRewrit
 import { buildNicheFormatExampleRewrites } from "./nicheFormatExampleRewrites.js";
 import type { CrossNicheFormatPublishChecklists } from "./nicheFormatPublishChecklists.js";
 import { buildNicheFormatPublishChecklists } from "./nicheFormatPublishChecklists.js";
+import type { CrossNicheFormatOpeningClosingVariants } from "./nicheFormatOpeningClosingVariants.js";
+import { buildNicheFormatOpeningClosingVariants } from "./nicheFormatOpeningClosingVariants.js";
 import type { CrossNichePositioningPlaybook } from "./nichePositioningPlaybook.js";
 import { buildNichePositioningPlaybook } from "./nichePositioningPlaybook.js";
 import type { CrossNicheContentCalendarStarter } from "./nicheContentCalendarStarter.js";
@@ -43,6 +45,7 @@ export interface NicheShortlistReportModel {
   crossNicheFormatExecutionTemplates: CrossNicheFormatExecutionTemplates | null;
   crossNicheFormatExampleRewrites: CrossNicheFormatExampleRewrites | null;
   crossNicheFormatPublishChecklists: CrossNicheFormatPublishChecklists | null;
+  crossNicheFormatOpeningClosingVariants: CrossNicheFormatOpeningClosingVariants | null;
   niches: NicheShortlistReportNiche[];
 }
 
@@ -169,6 +172,14 @@ export function buildNicheShortlistReportModel(options: {
     crossNicheFormatExecutionTemplates,
     crossNicheFormatExampleRewrites
   );
+  const crossNicheFormatOpeningClosingVariants =
+    buildNicheFormatOpeningClosingVariants(
+      options.shortlist,
+      crossNicheContentRepurposingHints,
+      crossNicheFormatExecutionTemplates,
+      crossNicheFormatExampleRewrites,
+      crossNicheFormatPublishChecklists
+    );
   const niches = options.shortlist.rankedBuckets.map((bucket) => ({
     bucketId: bucket.bucketId,
     rank: bucket.rank,
@@ -205,6 +216,7 @@ export function buildNicheShortlistReportModel(options: {
     crossNicheFormatExecutionTemplates,
     crossNicheFormatExampleRewrites,
     crossNicheFormatPublishChecklists,
+    crossNicheFormatOpeningClosingVariants,
     niches
   };
 }
@@ -584,6 +596,44 @@ export function buildNicheShortlistMarkdownReport(
     }
   }
 
+  if (report.crossNicheFormatOpeningClosingVariants) {
+    lines.push(
+      "",
+      "## Варианты hook и closing",
+      "",
+      report.crossNicheFormatOpeningClosingVariants.variantsSummary
+    );
+
+    if (report.crossNicheFormatOpeningClosingVariants.summary.nicheWithClearestSafeHooks) {
+      lines.push(
+        `- Где безопасные hooks читаются яснее: ${report.crossNicheFormatOpeningClosingVariants.summary.nicheWithClearestSafeHooks.bucketLabel}`
+      );
+    }
+
+    if (
+      report.crossNicheFormatOpeningClosingVariants.summary
+        .nicheWithStrongestCtaReplyLoopPotential
+    ) {
+      lines.push(
+        `- Где сильнее CTA и follow-up потенциал: ${report.crossNicheFormatOpeningClosingVariants.summary.nicheWithStrongestCtaReplyLoopPotential.bucketLabel}`
+      );
+    }
+
+    if (
+      report.crossNicheFormatOpeningClosingVariants.summary.nicheWhereHooksNeedMostRestraint
+    ) {
+      lines.push(
+        `- Где hooks важнее сильнее сдерживать: ${report.crossNicheFormatOpeningClosingVariants.summary.nicheWhereHooksNeedMostRestraint.bucketLabel}`
+      );
+    }
+
+    if (report.crossNicheFormatOpeningClosingVariants.globalConfidenceNote) {
+      lines.push(
+        `- Ограничение уверенности: ${report.crossNicheFormatOpeningClosingVariants.globalConfidenceNote}`
+      );
+    }
+  }
+
   report.niches.forEach((niche, index) => {
     const positioning = report.crossNichePositioning?.perBucketRecommendations.find(
       (item) => item.bucketId === niche.bucketId
@@ -611,6 +661,10 @@ export function buildNicheShortlistMarkdownReport(
     );
     const formatPublishChecklists =
       report.crossNicheFormatPublishChecklists?.perBucketChecklists.find(
+        (item) => item.bucketId === niche.bucketId
+      );
+    const formatOpeningClosingVariants =
+      report.crossNicheFormatOpeningClosingVariants?.perBucketVariants.find(
         (item) => item.bucketId === niche.bucketId
       );
 
@@ -970,6 +1024,48 @@ export function buildNicheShortlistMarkdownReport(
       if (formatPublishChecklists.checklistConfidenceNote) {
         lines.push(
           `- Ограничение уверенности по checklist: ${formatPublishChecklists.checklistConfidenceNote}`
+        );
+      }
+    }
+
+    if (formatOpeningClosingVariants) {
+      const variantEntries = [
+        ["Thread", formatOpeningClosingVariants.formatOpeningClosingVariants.threadVariants],
+        [
+          "Mini-series",
+          formatOpeningClosingVariants.formatOpeningClosingVariants.miniSeriesVariants
+        ],
+        [
+          "Quote-follow-up",
+          formatOpeningClosingVariants.formatOpeningClosingVariants.quoteFollowUpVariants
+        ],
+        ["Recap / summary", formatOpeningClosingVariants.formatOpeningClosingVariants.recapVariants]
+      ] as const;
+
+      lines.push("", "### Hook и closing варианты для ручной сборки", "");
+
+      variantEntries.forEach(([label, variants]) => {
+        lines.push(`- ${label}:`);
+        lines.push(
+          `  Хуки: ${variants.openingVariants
+            .map((item) => `${item.text} — ${item.fitBestWhen}`)
+            .join(" | ")}`
+        );
+        lines.push(
+          `  Closing / CTA: ${variants.closingVariants
+            .map((item) => `${item.text} — ${item.fitBestWhen}`)
+            .join(" | ")}`
+        );
+        lines.push(`  Когда использовать: ${variants.usageNotes.join(" | ")}`);
+
+        if (variants.overuseWarning) {
+          lines.push(`  Не переусердствовать так: ${variants.overuseWarning}`);
+        }
+      });
+
+      if (formatOpeningClosingVariants.variantsConfidenceNote) {
+        lines.push(
+          `- Ограничение уверенности по hook / CTA variants: ${formatOpeningClosingVariants.variantsConfidenceNote}`
         );
       }
     }
